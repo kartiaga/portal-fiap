@@ -1,0 +1,22 @@
+{
+  "name": "portal-fiap",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fastify": "5.8.5",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.3",
+    "tsup": "8.5.1",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3"
+  }
+}
