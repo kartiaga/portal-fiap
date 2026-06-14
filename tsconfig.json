@@ -11,7 +11,9 @@
       "moduleResolution": "bundler",
       "target": "ESNext",
       "types": ["node"],
+      "esModuleInterop": true,
       "baseUrl": "./",
+      "ignoreDeprecations": "6.0",
       "paths": {
         "@/*": ["./src/*"]
       },
@@ -45,6 +47,7 @@
       "noUncheckedSideEffectImports": true,
       "moduleDetection": "force",
       "skipLibCheck": true,
-    }
+    },
+    "include": ["src/**/*"]
   }
   

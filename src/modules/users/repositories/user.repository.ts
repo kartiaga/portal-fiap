@@ -9,4 +9,12 @@ export class UserRepository {
         )
         return result?.rows[0]
     }
+
+    public async findByEmail(email: string): Promise<User | undefined> {
+        const result = await database.clienteInstance?.query(
+            `SELECT * FROM users WHERE email = $1`,
+            [email]
+        )
+        return result?.rows[0]
+    }
 }

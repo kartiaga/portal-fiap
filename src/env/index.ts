@@ -9,6 +9,7 @@ export const envSchema = z.object({
     POSTGRES_PORT: z.coerce.number(),
     POSTGRES_USER: z.string(),
     POSTGRES_PASSWORD: z.coerce.string(),
+    JWT_SECRET: z.string().min(32),
 })
 
 const _env = envSchema.safeParse(process.env)
