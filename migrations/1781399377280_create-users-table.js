@@ -9,31 +9,38 @@ export const shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
+    pgm.createType("user_role", ["STUDENT", "TEACHER", "ADMIN"])
+
     pgm.createTable("users", {
-      id: {
-        type: "uuid",
-        primaryKey: true,
-        default: pgm.func("gen_random_uuid()"),
-      },
-      email: {
-        type: "varchar(255)",
-        notNull: true,
-        unique: true,
-      },
-      password: {
-        type: "varchar(255)",
-        notNull: true,
-      },
-      created_at: {
-        type: "timestamptz",
-        notNull: true,
-        default: pgm.func("now()"),
-      },
-      updated_at: {
-        type: "timestamptz",
-        notNull: true,
-        default: pgm.func("now()"),
-      },
+        id: {
+            type: "uuid",
+            primaryKey: true,
+            default: pgm.func("gen_random_uuid()"),
+        },
+        email: {
+            type: "varchar(255)",
+            notNull: true,
+            unique: true,
+        },
+        password: {
+            type: "varchar(255)",
+            notNull: true,
+        },
+        role: {
+            type: "user_role",
+            notNull: true,
+            default: "STUDENT",
+        },
+        created_at: {
+            type: "timestamptz",
+            notNull: true,
+            default: pgm.func("now()"),
+        },
+        updated_at: {
+            type: "timestamptz",
+            notNull: true,
+            default: pgm.func("now()"),
+        },
     });
   };
 
@@ -44,4 +51,5 @@ export const up = (pgm) => {
  */
 export const down = (pgm) => {
     pgm.dropTable("users")
+    pgm.dropType("user_role")
 };
