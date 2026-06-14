@@ -2,17 +2,20 @@ import { createUserSchema } from "@/modules/users/dto/create-user.dto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { CreateUserUseCase } from "../../use-cases/create-user.use-case";
 import { UserRepository } from "../../repositories/user.repository";
+import { ProfileRepository } from "@/modules/profiles/repositories/profile.repository";
 
 export async function create(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const { email, password, role } = createUserSchema.parse(request.body)
+    const { email, password, name, role } = createUserSchema.parse(request.body)
 
     try {
         const userRepository = new UserRepository()
-        const createUserUseCase = new CreateUserUseCase(userRepository)
+        const profileRepository = new ProfileRepository()
+        const createUserUseCase = new CreateUserUseCase(userRepository, profileRepository)
 
         await createUserUseCase.handler({
             email,
             password,
+            name,
             role,
         })
 
