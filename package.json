@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "start": "node build/server.cjs",
+    "build": "tsup src --out-dir build",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
