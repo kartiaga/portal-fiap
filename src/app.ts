@@ -9,6 +9,9 @@ export const app = fastify();
 
 await app.register(fastifyJwt, {
     secret: env.JWT_SECRET,
+    sign: {
+        expiresIn: "15d"
+    }
 })
 
 await registerUsersModule(app)
