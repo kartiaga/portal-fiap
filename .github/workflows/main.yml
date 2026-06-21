@@ -1,0 +1,31 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build and Push Docker Image
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ]; then
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+            docker build -t "$DOCKER_USERNAME/portal-fiap:latest" --build-arg DATABASE_URL="$DATABASE_URL" .
+            docker push "$DOCKER_USERNAME/portal-fiap:latest"
+          else
+            echo "No Docker credentials provided — building only for local test"
+            docker build -t "portal-fiap:local-test" --build-arg DATABASE_URL="$DATABASE_URL" .
+          fi
