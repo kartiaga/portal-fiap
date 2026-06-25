@@ -174,6 +174,16 @@ JWT_SECRET=sua-chave-secreta-com-pelo-menos-32-caracteres
 npm run migrate:up
 ```
 
+### 5.1. Popular (seed) o banco de dados
+
+Após aplicar as migrations, você pode popular o banco com dados de desenvolvimento executando o script de seed:
+
+```bash
+npm run seed
+```
+
+O comando insere usuários de exemplo, perfis e várias publicações para facilitar testes e desenvolvimento.
+
 ### 6. Iniciar a aplicação
 
 ```bash
@@ -199,6 +209,7 @@ A API estará disponível em `http://localhost:3000`.
 | `npm run migrate:create` | Cria uma nova migration |
 | `npm run lint` | Executa o ESLint |
 | `npm run lint:fix` | Corrige problemas de lint automaticamente |
+| `npm run seed` | Popula o banco com dados de desenvolvimento (users, profiles, posts) |
 
 ## API — Endpoints implementados
 
