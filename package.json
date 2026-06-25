@@ -13,6 +13,7 @@
     "migrate:create": "node-pg-migrate create -m migrations",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "seed": "ts-node ./scripts/seed.ts",
     "test": "jest --config jest.config.cjs"
   },
   "keywords": [],
