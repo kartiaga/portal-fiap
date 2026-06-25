@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { authenticate } from '@/lib/auth'
 import { create } from './controller/create'
 import { getPostById } from './controller/get_by_id'
+import { get } from './controller/get_all'
 import { requireTeacherOrAdmin } from '@/lib/authorization'
 
 export async function postsRoutes(app: FastifyInstance) {
@@ -11,4 +12,5 @@ export async function postsRoutes(app: FastifyInstance) {
         create,
     )
     app.get('/posts/:id', getPostById)
+    app.get('/posts', { preHandler: [authenticate] }, get)
 }
