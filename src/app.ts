@@ -14,6 +14,35 @@ await app.register(fastifyJwt, {
     }
 })
 
+// OpenAPI / Swagger
+await app.register(import('@fastify/swagger'), {
+    mode: 'dynamic',
+    openapi: {
+        info: {
+            title: 'Portal FIAP API',
+            description: 'API para desenvolvimento do Tech Challenge 2 — Fase 2 (FIAP)',
+            version: '1.0.0',
+        },
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                },
+            },
+        },
+        security: [{ bearerAuth: [] }],
+    },
+})
+
+await app.register(import('@fastify/swagger-ui'), {
+    routePrefix: '/docs',
+    uiConfig: {
+        docExpansion: 'list',
+    },
+})
+
 await registerUsersModule(app)
 await registerAuthModule(app)
 await registerPostsModule(app)

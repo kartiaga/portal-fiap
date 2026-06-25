@@ -187,6 +187,40 @@ npm start
 
 A API estará disponível em `http://localhost:3000`.
 
+## API Documentation (Swagger / OpenAPI)
+
+The project includes an OpenAPI (Swagger) documentation UI powered by `@fastify/swagger` and `@fastify/swagger-ui`.
+
+- Start the server in development mode:
+
+```bash
+npm run dev
+```
+
+- Open the UI in your browser:
+
+```
+http://localhost:3000/docs
+```
+
+- Raw OpenAPI JSON is available at:
+
+```
+http://localhost:3000/documentation/json
+```
+
+- To call protected endpoints like `POST /posts`, first obtain a JWT via `POST /login`, then use Swagger's Authorize button to set the bearer token:
+  1. Execute `POST /login` with credentials.
+  2. Copy the returned `token` value.
+  3. Click **Authorize** in Swagger UI.
+  4. Enter `Bearer <token>` and submit.
+  5. Now execute `POST /posts` with body data.
+
+Notes:
+- The UI reflects route schemas registered with Fastify. To have full request/response schemas shown, add a `schema` object to your route definitions (or convert your Zod schemas to JSON Schema and attach them to the route). Libraries such as `zod-to-json-schema` can help convert Zod definitions.
+- By default the documentation is exposed on the running app — be cautious about exposing it in production. You can conditionally register the plugins in `src/app.ts` using `env.NODE_ENV`.
+- If you add or change route schemas, restart the server to update the generated OpenAPI spec.
+
 ## Scripts disponíveis
 
 | Script | Descrição |
