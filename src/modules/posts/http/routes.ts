@@ -10,5 +10,5 @@ export async function postsRoutes(app: FastifyInstance) {
         { preHandler: [authenticate, requireTeacherOrAdmin] },
         create,
     )
-    app.get('/posts', get)
+    app.get('/posts', { preHandler: [authenticate] }, get)
 }

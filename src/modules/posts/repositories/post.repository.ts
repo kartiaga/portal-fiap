@@ -1,6 +1,15 @@
 import { database } from '@/lib/db'
 import type { Post } from '../entities/post'
 
+interface PostRow {
+    id: string;
+    title: string;
+    content: string;
+    author_id: string;
+    created_at: Date;
+    updated_at: Date;
+}
+
 export class PostRepository {
     public async create({
         title,
@@ -32,7 +41,7 @@ export class PostRepository {
 
         const rows = result?.rows ?? []
 
-        return rows.map((row: any) => ({
+        return rows.map((row: PostRow) => ({
             id: row.id,
             title: row.title,
             content: row.content,
