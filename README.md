@@ -174,17 +174,25 @@ JWT_SECRET=sua-chave-secreta-com-pelo-menos-32-caracteres
 npm run migrate:up
 ```
 
-### 5.1. Popular (seed) o banco de dados
+### 6. Criar contas iniciais (seed)
 
-Após aplicar as migrations, você pode popular o banco com dados de desenvolvimento executando o script de seed:
+Após aplicar as migrations, execute o script de seed para criar as três contas padrão de desenvolvimento:
 
 ```bash
 npm run seed
 ```
 
-O comando insere usuários de exemplo, perfis e várias publicações para facilitar testes e desenvolvimento.
+O script `scripts/seed.ts` insere **somente** registros na tabela `users`. Ele não cria perfis nem postagens.
 
-### 6. Iniciar a aplicação
+| E-mail | Senha | Papel |
+|---|---|---|
+| `admin@fiap.com.br` | `12345678` | `ADMIN` |
+| `student@fiap.com.br` | `12345678` | `STUDENT` |
+| `teacher@fiap.com.br` | `12345678` | `TEACHER` |
+
+O comando é idempotente: se as contas já existirem, nada é alterado. Pode ser executado mais de uma vez sem duplicar usuários.
+
+### 7. Iniciar a aplicação
 
 ```bash
 # Desenvolvimento (com hot reload)
@@ -196,6 +204,43 @@ npm start
 ```
 
 A API estará disponível em `http://localhost:3000`.
+
+### 8. Testar a aplicação
+
+Com o servidor rodando, autentique-se com uma das contas criadas pelo seed:
+
+```bash
+curl -X POST http://localhost:3000/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"teacher@fiap.com.br","password":"12345678"}'
+```
+
+A resposta inclui um `token` JWT e os dados do usuário. Use o token nas rotas protegidas:
+
+```bash
+# Criar um post (TEACHER ou ADMIN)
+curl -X POST http://localhost:3000/posts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"title":"Primeira aula","content":"Conteúdo da publicação com pelo menos 10 caracteres."}'
+
+# Criar um usuário (somente ADMIN)
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"email":"novo@fiap.com.br","password":"12345678","name":"Novo Aluno","role":"STUDENT"}'
+```
+
+**Resumo do fluxo completo (do zero):**
+
+```bash
+npm install
+docker compose up -d
+cp .env.example .env   # ajuste JWT_SECRET se necessário
+npm run migrate:up
+npm run seed
+npm run dev
+```
 
 ## Scripts disponíveis
 
@@ -209,7 +254,7 @@ A API estará disponível em `http://localhost:3000`.
 | `npm run migrate:create` | Cria uma nova migration |
 | `npm run lint` | Executa o ESLint |
 | `npm run lint:fix` | Corrige problemas de lint automaticamente |
-| `npm run seed` | Popula o banco com dados de desenvolvimento (users, profiles, posts) |
+| `npm run seed` | Cria as 3 contas padrão de desenvolvimento na tabela `users` |
 
 ## API — Endpoints implementados
 
@@ -221,8 +266,8 @@ Autentica um usuário e retorna um token JWT (validade de 15 dias).
 
 ```json
 {
-  "email": "usuario@email.com",
-  "password": "senha1234"
+  "email": "student@fiap.com.br",
+  "password": "12345678"
 }
 ```
 
@@ -233,11 +278,13 @@ Autentica um usuário e retorna um token JWT (validade de 15 dias).
   "token": "eyJhbGciOiJIUzI1NiIs...",
   "user": {
     "id": "uuid",
-    "email": "usuario@email.com",
+    "email": "student@fiap.com.br",
     "role": "STUDENT"
   }
 }
 ```
+
+> Use as contas criadas por `npm run seed` (`admin@fiap.com.br`, `student@fiap.com.br`, `teacher@fiap.com.br`), todas com senha `12345678`.
 
 ---
 
