@@ -75,6 +75,23 @@ export class PostRepository {
         }
     }
 
+    public async delete(id: string): Promise<Post | undefined> {
+        const result = await database.clienteInstance?.query(
+            `DELETE FROM posts WHERE id = $1 RETURNING *`,
+            [id],
+        )
+        const row = result?.rows[0]
+        if (!row) return undefined
+        return {
+            id: row.id,
+            title: row.title,
+            content: row.content,
+            authorId: row.authorId,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt
+        }
+    }
+
     public async findAll(): Promise<Post[]> {
         const result = await database.clienteInstance?.query(
             `SELECT * FROM posts ORDER BY created_at DESC`,
