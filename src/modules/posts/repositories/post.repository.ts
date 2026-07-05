@@ -86,9 +86,9 @@ export class PostRepository {
             id: row.id,
             title: row.title,
             content: row.content,
-            authorId: row.authorId,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt
+            authorId: row.author_id,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
         }
     }
 
