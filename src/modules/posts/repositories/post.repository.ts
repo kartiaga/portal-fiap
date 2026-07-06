@@ -89,6 +89,14 @@ export class PostRepository {
 
         const rows = result?.rows ?? []
         return rows.map((row: PostRow) => ({
+    public async delete(id: string): Promise<Post | undefined> {
+        const result = await database.clienteInstance?.query(
+            `DELETE FROM posts WHERE id = $1 RETURNING *`,
+            [id],
+        )
+        const row = result?.rows[0]
+        if (!row) return undefined
+        return {
             id: row.id,
             title: row.title,
             content: row.content,
@@ -96,6 +104,7 @@ export class PostRepository {
             createdAt: row.created_at,
             updatedAt: row.updated_at,
         }))
+        }
     }
 
     public async findAll(): Promise<Post[]> {
