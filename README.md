@@ -174,6 +174,32 @@ JWT_SECRET=sua-chave-secreta-com-pelo-menos-32-caracteres
 npm run migrate:up
 ```
 
+## CI / GitHub Actions
+
+Para que o workflow de CI construa (e opcionalmente publique) a imagem Docker, adicione os seguintes Secrets no repositório (Settings → Secrets and variables → Actions):
+
+- `DOCKER_USERNAME` — seu usuário no Docker Hub
+- `DOCKER_PASSWORD` — token de acesso do Docker Hub (recomendado) ou senha
+- `DATABASE_URL` — connection string para as migrations (ou forneça `POSTGRES_*` separados se preferir)
+
+Como criar um Docker Hub token:
+
+1. Acesse https://hub.docker.com → Account → Security → New Access Token
+2. Copie o token e salve em `DOCKER_PASSWORD` (use `DOCKER_USERNAME` com seu usuário)
+
+Adicionar secrets via `gh` (opcional):
+
+```bash
+gh secret set DOCKER_USERNAME -b"<seu_usuario>" --repo OWNER/REPO
+gh secret set DOCKER_PASSWORD -b"<seu_token>" --repo OWNER/REPO
+gh secret set DATABASE_URL -b"postgres://user:pass@host:5432/db" --repo OWNER/REPO
+```
+
+Notas de segurança:
+- Nunca commit seu `.env` no repositório.
+- Prefira tokens com privilégios mínimos e rotação periódica.
+
+
 ### 6. Iniciar a aplicação
 
 ```bash
