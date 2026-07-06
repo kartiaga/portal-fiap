@@ -5,6 +5,7 @@ import { update } from './controller/update'
 import { getPostById } from './controller/get_by_id'
 import { get } from './controller/get_all'
 import { requireTeacherOrAdmin } from '@/lib/authorization'
+import { search } from './controller/search'
 import { remove } from './controller/delete'
 
 export async function postsRoutes(app: FastifyInstance) {
@@ -50,6 +51,12 @@ export async function postsRoutes(app: FastifyInstance) {
             },
         },
     }, create)
+    
+    app.get(
+        '/posts/search',
+        { preHandler: [authenticate] },
+        search)
+
     app.put(
         '/posts/:id',
         { preHandler: [authenticate, requireTeacherOrAdmin] },

@@ -10,7 +10,7 @@
       "module": "ESNext",
       "moduleResolution": "bundler",
       "target": "ESNext",
-      "types": ["node"],
+      "types": ["node", "jest"],
       "esModuleInterop": true,
       "baseUrl": "./",
       "ignoreDeprecations": "6.0",
