@@ -75,6 +75,38 @@ export class PostRepository {
         }
     }
 
+    public async search(term: string): Promise<Post[]> {
+        const result = await database.clienteInstance?.query(
+            `
+            SELECT *
+            FROM posts
+            WHERE title ILIKE $1
+                OR content ILIKE $1
+                ORDER BY created_at DESC
+                `,
+            [`%${term}%`],
+        )
+
+        const rows = result?.rows ?? []
+        return rows.map((row: PostRow) => ({
+    public async delete(id: string): Promise<Post | undefined> {
+        const result = await database.clienteInstance?.query(
+            `DELETE FROM posts WHERE id = $1 RETURNING *`,
+            [id],
+        )
+        const row = result?.rows[0]
+        if (!row) return undefined
+        return {
+            id: row.id,
+            title: row.title,
+            content: row.content,
+            authorId: row.author_id,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+        }))
+        }
+    }
+
     public async findAll(): Promise<Post[]> {
         const result = await database.clienteInstance?.query(
             `SELECT * FROM posts ORDER BY created_at DESC`,
