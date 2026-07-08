@@ -50,12 +50,57 @@ export async function postsRoutes(app: FastifyInstance) {
                 },
             },
         },
-    }, create)
-    
+    },
+        create,)
+
     app.get(
         '/posts/search',
-        { preHandler: [authenticate] },
-        search)
+        {
+            preHandler: [authenticate],
+            schema: {
+                tags: ['Posts'],
+                summary: 'Busca postagens',
+                description: 'Busca postagens por palavra-cha=ve no título ou conteúdo.',
+                security: [{ bearerAuth: [] }],
+                querystring: {
+                    type: 'object',
+                    required: ['term'],
+                    properties: {
+                        term: {
+                            type: 'string',
+                            description: 'Palavra-chave utilizada na busca',
+                        },
+                    },
+                },
+                response: {
+                    200: {
+                        type: 'array',
+                        item: {
+                            type: 'object',
+                            properties: {
+                                id: { type: 'string', format: 'uuid' },
+                                createdAt: {
+                                    type: 'string',
+                                    format: 'date-time',
+                                },
+                                updatedAt: {
+                                    type: 'string',
+                                    format: 'date-time',
+                                },
+                            },
+                        },
+                    },
+                    400: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                        },
+                    },
+                },
+            },
+        },
+        search,
+    )
 
     app.put(
         '/posts/:id',
@@ -64,9 +109,50 @@ export async function postsRoutes(app: FastifyInstance) {
     )
     app.delete(
         '/posts/:id',
-        { preHandler: [authenticate, requireTeacherOrAdmin] },
+        {
+            preHandler: [authenticate, requireTeacherOrAdmin],
+            schema: {
+                tags: ['Posts'],
+                summary: 'Exclui uma postagem',
+                description:
+                    'Remove uma postagem existente pelo ID. Requer token JWT com papel TEACHER ou ADMIN.',
+                security: [{ bearerAuth: [] }],
+                params: {
+                    type: 'object',
+                    required: ['id'],
+                    properties: {
+                        id: {
+                            type: 'string',
+                            format: 'uuid',
+                            description: 'ID da postagem',
+                        },
+                    },
+                },
+                response: {
+                    200: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                        },
+                    },
+                    403: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                        },
+                    },
+                    404: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                        },
+                    },
+                },
+            },
+        },
         remove,
     )
+
     app.get('/posts/:id', getPostById)
     app.get('/posts', { preHandler: [authenticate] }, get)
 }
