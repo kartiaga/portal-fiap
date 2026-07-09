@@ -21,8 +21,6 @@ Oferecer uma API de blogging onde:
 - **Docentes** criam, editam, listam, excluem e buscam postagens
 - O sistema garante controle de acesso por papel de usuário
 
-## Status do projeto
-
 ### Requisitos funcionais — Posts
 
 | Endpoint | Descrição | Status |
@@ -50,7 +48,7 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | Back-end em Node.js | Implementado (TypeScript + Fastify) |
 | Persistência de dados | Implementado (PostgreSQL + migrations) |
 | Containerização com Docker | Parcial — apenas o banco via `docker-compose.yaml` |
-| Dockerfile da aplicação | pendente |
+| Dockerfile da aplicação | Pendente |
 | GitHub Actions (CI/CD) | Parcial - execução automática de testes em Pull Requests |
 | Cobertura de testes (≥ 20%) | Implementado - 100% nos arquivos cobertos pelo Jest |
 | Documentação técnica | Implementado (README + Swagger/OpenAPI) |
@@ -256,7 +254,7 @@ npm run dev
 | `npm run lint` | Executa o ESLint |
 | `npm run lint:fix` | Corrige problemas de lint automaticamente |
 | `npm run seed` | Cria as 3 contas padrão de desenvolvimento na tabela `users` |
-| `npm test` | Executa os testes unitários com jest|
+| `npm test` | Executa os testes unitários com jest |
 
 ## API — Endpoints implementados
 
@@ -374,9 +372,9 @@ Conforme os requisitos funcionais do Tech Challenge:
 Ordem sugerida para evoluir o projeto em direção à entrega:
 
 1. Criar `Dockerfile` para a aplicação.
-2. Evoluir o pepeline de GitHub Actions para incluir build e demais validações necessárias? -- se necessario.
+2. Evoluir o pepeline de GitHub Actions para incluir build e demais validações necessárias?
 3. Gravar apresentação final do projeto.
-4. Realizar ajustes identificados durante a homologação. -- se houver.
+4. Realizar ajustes identificados durante a homologação.
 
 ## Integrantes
 
@@ -390,14 +388,14 @@ Ordem sugerida para evoluir o projeto em direção à entrega:
   Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir
 as responsabilidades entre os integrantes em comum acordo, permitindo que cada funcionalidade fosse desenvolvida
 de forma independente e organizada.
-  Para a integração das funcionalidades foi adotado um fluxo baseado em branches e Pull Requests, permitindo revisão
+  Para a integração das funcionalidades foi adotado o GIT flow, permitindo revisão
 das implentações e reduzindo conflitos durante o desenvolvimento.
 A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando troca de conhecimento,
 esclarecimento de dúvidas e apoio mútuo sempre que necessário. 
   Como ocorre em grande parte dos projetos de desenvolvimento, a adoção de novas tecnologias representou um desefio inicial
 para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, à utilização do PostegreSQL e à
 organização da aplicação urtilizando arquitetura em camadas.
-  Ao longo do desenvolvimento, a familiariadade com as ferramentas almentou gradualmente e as difuculdades iniciais foram
+  Ao longo do desenvolvimento, a familiariadade com as ferramentas aumentou gradualmente e as difuculdades iniciais foram
  sendo superadas conforme as funcionalidades eram implementadas  e integradas ao projeto.
   Ao final do processo, a equipe considera ques os objetivos propostos foram atingidos e avalia positivamente a experiencia
  obtida durante o desenvolvimento da solução. 
@@ -405,4 +403,3 @@ organização da aplicação urtilizando arquitetura em camadas.
  ## Licença
 
 ISC
-
