@@ -2,7 +2,7 @@
 
 API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
 
-> **Status:** API funcional com autenticação, CRUD de posts, testes automatizados, containerização (Docker) e CI com GitHub Actions. Deploy automatizado (CD) ainda pendente.
+> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker) e CI com GitHub Actions. Deploy automatizado (CD) ainda pendente.
 
 ## Sobre o desafio
 
@@ -51,14 +51,14 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | Containerização com Docker | Implementado (`Dockerfile` + `docker-compose.yaml`) |
 | GitHub Actions (CI) | Implementado (testes em pull requests) |
 | GitHub Actions (CD / deploy) | Pendente |
-| Cobertura de testes (≥ 20%) | Em andamento |
-| Documentação técnica | Em andamento (este README) |
+| Cobertura de testes (≥ 20%) | Implementado — 100% nos arquivos cobertos pelo Jest |
+| Documentação técnica | Implementado (README + Swagger/OpenAPI) |
 
 ### Entregáveis finais
 
 - [x] Código-fonte no GitHub (com Dockerfile e workflow de CI)
 - [ ] Apresentação gravada demonstrando o funcionamento
-- [ ] Documentação com arquitetura, uso da API e relato de experiências da equipe
+- [x] Documentação com arquitetura, uso da API e relato de experiências da equipe
 
 ## Tecnologias
 
@@ -516,8 +516,27 @@ Consulte a documentação completa em **http://localhost:3000/docs**.
 ## Próximos passos
 
 1. Configurar pipeline de deploy (CD) no GitHub Actions
-2. Aumentar cobertura de testes (meta: ≥ 20%)
-3. Gravar apresentação e complementar documentação com relato da equipe
+2. Gravar apresentação final do projeto
+3. Realizar ajustes identificados durante a homologação
+
+## Integrantes
+
+- Júlia Luciane — RM372341
+- Kaique Artiga Luz — RM371882
+- Marcus Urani — RM372080
+- Regiane Julia Pereira — RM370623
+
+## Experiência da equipe e desafios do desenvolvimento
+
+Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir as responsabilidades entre os integrantes em comum acordo, permitindo que cada funcionalidade fosse desenvolvida de forma independente e organizada.
+
+Para a integração das funcionalidades foi adotado o Git Flow, permitindo revisão das implementações e reduzindo conflitos durante o desenvolvimento. A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando troca de conhecimento, esclarecimento de dúvidas e apoio mútuo sempre que necessário.
+
+Como ocorre em grande parte dos projetos de desenvolvimento, a adoção de novas tecnologias representou um desafio inicial para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, à utilização do PostgreSQL e à organização da aplicação utilizando arquitetura em camadas.
+
+Ao longo do desenvolvimento, a familiaridade com as ferramentas aumentou gradualmente e as dificuldades iniciais foram sendo superadas conforme as funcionalidades eram implementadas e integradas ao projeto.
+
+Ao final do processo, a equipe considera que os objetivos propostos foram atingidos e avalia positivamente a experiência obtida durante o desenvolvimento da solução.
 
 ## Licença
 
