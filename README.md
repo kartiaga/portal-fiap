@@ -2,7 +2,8 @@
 
 API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
 
-> **Status:** o projeto está em estágio inicial. A base de arquitetura, autenticação e criação de posts já existe; a maior parte dos endpoints de posts, testes, CI/CD e containerização da aplicação ainda está pendente.
+> **Status:** O projeto encontra-se em estágio avançado de desenvolvimento. 
+Os principais requisitos funcionais já foram implementados, incluindo autenticação, gerenciamento de usuários e operações completas de CRUD para postagens, além da funcionalidades de busca. O projeto também possui testes automatizados, documentação via Swagger/OpenAPI e integração contínua para execução dos testes em Pull Requests. Permacem pendentes apenas melhorias relacionadas à containerização da aplicação e evolução do pipeline de CI/CD.
 
 ## Sobre o desafio
 
@@ -20,18 +21,16 @@ Oferecer uma API de blogging onde:
 - **Docentes** criam, editam, listam, excluem e buscam postagens
 - O sistema garante controle de acesso por papel de usuário
 
-## Status do projeto
-
 ### Requisitos funcionais — Posts
 
 | Endpoint | Descrição | Status |
 |---|---|---|
-| `GET /posts` | Lista de posts para alunos | Pendente |
-| `GET /posts/:id` | Leitura de um post específico | Pendente |
+| `GET /posts` | Lista de posts para alunos | Implementado |
+| `GET /posts/:id` | Leitura de um post específico | Implementado |
 | `POST /posts` | Criação de postagens (docentes) | Implementado |
-| `PUT /posts/:id` | Edição de postagens | Pendente |
-| `DELETE /posts/:id` | Exclusão de postagens | Pendente |
-| `GET /posts/search` | Busca por palavra-chave no título ou conteúdo | Pendente |
+| `PUT /posts/:id` | Edição de postagens | Implementado |
+| `DELETE /posts/:id` | Exclusão de postagens | Implementado |
+| `GET /posts/search` | Busca por palavra-chave no título ou conteúdo | Implementado |
 
 ### Funcionalidades extras (fora do escopo mínimo do desafio)
 
@@ -50,15 +49,15 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | Persistência de dados | Implementado (PostgreSQL + migrations) |
 | Containerização com Docker | Parcial — apenas o banco via `docker-compose.yaml` |
 | Dockerfile da aplicação | Pendente |
-| GitHub Actions (CI/CD) | Pendente |
-| Cobertura de testes (≥ 20%) | Pendente |
-| Documentação técnica | Em andamento (este README) |
+| GitHub Actions (CI/CD) | Parcial - execução automática de testes em Pull Requests |
+| Cobertura de testes (≥ 20%) | Implementado - 100% nos arquivos cobertos pelo Jest |
+| Documentação técnica | Implementado (README + Swagger/OpenAPI) |
 
 ### Entregáveis finais
 
 - [ ] Código-fonte no GitHub (com Dockerfile e workflows de CI/CD)
 - [ ] Apresentação gravada demonstrando o funcionamento
-- [ ] Documentação com arquitetura, uso da API e relato de experiências da equipe
+- [X] Documentação com arquitetura, uso da API e relato de experiências da equipe
 
 ## Tecnologias
 
@@ -255,6 +254,7 @@ npm run dev
 | `npm run lint` | Executa o ESLint |
 | `npm run lint:fix` | Corrige problemas de lint automaticamente |
 | `npm run seed` | Cria as 3 contas padrão de desenvolvimento na tabela `users` |
+| `npm test` | Executa os testes unitários com jest |
 
 ## API — Endpoints implementados
 
@@ -371,12 +371,35 @@ Conforme os requisitos funcionais do Tech Challenge:
 
 Ordem sugerida para evoluir o projeto em direção à entrega:
 
-1. Implementar os endpoints restantes de posts (`GET`, `PUT`, `DELETE`, `search`)
-2. Adicionar testes unitários (meta: ≥ 20% de cobertura)
-3. Criar `Dockerfile` para a aplicação
-4. Configurar GitHub Actions (lint, testes e deploy)
-5. Gravar apresentação e complementar documentação com relato da equipe
+1. Criar `Dockerfile` para a aplicação.
+2. Evoluir o pepeline de GitHub Actions para incluir build e demais validações necessárias?
+3. Gravar apresentação final do projeto.
+4. Realizar ajustes identificados durante a homologação.
 
-## Licença
+## Integrantes
+
+- Júlia Luciane - RM372341
+- Kaique Artiga Luz - RM371882
+- Marcus Urani - RM372080
+- Regiane Julia Pereira - RM370623
+
+## Experiência da equipe e desafios do desenvolvimento.
+
+  Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir
+as responsabilidades entre os integrantes em comum acordo, permitindo que cada funcionalidade fosse desenvolvida
+de forma independente e organizada.
+  Para a integração das funcionalidades foi adotado o GIT flow, permitindo revisão
+das implentações e reduzindo conflitos durante o desenvolvimento.
+A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando troca de conhecimento,
+esclarecimento de dúvidas e apoio mútuo sempre que necessário. 
+  Como ocorre em grande parte dos projetos de desenvolvimento, a adoção de novas tecnologias representou um desefio inicial
+para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, à utilização do PostegreSQL e à
+organização da aplicação urtilizando arquitetura em camadas.
+  Ao longo do desenvolvimento, a familiariadade com as ferramentas aumentou gradualmente e as difuculdades iniciais foram
+ sendo superadas conforme as funcionalidades eram implementadas  e integradas ao projeto.
+  Ao final do processo, a equipe considera ques os objetivos propostos foram atingidos e avalia positivamente a experiencia
+ obtida durante o desenvolvimento da solução. 
+
+ ## Licença
 
 ISC
