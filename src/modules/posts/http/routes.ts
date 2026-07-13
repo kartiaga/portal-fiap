@@ -60,7 +60,7 @@ export async function postsRoutes(app: FastifyInstance) {
             schema: {
                 tags: ['Posts'],
                 summary: 'Busca postagens',
-                description: 'Busca postagens por palavra-cha=ve no título ou conteúdo.',
+                description: 'Busca postagens por palavra-chave no título ou conteúdo.',
                 security: [{ bearerAuth: [] }],
                 querystring: {
                     type: 'object',
@@ -75,10 +75,13 @@ export async function postsRoutes(app: FastifyInstance) {
                 response: {
                     200: {
                         type: 'array',
-                        item: {
+                        items: {
                             type: 'object',
                             properties: {
                                 id: { type: 'string', format: 'uuid' },
+                                title: { type: 'string' },
+                                content: { type: 'string' },
+                                authorId: { type: 'string', format: 'uuid' },
                                 createdAt: {
                                     type: 'string',
                                     format: 'date-time',
@@ -104,7 +107,60 @@ export async function postsRoutes(app: FastifyInstance) {
 
     app.put(
         '/posts/:id',
-        { preHandler: [authenticate, requireTeacherOrAdmin] },
+        {
+            preHandler: [authenticate, requireTeacherOrAdmin],
+            schema: {
+                tags: ['Posts'],
+                summary: 'Atualiza uma postagem',
+                description:
+                    'Atualiza título e conteúdo de uma postagem pelo ID. Requer token JWT com papel TEACHER ou ADMIN.',
+                security: [{ bearerAuth: [] }],
+                params: {
+                    type: 'object',
+                    required: ['id'],
+                    properties: {
+                        id: {
+                            type: 'string',
+                            format: 'uuid',
+                            description: 'ID da postagem',
+                        },
+                    },
+                },
+                body: {
+                    type: 'object',
+                    required: ['title', 'content'],
+                    properties: {
+                        title: { type: 'string', minLength: 3 },
+                        content: { type: 'string', minLength: 10 },
+                    },
+                },
+                response: {
+                    200: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            title: { type: 'string' },
+                            content: { type: 'string' },
+                            authorId: { type: 'string', format: 'uuid' },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' },
+                        },
+                    },
+                    403: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                        },
+                    },
+                    404: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                        },
+                    },
+                },
+            },
+        },
         update,
     )
     app.delete(
