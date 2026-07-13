@@ -153,8 +153,91 @@ export async function postsRoutes(app: FastifyInstance) {
         remove,
     )
 
-    app.get('/posts/:id', getPostById)
-    app.get('/posts', { preHandler: [authenticate] }, get)
+    app.get(
+        '/posts/:id',
+        {
+            schema: {
+                tags: ['Posts'],
+                summary: 'Busca uma postagem por ID',
+                description:
+                    'Retorna o conteúdo completo de uma postagem. Rota pública, não requer autenticação.',
+                params: {
+                    type: 'object',
+                    required: ['id'],
+                    properties: {
+                        id: {
+                            type: 'string',
+                            format: 'uuid',
+                            description: 'ID da postagem',
+                        },
+                    },
+                },
+                response: {
+                    200: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            title: { type: 'string' },
+                            content: { type: 'string' },
+                            authorId: { type: 'string', format: 'uuid' },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' },
+                        },
+                    },
+                    404: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                        },
+                    },
+                },
+            },
+        },
+        getPostById,
+    )
+
+    app.get(
+        '/posts',
+        {
+            preHandler: [authenticate],
+            schema: {
+                tags: ['Posts'],
+                summary: 'Lista todas as postagens',
+                description:
+                    'Retorna a lista de todas as postagens. Requer token JWT.',
+                security: [{ bearerAuth: [] }],
+                response: {
+                    200: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                id: { type: 'string', format: 'uuid' },
+                                title: { type: 'string' },
+                                content: { type: 'string' },
+                                authorId: { type: 'string', format: 'uuid' },
+                                createdAt: {
+                                    type: 'string',
+                                    format: 'date-time',
+                                },
+                                updatedAt: {
+                                    type: 'string',
+                                    format: 'date-time',
+                                },
+                            },
+                        },
+                    },
+                    401: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                        },
+                    },
+                },
+            },
+        },
+        get,
+    )
 }
 
 
