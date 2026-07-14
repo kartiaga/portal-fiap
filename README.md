@@ -20,8 +20,6 @@ Oferecer uma API de blogging onde:
 - **Docentes** criam, editam, listam, excluem e buscam postagens
 - O sistema garante controle de acesso por papel de usuário
 
-## Status do projeto
-
 ### Requisitos funcionais — Posts
 
 | Endpoint | Descrição | Status |
@@ -49,15 +47,15 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | Back-end em Node.js | Implementado (TypeScript + Fastify) |
 | Persistência de dados | Implementado (PostgreSQL + migrations) |
 | Containerização com Docker | Implementado (`Dockerfile` + `docker-compose.yaml`) |
-| GitHub Actions (CI) | Implementado (testes em pull requests) |
-| GitHub Actions (CD / deploy) | Pendente |
-| Cobertura de testes (≥ 20%) | Implementado — 100% nos arquivos cobertos pelo Jest |
+| GitHub Actions (CI) | Implementado — execução automática de testes em Pull Requests |
+| GitHub Actions (CD / deploy) | Implementado |
+| Cobertura de testes (≥ 20%) | Implementado — 37% de cobertura de testes |
 | Documentação técnica | Implementado (README + Swagger/OpenAPI) |
 
 ### Entregáveis finais
 
-- [x] Código-fonte no GitHub (com Dockerfile e workflow de CI)
-- [ ] Apresentação gravada demonstrando o funcionamento
+- [x] Código-fonte no GitHub (com Dockerfile e workflows de CI)
+- [x] Apresentação gravada demonstrando o funcionamento
 - [x] Documentação com arquitetura, uso da API e relato de experiências da equipe
 
 ## Tecnologias
@@ -235,7 +233,7 @@ npm run dev
 
 ### Opção B — Docker completo (API + banco)
 
-Sobe a API e o PostgreSQL em containers. As migrations rodam automaticamente na inicialização da API.
+Sobe a API e o PostgreSQL em containers. As migrations são executadas automaticamente durante a inicialização do container da API por meio do script `docker-entrypoint.sh`, garantindo que a estrutura do banco esteja atualizada antes da aplicação iniciar.
 
 #### 1. Clonar e entrar no projeto
 
@@ -274,7 +272,7 @@ docker ps
 docker compose logs api
 
 # Swagger UI no navegador
-open http://localhost:3000/docs
+http://localhost:3000/docs
 ```
 
 #### Serviços no Docker Compose
@@ -365,7 +363,7 @@ Os testes também rodam automaticamente em pull requests via GitHub Actions (`.g
 |---|---|
 | `npm run dev` | Inicia o servidor em modo desenvolvimento (hot reload) |
 | `npm run build` | Compila `src/server.ts` para ESM em `build/` |
-| `npm start` | Inicia o servidor compilado (`build/server.js`) |
+| `npm start` | Inicia o servidor compilado (`build/server.cjs`) |
 | `npm run migrate:up` | Aplica migrations pendentes |
 | `npm run migrate:down` | Reverte a última migration |
 | `npm run migrate:create` | Cria uma nova migration |
@@ -373,6 +371,7 @@ Os testes também rodam automaticamente em pull requests via GitHub Actions (`.g
 | `npm run lint:fix` | Corrige problemas de lint automaticamente |
 | `npm run seed` | Cria as 3 contas padrão de desenvolvimento na tabela `users` |
 | `npm test` | Executa a suíte de testes com Jest |
+| `npm test -- --coverage` | Executa os testes com relatório de cobertura |
 
 ---
 
@@ -395,7 +394,7 @@ O projeto usa ESM em produção. Certifique-se de que o `package.json` contém:
 
 ```json
 "build": "tsup src/server.ts --format esm --out-dir build --clean",
-"start": "node build/server.js"
+"start": "node build/server.cjs"
 ```
 
 ### Aviso `The "sibdob" variable is not set` no Docker Compose
@@ -421,6 +420,12 @@ docker compose up -d --build
 ---
 
 ## API — Endpoints implementados
+
+A aplicação disponibiliza documentação por meio do Swagger/OpenAPI.
+Com o servidor em execução, acesse:
+http://localhost:3000/docs
+A interface permite consultar os endpoints, parâmetros, requisitos de autenticação e formatos de resposta. 
+
 
 ### `POST /login`
 
@@ -471,18 +476,254 @@ O campo `role` é opcional (`STUDENT`, `TEACHER` ou `ADMIN`; padrão: `STUDENT`)
 
 ---
 
-### Posts
+## API — Endpoints de postagens
 
-| Método | Rota | Quem acessa | Descrição |
+### `POST /posts`
+
+Cria uma nova publicação. Requer autenticação com papel `TEACHER` ou `ADMIN`. O autor é identificado automaticamente por meio do token JWT.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Body:**
+
+```json
+{
+  "title": "Título da publicação",
+  "content": "Conteúdo com no mínimo 10 caracteres"
+}
+```
+
+**Resposta (201):**
+
+```json
+{
+  "id": "uuid",
+  "title": "Título da publicação",
+  "content": "Conteúdo com no mínimo 10 caracteres",
+  "authorId": "uuid",
+  "createdAt": "2026-07-09T18:00:00.000Z",
+  "updatedAt": "2026-07-09T18:00:00.000Z"
+}
+```
+
+**Possíveis erros:**
+
+- `401 Unauthorized` — token ausente ou inválido.
+- `403 Forbidden` — usuário sem papel `TEACHER` ou `ADMIN`.
+
+---
+
+### `GET /posts/search?term=termo`
+
+Busca postagens por palavra-chave no título ou no conteúdo. Requer autenticação.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+```
+
+**Query string:**
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `GET` | `/posts` | Autenticado | Lista todos os posts |
-| `GET` | `/posts/:id` | Público | Retorna o conteúdo completo de um post |
-| `POST` | `/posts` | TEACHER / ADMIN | Cria uma nova publicação |
-| `PUT` | `/posts/:id` | TEACHER / ADMIN | Edita título e conteúdo de um post |
-| `DELETE` | `/posts/:id` | TEACHER / ADMIN | Remove um post pelo ID |
-| `GET` | `/posts/search?q=termo` | Autenticado | Busca posts por palavra-chave |
+| `term` | string | Sim | Palavra-chave utilizada na busca |
 
-Consulte a documentação completa em **http://localhost:3000/docs**.
+**Exemplo de requisição:**
+
+```text
+GET /posts/search?term=node
+```
+
+**Resposta (200):**
+
+```json
+[
+  {
+    "id": "uuid",
+    "title": "Introdução ao Node.js",
+    "content": "Conteúdo da publicação",
+    "authorId": "uuid",
+    "createdAt": "2026-07-09T18:00:00.000Z",
+    "updatedAt": "2026-07-09T18:00:00.000Z"
+  }
+]
+```
+
+Quando nenhuma postagem é encontrada, o endpoint retorna:
+
+```json
+[]
+```
+
+**Resposta (400):**
+
+```json
+{
+  "message": "Search term is required"
+}
+```
+
+---
+
+### `PUT /posts/:id`
+
+Atualiza o título e o conteúdo de uma publicação existente. Requer autenticação com papel `TEACHER` ou `ADMIN`.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Parâmetro da rota:**
+
+| Parâmetro | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID | Identificador da publicação |
+
+**Body:**
+
+```json
+{
+  "title": "Título atualizado",
+  "content": "Conteúdo atualizado da publicação"
+}
+```
+
+**Resposta (200):**
+
+```json
+{
+  "id": "uuid",
+  "title": "Título atualizado",
+  "content": "Conteúdo atualizado da publicação",
+  "authorId": "uuid",
+  "createdAt": "2026-07-09T18:00:00.000Z",
+  "updatedAt": "2026-07-09T19:00:00.000Z"
+}
+```
+
+**Resposta (404):**
+
+```json
+{
+  "message": "Post not found"
+}
+```
+
+---
+
+### `DELETE /posts/:id`
+
+Remove uma publicação existente. Requer autenticação com papel `TEACHER` ou `ADMIN`.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+```
+
+**Parâmetro da rota:**
+
+| Parâmetro | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID | Identificador da publicação |
+
+**Resposta (200):**
+
+```json
+{
+  "message": "Post deleted successfully"
+}
+```
+
+**Resposta (404):**
+
+```json
+{
+  "message": "Post not found"
+}
+```
+
+**Possíveis erros:**
+
+- `401 Unauthorized` — token ausente ou inválido.
+- `403 Forbidden` — usuário sem papel `TEACHER` ou `ADMIN`.
+
+---
+
+### `GET /posts/:id`
+
+Retorna uma publicação específica utilizando o ID informado na rota.
+
+**Parâmetro da rota:**
+
+| Parâmetro | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID | Identificador da publicação |
+
+**Resposta (200):**
+
+```json
+{
+  "id": "uuid",
+  "title": "Título da publicação",
+  "content": "Conteúdo da publicação",
+  "authorId": "uuid",
+  "createdAt": "2026-07-09T18:00:00.000Z",
+  "updatedAt": "2026-07-09T18:00:00.000Z"
+}
+```
+
+**Resposta (404):**
+
+```json
+{
+  "message": "Post not found"
+}
+```
+
+> Atualmente, essa rota não possui `preHandler` de autenticação no arquivo de rotas.
+
+---
+
+### `GET /posts`
+
+Retorna a lista de todas as postagens cadastradas. Requer autenticação.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+```
+
+**Resposta (200):**
+
+```json
+[
+  {
+    "id": "uuid",
+    "title": "Título da publicação",
+    "content": "Conteúdo da publicação",
+    "authorId": "uuid",
+    "createdAt": "2026-07-09T18:00:00.000Z",
+    "updatedAt": "2026-07-09T18:00:00.000Z"
+  }
+]
+```
+
+Quando não existem postagens cadastradas, o endpoint retorna:
+
+```json
+[]
+```
 
 ## Modelo de dados
 
@@ -513,30 +754,26 @@ Consulte a documentação completa em **http://localhost:3000/docs**.
 | content | text | Conteúdo |
 | author_id | UUID | Referência ao autor |
 
-## Próximos passos
-
-1. Configurar pipeline de deploy (CD) no GitHub Actions
-2. Gravar apresentação final do projeto
-3. Realizar ajustes identificados durante a homologação
-
 ## Integrantes
 
-- Júlia Luciane — RM372341
+- Júlia Luciani de Oliveira — RM372341
 - Kaique Artiga Luz — RM371882
-- Marcus Urani — RM372080
+- Marcus Vinícius Gomes Urani — RM372080
 - Regiane Julia Pereira — RM370623
 
 ## Experiência da equipe e desafios do desenvolvimento
 
-Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir as responsabilidades entre os integrantes em comum acordo, permitindo que cada funcionalidade fosse desenvolvida de forma independente e organizada.
+Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir as responsabilidades entre os integrantes em comum acordo. Essa organização permitiu que cada funcionalidade fosse desenvolvida de forma independente e estruturada.
 
-Para a integração das funcionalidades foi adotado o Git Flow, permitindo revisão das implementações e reduzindo conflitos durante o desenvolvimento. A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando troca de conhecimento, esclarecimento de dúvidas e apoio mútuo sempre que necessário.
+Para a integração das funcionalidades, foi adotado um fluxo de trabalho baseado em branches e Pull Requests, permitindo a revisão das implementações e reduzindo a ocorrência de conflitos durante o desenvolvimento.
 
-Como ocorre em grande parte dos projetos de desenvolvimento, a adoção de novas tecnologias representou um desafio inicial para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, à utilização do PostgreSQL e à organização da aplicação utilizando arquitetura em camadas.
+A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando a troca de conhecimento, o esclarecimento de dúvidas e o apoio mútuo sempre que necessário.
 
-Ao longo do desenvolvimento, a familiaridade com as ferramentas aumentou gradualmente e as dificuldades iniciais foram sendo superadas conforme as funcionalidades eram implementadas e integradas ao projeto.
+Como ocorre em muitos projetos de desenvolvimento de software, a adoção de novas tecnologias representou um desafio inicial para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, ao PostgreSQL e à organização da aplicação em camadas.
 
-Ao final do processo, a equipe considera que os objetivos propostos foram atingidos e avalia positivamente a experiência obtida durante o desenvolvimento da solução.
+Ao longo do desenvolvimento, a familiaridade com as ferramentas aumentou gradualmente, e as dificuldades iniciais foram sendo superadas conforme as funcionalidades eram implementadas, testadas e integradas ao projeto.
+
+Ao final do processo, a equipe considera que os objetivos propostos foram atingidos e avalia positivamente a experiência adquirida durante o desenvolvimento da solução.
 
 ## Licença
 
