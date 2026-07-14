@@ -2,8 +2,7 @@
 
 API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
 
-> **Status:** O projeto encontra-se em estágio avançado de desenvolvimento. 
-Os principais requisitos funcionais já foram implementados, incluindo autenticação, gerenciamento de usuários e operações completas de CRUD para postagens, além da funcionalidade de busca. O projeto também possui testes automatizados, documentação via Swagger/OpenAPI e integração contínua para execução dos testes em Pull Requests. Permanecem pendentes apenas melhorias relacionadas à containerização da aplicação e à evolução do pipeline de CI/CD.
+> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker) e CI com GitHub Actions. Deploy automatizado (CD) ainda pendente.
 
 ## Sobre o desafio
 
@@ -47,31 +46,34 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 |---|---|
 | Back-end em Node.js | Implementado (TypeScript + Fastify) |
 | Persistência de dados | Implementado (PostgreSQL + migrations) |
-| Containerização com Docker | Parcial — apenas o banco via `docker-compose.yaml` |
-| Dockerfile da aplicação | Pendente |
-| GitHub Actions (CI/CD) | Parcial - execução automática de testes em Pull Requests |
-| Cobertura de testes (≥ 20%) | Implementado - 100% nos arquivos cobertos pelo Jest |
+| Containerização com Docker | Implementado (`Dockerfile` + `docker-compose.yaml`) |
+| GitHub Actions (CI) | Implementado — execução automática de testes em Pull Requests |
+| GitHub Actions (CD / deploy) | Implementado |
+| Cobertura de testes (≥ 20%) | Implementado — 37% de cobertura de testes |
 | Documentação técnica | Implementado (README + Swagger/OpenAPI) |
 
 ### Entregáveis finais
 
-- [X] Código-fonte no GitHub (com Dockerfile e workflows de CI/CD)
-- [X] Apresentação gravada demonstrando o funcionamento
-- [X] Documentação com arquitetura, uso da API e relato de experiências da equipe
+- [x] Código-fonte no GitHub (com Dockerfile e workflows de CI)
+- [x] Apresentação gravada demonstrando o funcionamento
+- [x] Documentação com arquitetura, uso da API e relato de experiências da equipe
 
 ## Tecnologias
 
 | Camada | Tecnologia |
 |---|---|
-| Runtime | [Node.js](https://nodejs.org/) |
+| Runtime | [Node.js](https://nodejs.org/) 20+ |
 | Linguagem | [TypeScript](https://www.typescriptlang.org/) |
 | Framework HTTP | [Fastify](https://fastify.dev/) |
-| Banco de dados | [PostgreSQL](https://www.postgresql.org/) |
+| Banco de dados | [PostgreSQL](https://www.postgresql.org/) 16 |
 | Migrations | [node-pg-migrate](https://github.com/salsita/node-pg-migrate) |
 | Autenticação | [@fastify/jwt](https://github.com/fastify/fastify-jwt) |
+| Documentação API | [@fastify/swagger](https://github.com/fastify/fastify-swagger) + [Swagger UI](https://github.com/fastify/fastify-swagger-ui) |
 | Validação | [Zod](https://zod.dev/) |
 | Senhas | [bcrypt](https://github.com/kelektiv/node.bcrypt.js) |
-| Containerização | [Docker Compose](https://docs.docker.com/compose/) (PostgreSQL) |
+| Containerização | [Docker](https://www.docker.com/) + [Docker Compose](https://docs.docker.com/compose/) |
+| Testes | [Jest](https://jestjs.io/) |
+| CI | [GitHub Actions](https://github.com/features/actions) |
 
 ## Arquitetura
 
@@ -108,29 +110,40 @@ Cada módulo contém:
 
 ## Pré-requisitos
 
-- Node.js 18+
+- [Node.js](https://nodejs.org/) 20+ (recomendado)
 - npm
-- Docker e Docker Compose
+- [Docker](https://www.docker.com/) e Docker Compose
 
-## Configuração
+## Configuração do ambiente
 
-### 1. Clonar o repositório
+Existem **duas formas** de rodar o projeto. Escolha a que fizer mais sentido para você:
+
+| Modo | Quando usar |
+|---|---|
+| **Desenvolvimento local** | Dia a dia de desenvolvimento, com hot reload (`npm run dev`) |
+| **Docker completo** | Simular produção, validar containerização ou rodar sem instalar Node na máquina |
+
+---
+
+### Opção A — Desenvolvimento local (recomendado para codar)
+
+#### 1. Clonar o repositório
 
 ```bash
 git clone <url-do-repositorio>
 cd portal-fiap
 ```
 
-### 2. Instalar dependências
+#### 2. Instalar dependências
 
 ```bash
 npm install
 ```
 
-### 3. Subir o banco de dados
+#### 3. Subir apenas o banco de dados
 
 ```bash
-docker compose up -d
+docker compose up postgres -d
 ```
 
 O PostgreSQL ficará disponível em `localhost:5431`:
@@ -140,14 +153,15 @@ O PostgreSQL ficará disponível em `localhost:5431`:
 | Banco | `portal-fiap` |
 | Usuário | `postgres` |
 | Senha | `postgres` |
-| Porta | `5431` |
+| Porta (host) | `5431` |
 
-### 4. Configurar variáveis de ambiente
+#### 4. Configurar variáveis de ambiente
 
 ```bash
 cp .env.example .env
 ```
-Exemplo para desenvolvimento local:
+
+Preencha o `.env` com os valores abaixo para desenvolvimento local:
 
 ```env
 PORT=3000
@@ -164,17 +178,18 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5431/portal-fiap
 JWT_SECRET=sua-chave-secreta-com-pelo-menos-32-caracteres
 ```
 
-> **Importante:** `JWT_SECRET` deve ter no mínimo 32 caracteres. `DATABASE_URL` é utilizada pelas migrations.
+> **Importante:**
+> - `JWT_SECRET` deve ter no mínimo 32 caracteres.
+> - `DATABASE_URL` é utilizada pelas migrations (`node-pg-migrate`).
+> - Evite usar o caractere `$` no `JWT_SECRET` se for referenciar variáveis no `docker-compose.yaml` (o Compose interpreta `$` como interpolação).
 
-### 5. Executar migrations
+#### 5. Executar migrations
 
 ```bash
 npm run migrate:up
 ```
 
-### 6. Criar contas iniciais (seed)
-
-Após aplicar as migrations, execute o script de seed para criar as três contas padrão de desenvolvimento:
+#### 6. Criar contas iniciais (seed)
 
 ```bash
 npm run seed
@@ -188,24 +203,108 @@ O script `scripts/seed.ts` insere **somente** registros na tabela `users`. Ele n
 | `student@fiap.com.br` | `12345678` | `STUDENT` |
 | `teacher@fiap.com.br` | `12345678` | `TEACHER` |
 
-O comando é idempotente: se as contas já existirem, nada é alterado. Pode ser executado mais de uma vez sem duplicar usuários.
+O comando é idempotente: se as contas já existirem, nada é alterado.
 
-### 7. Iniciar a aplicação
+#### 7. Iniciar a aplicação
 
 ```bash
 # Desenvolvimento (com hot reload)
 npm run dev
 
-# Produção
+# Produção local (build + start)
 npm run build
 npm start
 ```
 
 A API estará disponível em `http://localhost:3000`.
 
-### 8. Testar a aplicação
+**Resumo rápido (do zero):**
 
-Com o servidor rodando, autentique-se com uma das contas criadas pelo seed:
+```bash
+npm install
+docker compose up postgres -d
+cp .env.example .env   # ajuste JWT_SECRET
+npm run migrate:up
+npm run seed
+npm run dev
+```
+
+---
+
+### Opção B — Docker completo (API + banco)
+
+Sobe a API e o PostgreSQL em containers. As migrations são executadas automaticamente durante a inicialização do container da API por meio do script `docker-entrypoint.sh`, garantindo que a estrutura do banco esteja atualizada antes da aplicação iniciar.
+
+#### 1. Clonar e entrar no projeto
+
+```bash
+git clone <url-do-repositorio>
+cd portal-fiap
+```
+
+#### 2. Subir todos os serviços
+
+```bash
+# Primeira vez ou sem mudanças no código
+docker compose up -d
+
+# Após alterar código, Dockerfile ou dependências
+docker compose up -d --build
+```
+
+#### 3. Criar contas iniciais (seed)
+
+O seed **não** roda automaticamente no container. Execute na sua máquina (o banco fica exposto em `localhost:5431`):
+
+```bash
+npm install
+cp .env.example .env   # use POSTGRES_HOST=localhost e POSTGRES_PORT=5431
+npm run seed
+```
+
+#### 4. Verificar se está funcionando
+
+```bash
+# Status dos containers
+docker ps
+
+# Logs da API (migrations + startup)
+docker compose logs api
+
+# Swagger UI no navegador
+http://localhost:3000/docs
+```
+
+#### Serviços no Docker Compose
+
+| Serviço | Container | Porta no host | Descrição |
+|---|---|---|---|
+| `postgres` | `portal-fiap-db` | `5431` | Banco PostgreSQL 16 |
+| `api` | `portal-fiap-api` | `3000` | API Node.js (migrations automáticas no startup) |
+
+#### Variáveis de ambiente no Docker
+
+No modo Docker, a API usa as variáveis definidas em `docker-compose.yaml`:
+
+| Variável | Valor no container |
+|---|---|
+| `POSTGRES_HOST` | `postgres` (nome do serviço na rede Docker) |
+| `POSTGRES_PORT` | `5432` (porta interna do container) |
+| `DATABASE_URL` | `postgres://postgres:postgres@postgres:5432/portal-fiap` |
+
+> **Atenção:** o `.env` local aponta para `localhost:5431` (desenvolvimento fora do Docker). Não substitua as variáveis de rede do compose sem ajustar o host/porta.
+
+---
+
+## Testar a aplicação
+
+### Documentação interativa (Swagger)
+
+Com a API rodando, acesse:
+
+**http://localhost:3000/docs**
+
+### Login
 
 ```bash
 curl -X POST http://localhost:3000/login \
@@ -213,7 +312,9 @@ curl -X POST http://localhost:3000/login \
   -d '{"email":"teacher@fiap.com.br","password":"12345678"}'
 ```
 
-A resposta inclui um `token` JWT e os dados do usuário. Use o token nas rotas protegidas:
+A resposta inclui um `token` JWT e os dados do usuário.
+
+### Rotas protegidas
 
 ```bash
 # Criar um post (TEACHER ou ADMIN)
@@ -222,6 +323,10 @@ curl -X POST http://localhost:3000/posts \
   -H "Authorization: Bearer <token>" \
   -d '{"title":"Primeira aula","content":"Conteúdo da publicação com pelo menos 10 caracteres."}'
 
+# Listar posts
+curl http://localhost:3000/posts \
+  -H "Authorization: Bearer <token>"
+
 # Criar um usuário (somente ADMIN)
 curl -X POST http://localhost:3000/users \
   -H "Content-Type: application/json" \
@@ -229,37 +334,96 @@ curl -X POST http://localhost:3000/users \
   -d '{"email":"novo@fiap.com.br","password":"12345678","name":"Novo Aluno","role":"STUDENT"}'
 ```
 
-**Resumo do fluxo completo (do zero):**
+### Verificar o banco de dados
 
 ```bash
-npm install
-docker compose up -d
-cp .env.example .env   # ajuste JWT_SECRET se necessário
-npm run migrate:up
-npm run seed
-npm run dev
+# Conexão com o banco
+docker compose exec postgres pg_isready -U postgres -d portal-fiap
+
+# Listar tabelas
+docker compose exec postgres psql -U postgres -d portal-fiap -c "\dt"
+
+# Ver usuários do seed
+docker compose exec postgres psql -U postgres -d portal-fiap -c "SELECT email, role FROM users;"
 ```
+
+### Rodar testes
+
+```bash
+npm test
+```
+
+Os testes também rodam automaticamente em pull requests via GitHub Actions (`.github/workflows/run_tests_on_pull_request.yml`).
+
+---
 
 ## Scripts disponíveis
 
 | Script | Descrição |
 |---|---|
-| `npm run dev` | Inicia o servidor em modo desenvolvimento |
-| `npm run build` | Compila o TypeScript para JavaScript |
-| `npm start` | Inicia o servidor compilado |
+| `npm run dev` | Inicia o servidor em modo desenvolvimento (hot reload) |
+| `npm run build` | Compila `src/server.ts` para ESM em `build/` |
+| `npm start` | Inicia o servidor compilado (`build/server.cjs`) |
 | `npm run migrate:up` | Aplica migrations pendentes |
 | `npm run migrate:down` | Reverte a última migration |
 | `npm run migrate:create` | Cria uma nova migration |
 | `npm run lint` | Executa o ESLint |
 | `npm run lint:fix` | Corrige problemas de lint automaticamente |
 | `npm run seed` | Cria as 3 contas padrão de desenvolvimento na tabela `users` |
-| `npm test` | Executa os testes unitários com Jest |
-| `npm test -- --coverage` | Para executar os testes com relatório de cobertura
+| `npm test` | Executa a suíte de testes com Jest |
+| `npm test -- --coverage` | Executa os testes com relatório de cobertura |
+
+---
+
+## Solução de problemas
+
+### `Error connecting to the database: AggregateError`
+
+O PostgreSQL não está acessível. Verifique:
+
+```bash
+docker ps                          # container portal-fiap-db deve estar Up
+docker compose up postgres -d      # subir o banco
+```
+
+No modo local, confirme que o `.env` usa `POSTGRES_HOST=localhost` e `POSTGRES_PORT=5431`.
+
+### Build do Docker falha com `Top-level await`
+
+O projeto usa ESM em produção. Certifique-se de que o `package.json` contém:
+
+```json
+"build": "tsup src/server.ts --format esm --out-dir build --clean",
+"start": "node build/server.cjs"
+```
+
+### Aviso `The "sibdob" variable is not set` no Docker Compose
+
+O Compose interpreta `$` como variável de ambiente. Se o `JWT_SECRET` contiver `$`, escape com `$$` no `docker-compose.yaml` ou remova o caractere do secret.
+
+### Login retorna erro após subir o Docker
+
+Rode o seed — as contas padrão não são criadas automaticamente no container:
+
+```bash
+npm run seed
+```
+
+### Alterei o código mas o container não reflete a mudança
+
+Rebuild a imagem:
+
+```bash
+docker compose up -d --build
+```
+
+---
 
 ## API — Endpoints implementados
 
 A aplicação disponibiliza documentação por meio do Swagger/OpenAPI.
-Com o servidor em execução, acesse: https://localhost:3000/docs.
+Com o servidor em execução, acesse:
+http://localhost:3000/docs
 A interface permite consultar os endpoints, parâmetros, requisitos de autenticação e formatos de resposta. 
 
 
@@ -288,8 +452,6 @@ Autentica um usuário e retorna um token JWT (validade de 15 dias).
   }
 }
 ```
-
-> Use as contas criadas por `npm run seed` (`admin@fiap.com.br`, `student@fiap.com.br`, `teacher@fiap.com.br`), todas com senha `12345678`.
 
 ---
 
@@ -592,23 +754,13 @@ Quando não existem postagens cadastradas, o endpoint retorna:
 | content | text | Conteúdo |
 | author_id | UUID | Referência ao autor |
 
-## Próximos passos
-
-Ordem sugerida para evoluir o projeto em direção à entrega:
-
-1. Criar `Dockerfile` para a aplicação.
-2. Evoluir o pipeline do GitHub Actions para incluir o build e outras validações necessárias.
-3. Gravar apresentação final do projeto.
-4. Realizar ajustes identificados durante a homologação.
-
 ## Integrantes
 
-- Júlia Luciane - RM372341
-- Kaique Artiga Luz - RM371882
-- Marcus Urani - RM372080
-- Regiane Julia Pereira - RM370623
+- Júlia Luciani de Oliveira — RM372341
+- Kaique Artiga Luz — RM371882
+- Marcus Vinícius Gomes Urani — RM372080
+- Regiane Julia Pereira — RM370623
 
-## Experiência da equipe e desafios do desenvolvimento
 ## Experiência da equipe e desafios do desenvolvimento
 
 Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir as responsabilidades entre os integrantes em comum acordo. Essa organização permitiu que cada funcionalidade fosse desenvolvida de forma independente e estruturada.
