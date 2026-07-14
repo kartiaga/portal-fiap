@@ -3,7 +3,9 @@ import { authenticate } from '@/lib/auth'
 
 describe('auth middleware', () => {
     it('completes successfully when jwtVerify passes', async () => {
-        const request = { jwtVerify: jest.fn().mockResolvedValue(undefined) } as any
+        const request = {
+            jwtVerify: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+        } as any
         const reply = { status: jest.fn().mockReturnThis(), send: jest.fn() } as any
 
         await authenticate(request, reply)
@@ -13,7 +15,9 @@ describe('auth middleware', () => {
     })
 
     it('returns 401 when jwtVerify throws', async () => {
-        const request = { jwtVerify: jest.fn().mockRejectedValue(new Error('invalid')) } as any
+        const request = {
+            jwtVerify: jest.fn<() => Promise<void>>().mockRejectedValue(new Error('invalid')),
+        } as any
         const reply = { status: jest.fn().mockReturnThis(), send: jest.fn() } as any
 
         await authenticate(request, reply)

@@ -10,18 +10,37 @@ services:
       POSTGRES_DB: portal-fiap
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-
     ports:
       - "5431:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d portal-fiap"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: portal-fiap-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: portal-fiap
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/portal-fiap
+      JWT_SECRET: sua-chave-secreta-com-pelo-menos-32-caracteres-aqui
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

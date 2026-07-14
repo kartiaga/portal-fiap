@@ -1,0 +1,8 @@
+node_modules
+build
+.env
+.git
+.github
+coverage
+*.md
+src/__tests__

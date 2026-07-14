@@ -1,3 +1,4 @@
+import { UserRole } from '@/modules/users/entities/user'
 import { CreateUserUseCase } from '@/modules/users/use-cases/create-user.use-case'
 
 describe('CreateUserUseCase', () => {
@@ -20,7 +21,7 @@ describe('CreateUserUseCase', () => {
         const result = await useCase.handler({
             email: 'user@example.com',
             password: 'secret123',
-            role: 'STUDENT',
+            role: UserRole.STUDENT,
             name: 'Jane Doe',
         })
 
@@ -46,7 +47,7 @@ describe('CreateUserUseCase', () => {
             useCase.handler({
                 email: 'user@example.com',
                 password: 'secret123',
-                role: 'STUDENT',
+                role: UserRole.STUDENT,
                 name: 'Jane Doe',
             }),
         ).rejects.toThrow('Failed to create user')
