@@ -3,7 +3,7 @@
 API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
 
 > **Status:** O projeto encontra-se em estágio avançado de desenvolvimento. 
-Os principais requisitos funcionais já foram implementados, incluindo autenticação, gerenciamento de usuários e operações completas de CRUD para postagens, além da funcionalidades de busca. O projeto também possui testes automatizados, documentação via Swagger/OpenAPI e integração contínua para execução dos testes em Pull Requests. Permacem pendentes apenas melhorias relacionadas à containerização da aplicação e evolução do pipeline de CI/CD.
+Os principais requisitos funcionais já foram implementados, incluindo autenticação, gerenciamento de usuários e operações completas de CRUD para postagens, além da funcionalidade de busca. O projeto também possui testes automatizados, documentação via Swagger/OpenAPI e integração contínua para execução dos testes em Pull Requests. Permanecem pendentes apenas melhorias relacionadas à containerização da aplicação e à evolução do pipeline de CI/CD.
 
 ## Sobre o desafio
 
@@ -55,8 +55,8 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 
 ### Entregáveis finais
 
-- [ ] Código-fonte no GitHub (com Dockerfile e workflows de CI/CD)
-- [ ] Apresentação gravada demonstrando o funcionamento
+- [X] Código-fonte no GitHub (com Dockerfile e workflows de CI/CD)
+- [X] Apresentação gravada demonstrando o funcionamento
 - [X] Documentação com arquitetura, uso da API e relato de experiências da equipe
 
 ## Tecnologias
@@ -147,7 +147,6 @@ O PostgreSQL ficará disponível em `localhost:5431`:
 ```bash
 cp .env.example .env
 ```
-
 Exemplo para desenvolvimento local:
 
 ```env
@@ -254,9 +253,15 @@ npm run dev
 | `npm run lint` | Executa o ESLint |
 | `npm run lint:fix` | Corrige problemas de lint automaticamente |
 | `npm run seed` | Cria as 3 contas padrão de desenvolvimento na tabela `users` |
-| `npm test` | Executa os testes unitários com jest |
+| `npm test` | Executa os testes unitários com Jest |
+| `npm test -- --coverage` | Para executar os testes com relatório de cobertura
 
 ## API — Endpoints implementados
+
+A aplicação disponibiliza documentação por meio do Swagger/OpenAPI.
+Com o servidor em execução, acesse: https://localhost:3000/docs.
+A interface permite consultar os endpoints, parâmetros, requisitos de autenticação e formatos de resposta. 
+
 
 ### `POST /login`
 
@@ -309,11 +314,18 @@ O campo `role` é opcional (`STUDENT`, `TEACHER` ou `ADMIN`; padrão: `STUDENT`)
 
 ---
 
+## API — Endpoints de postagens
+
 ### `POST /posts`
 
-Cria uma nova publicação. Requer token com papel `TEACHER` ou `ADMIN`. O autor é identificado automaticamente pelo token.
+Cria uma nova publicação. Requer autenticação com papel `TEACHER` ou `ADMIN`. O autor é identificado automaticamente por meio do token JWT.
 
-**Headers:** `Authorization: Bearer <token>`
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+Content-Type: application/json
+```
 
 **Body:**
 
@@ -324,19 +336,232 @@ Cria uma nova publicação. Requer token com papel `TEACHER` ou `ADMIN`. O autor
 }
 ```
 
-**Resposta (201):** objeto da publicação criada.
+**Resposta (201):**
 
-## API — Endpoints planejados
+```json
+{
+  "id": "uuid",
+  "title": "Título da publicação",
+  "content": "Conteúdo com no mínimo 10 caracteres",
+  "authorId": "uuid",
+  "createdAt": "2026-07-09T18:00:00.000Z",
+  "updatedAt": "2026-07-09T18:00:00.000Z"
+}
+```
 
-Conforme os requisitos funcionais do Tech Challenge:
+**Possíveis erros:**
 
-| Método | Rota | Quem acessa | Descrição |
+- `401 Unauthorized` — token ausente ou inválido.
+- `403 Forbidden` — usuário sem papel `TEACHER` ou `ADMIN`.
+
+---
+
+### `GET /posts/search?term=termo`
+
+Busca postagens por palavra-chave no título ou no conteúdo. Requer autenticação.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+```
+
+**Query string:**
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `GET` | `/posts` | Alunos | Lista todos os posts na página principal |
-| `GET` | `/posts/:id` | Alunos | Retorna o conteúdo completo de um post |
-| `PUT` | `/posts/:id` | Docentes | Edita título e conteúdo de um post existente |
-| `DELETE` | `/posts/:id` | Docentes | Remove um post pelo ID |
-| `GET` | `/posts/search?q=termo` | Todos | Busca posts por palavra-chave no título ou conteúdo |
+| `term` | string | Sim | Palavra-chave utilizada na busca |
+
+**Exemplo de requisição:**
+
+```text
+GET /posts/search?term=node
+```
+
+**Resposta (200):**
+
+```json
+[
+  {
+    "id": "uuid",
+    "title": "Introdução ao Node.js",
+    "content": "Conteúdo da publicação",
+    "authorId": "uuid",
+    "createdAt": "2026-07-09T18:00:00.000Z",
+    "updatedAt": "2026-07-09T18:00:00.000Z"
+  }
+]
+```
+
+Quando nenhuma postagem é encontrada, o endpoint retorna:
+
+```json
+[]
+```
+
+**Resposta (400):**
+
+```json
+{
+  "message": "Search term is required"
+}
+```
+
+---
+
+### `PUT /posts/:id`
+
+Atualiza o título e o conteúdo de uma publicação existente. Requer autenticação com papel `TEACHER` ou `ADMIN`.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Parâmetro da rota:**
+
+| Parâmetro | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID | Identificador da publicação |
+
+**Body:**
+
+```json
+{
+  "title": "Título atualizado",
+  "content": "Conteúdo atualizado da publicação"
+}
+```
+
+**Resposta (200):**
+
+```json
+{
+  "id": "uuid",
+  "title": "Título atualizado",
+  "content": "Conteúdo atualizado da publicação",
+  "authorId": "uuid",
+  "createdAt": "2026-07-09T18:00:00.000Z",
+  "updatedAt": "2026-07-09T19:00:00.000Z"
+}
+```
+
+**Resposta (404):**
+
+```json
+{
+  "message": "Post not found"
+}
+```
+
+---
+
+### `DELETE /posts/:id`
+
+Remove uma publicação existente. Requer autenticação com papel `TEACHER` ou `ADMIN`.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+```
+
+**Parâmetro da rota:**
+
+| Parâmetro | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID | Identificador da publicação |
+
+**Resposta (200):**
+
+```json
+{
+  "message": "Post deleted successfully"
+}
+```
+
+**Resposta (404):**
+
+```json
+{
+  "message": "Post not found"
+}
+```
+
+**Possíveis erros:**
+
+- `401 Unauthorized` — token ausente ou inválido.
+- `403 Forbidden` — usuário sem papel `TEACHER` ou `ADMIN`.
+
+---
+
+### `GET /posts/:id`
+
+Retorna uma publicação específica utilizando o ID informado na rota.
+
+**Parâmetro da rota:**
+
+| Parâmetro | Tipo | Descrição |
+|---|---|---|
+| `id` | UUID | Identificador da publicação |
+
+**Resposta (200):**
+
+```json
+{
+  "id": "uuid",
+  "title": "Título da publicação",
+  "content": "Conteúdo da publicação",
+  "authorId": "uuid",
+  "createdAt": "2026-07-09T18:00:00.000Z",
+  "updatedAt": "2026-07-09T18:00:00.000Z"
+}
+```
+
+**Resposta (404):**
+
+```json
+{
+  "message": "Post not found"
+}
+```
+
+> Atualmente, essa rota não possui `preHandler` de autenticação no arquivo de rotas.
+
+---
+
+### `GET /posts`
+
+Retorna a lista de todas as postagens cadastradas. Requer autenticação.
+
+**Headers:**
+
+```text
+Authorization: Bearer <token>
+```
+
+**Resposta (200):**
+
+```json
+[
+  {
+    "id": "uuid",
+    "title": "Título da publicação",
+    "content": "Conteúdo da publicação",
+    "authorId": "uuid",
+    "createdAt": "2026-07-09T18:00:00.000Z",
+    "updatedAt": "2026-07-09T18:00:00.000Z"
+  }
+]
+```
+
+Quando não existem postagens cadastradas, o endpoint retorna:
+
+```json
+[]
+```
 
 ## Modelo de dados
 
@@ -372,7 +597,7 @@ Conforme os requisitos funcionais do Tech Challenge:
 Ordem sugerida para evoluir o projeto em direção à entrega:
 
 1. Criar `Dockerfile` para a aplicação.
-2. Evoluir o pepeline de GitHub Actions para incluir build e demais validações necessárias?
+2. Evoluir o pipeline do GitHub Actions para incluir o build e outras validações necessárias.
 3. Gravar apresentação final do projeto.
 4. Realizar ajustes identificados durante a homologação.
 
@@ -383,23 +608,21 @@ Ordem sugerida para evoluir o projeto em direção à entrega:
 - Marcus Urani - RM372080
 - Regiane Julia Pereira - RM370623
 
-## Experiência da equipe e desafios do desenvolvimento.
+## Experiência da equipe e desafios do desenvolvimento
+## Experiência da equipe e desafios do desenvolvimento
 
-  Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir
-as responsabilidades entre os integrantes em comum acordo, permitindo que cada funcionalidade fosse desenvolvida
-de forma independente e organizada.
-  Para a integração das funcionalidades foi adotado o GIT flow, permitindo revisão
-das implentações e reduzindo conflitos durante o desenvolvimento.
-A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando troca de conhecimento,
-esclarecimento de dúvidas e apoio mútuo sempre que necessário. 
-  Como ocorre em grande parte dos projetos de desenvolvimento, a adoção de novas tecnologias representou um desefio inicial
-para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, à utilização do PostegreSQL e à
-organização da aplicação urtilizando arquitetura em camadas.
-  Ao longo do desenvolvimento, a familiariadade com as ferramentas aumentou gradualmente e as difuculdades iniciais foram
- sendo superadas conforme as funcionalidades eram implementadas  e integradas ao projeto.
-  Ao final do processo, a equipe considera ques os objetivos propostos foram atingidos e avalia positivamente a experiencia
- obtida durante o desenvolvimento da solução. 
+Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir as responsabilidades entre os integrantes em comum acordo. Essa organização permitiu que cada funcionalidade fosse desenvolvida de forma independente e estruturada.
 
- ## Licença
+Para a integração das funcionalidades, foi adotado um fluxo de trabalho baseado em branches e Pull Requests, permitindo a revisão das implementações e reduzindo a ocorrência de conflitos durante o desenvolvimento.
+
+A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando a troca de conhecimento, o esclarecimento de dúvidas e o apoio mútuo sempre que necessário.
+
+Como ocorre em muitos projetos de desenvolvimento de software, a adoção de novas tecnologias representou um desafio inicial para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, ao PostgreSQL e à organização da aplicação em camadas.
+
+Ao longo do desenvolvimento, a familiaridade com as ferramentas aumentou gradualmente, e as dificuldades iniciais foram sendo superadas conforme as funcionalidades eram implementadas, testadas e integradas ao projeto.
+
+Ao final do processo, a equipe considera que os objetivos propostos foram atingidos e avalia positivamente a experiência adquirida durante o desenvolvimento da solução.
+
+## Licença
 
 ISC
