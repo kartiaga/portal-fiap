@@ -2,7 +2,7 @@
 
 API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
 
-> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker) e CI com GitHub Actions. Deploy automatizado (CD) ainda pendente.
+> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker) e CI com GitHub Actions. Deploy automatizado (CD) ainda pendente.
 
 ## Sobre o desafio
 
@@ -48,7 +48,7 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 |---|---|
 | Back-end em Node.js | Implementado (TypeScript + Fastify) |
 | Persistência de dados | Implementado (PostgreSQL + migrations) |
-| Containerização com Docker | Implementado (`Dockerfile` + `docker-compose.yaml`) |
+| Containerização com Docker | Implementado (`Dockerfile` em `api/` e `frontend/` + `docker-compose.yaml`) |
 | GitHub Actions (CI) | Implementado (testes em pull requests) |
 | GitHub Actions (CD / deploy) | Pendente |
 | Cobertura de testes (≥ 20%) | Implementado — 100% nos arquivos cobertos pelo Jest |
@@ -64,6 +64,7 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 
 | Camada | Tecnologia |
 |---|---|
+| Frontend | [Next.js](https://nextjs.org/) 16 + [React](https://react.dev/) 19 |
 | Runtime | [Node.js](https://nodejs.org/) 20+ |
 | Linguagem | [TypeScript](https://www.typescriptlang.org/) |
 | Framework HTTP | [Fastify](https://fastify.dev/) |
@@ -84,8 +85,8 @@ O projeto é um **monorepo** com backend e frontend separados:
 ```
 portal-fiap/
 ├── api/                # API REST (Node.js + Fastify + PostgreSQL)
-├── frontend/           # Frontend (a implementar)
-├── docker-compose.yaml # Orquestração local (API + banco)
+├── frontend/           # Frontend (Next.js + React)
+├── docker-compose.yaml # Orquestração local (API + frontend + banco)
 └── package.json        # Scripts de conveniência na raiz
 ```
 
@@ -186,7 +187,7 @@ cp api/.env.example api/.env
 Preencha o `api/.env` com os valores abaixo para desenvolvimento local:
 
 ```env
-PORT=3000
+PORT=3001
 NODE_ENV=development
 
 POSTGRES_HOST=localhost
@@ -238,7 +239,17 @@ npm run build:api
 npm run start:api
 ```
 
-A API estará disponível em `http://localhost:3000`.
+A API estará disponível em `http://localhost:3001`.
+
+#### 8. Iniciar o frontend (opcional)
+
+Com a API rodando, inicie o frontend em outro terminal:
+
+```bash
+npm run dev:frontend
+```
+
+O frontend estará disponível em `http://localhost:3000`.
 
 **Resumo rápido (do zero):**
 
@@ -253,9 +264,9 @@ npm run dev:api
 
 ---
 
-### Opção B — Docker completo (API + banco)
+### Opção B — Docker completo (API + frontend + banco)
 
-Sobe a API e o PostgreSQL em containers. As migrations rodam automaticamente na inicialização da API.
+Sobe a API, o frontend e o PostgreSQL em containers. As migrations rodam automaticamente na inicialização da API.
 
 #### 1. Clonar e entrar no projeto
 
@@ -293,8 +304,14 @@ docker ps
 # Logs da API (migrations + startup)
 docker compose logs api
 
+# Logs do frontend
+docker compose logs frontend
+
 # Swagger UI no navegador
-open http://localhost:3000/docs
+open http://localhost:3001/docs
+
+# Frontend no navegador
+open http://localhost:3000
 ```
 
 #### Serviços no Docker Compose
@@ -302,7 +319,8 @@ open http://localhost:3000/docs
 | Serviço | Container | Porta no host | Descrição |
 |---|---|---|---|
 | `postgres` | `portal-fiap-db` | `5431` | Banco PostgreSQL 16 |
-| `api` | `portal-fiap-api` | `3000` | API Node.js (migrations automáticas no startup) |
+| `api` | `portal-fiap-api` | `3001` | API Node.js (migrations automáticas no startup) |
+| `frontend` | `portal-fiap-frontend` | `3000` | Frontend Next.js (porta interna `3000`) |
 
 #### Variáveis de ambiente no Docker
 
@@ -314,6 +332,13 @@ No modo Docker, a API usa as variáveis definidas em `docker-compose.yaml`:
 | `POSTGRES_PORT` | `5432` (porta interna do container) |
 | `DATABASE_URL` | `postgres://postgres:postgres@postgres:5432/portal-fiap` |
 
+O frontend recebe:
+
+| Variável | Valor | Uso |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` (build arg) | `http://localhost:3001` | Chamadas do browser para a API no host |
+| `API_URL` | `http://api:3000` | Comunicação server-side dentro da rede Docker |
+
 > **Atenção:** o `api/.env` local aponta para `localhost:5431` (desenvolvimento fora do Docker). Não substitua as variáveis de rede do compose sem ajustar o host/porta.
 
 ---
@@ -324,12 +349,12 @@ No modo Docker, a API usa as variáveis definidas em `docker-compose.yaml`:
 
 Com a API rodando, acesse:
 
-**http://localhost:3000/docs**
+**http://localhost:3001/docs**
 
 ### Login
 
 ```bash
-curl -X POST http://localhost:3000/login \
+curl -X POST http://localhost:3001/login \
   -H "Content-Type: application/json" \
   -d '{"email":"teacher@fiap.com.br","password":"12345678"}'
 ```
@@ -340,17 +365,17 @@ A resposta inclui um `token` JWT e os dados do usuário.
 
 ```bash
 # Criar um post (TEACHER ou ADMIN)
-curl -X POST http://localhost:3000/posts \
+curl -X POST http://localhost:3001/posts \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"title":"Primeira aula","content":"Conteúdo da publicação com pelo menos 10 caracteres."}'
 
 # Listar posts
-curl http://localhost:3000/posts \
+curl http://localhost:3001/posts \
   -H "Authorization: Bearer <token>"
 
 # Criar um usuário (somente ADMIN)
-curl -X POST http://localhost:3000/users \
+curl -X POST http://localhost:3001/users \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"email":"novo@fiap.com.br","password":"12345678","name":"Novo Aluno","role":"STUDENT"}'
@@ -386,8 +411,11 @@ Scripts na **raiz** do monorepo:
 | Script | Descrição |
 |---|---|
 | `npm run dev:api` | Inicia a API em modo desenvolvimento (hot reload) |
+| `npm run dev:frontend` | Inicia o frontend em modo desenvolvimento (porta `3000`) |
 | `npm run build:api` | Compila a API para ESM em `api/build/` |
+| `npm run build:frontend` | Gera o build de produção do Next.js |
 | `npm run start:api` | Inicia a API compilada |
+| `npm run start:frontend` | Inicia o frontend compilado (porta `3000`) |
 | `npm run migrate:up` | Aplica migrations pendentes |
 | `npm run migrate:down` | Reverte a última migration |
 | `npm run seed` | Cria as 3 contas padrão de desenvolvimento |
@@ -410,6 +438,10 @@ docker compose up postgres -d      # subir o banco
 ```
 
 No modo local, confirme que o `api/.env` usa `POSTGRES_HOST=localhost` e `POSTGRES_PORT=5431`.
+
+### Build do Docker falha com `Dockerfile: no such file or directory`
+
+Confirme que existem os arquivos `api/Dockerfile` e `frontend/Dockerfile`. O build do frontend usa `output: "standalone"` no `frontend/next.config.ts`.
 
 ### Build do Docker falha com `Top-level await`
 
@@ -504,7 +536,7 @@ O campo `role` é opcional (`STUDENT`, `TEACHER` ou `ADMIN`; padrão: `STUDENT`)
 | `DELETE` | `/posts/:id` | TEACHER / ADMIN | Remove um post pelo ID |
 | `GET` | `/posts/search?q=termo` | Autenticado | Busca posts por palavra-chave |
 
-Consulte a documentação completa em **http://localhost:3000/docs**.
+Consulte a documentação completa em **http://localhost:3001/docs**.
 
 ## Modelo de dados
 
@@ -537,7 +569,7 @@ Consulte a documentação completa em **http://localhost:3000/docs**.
 
 ## Próximos passos
 
-1. Implementar o frontend em `frontend/`
+1. Evoluir telas e integrações do frontend com a API
 2. Configurar pipeline de deploy (CD) no GitHub Actions
 3. Gravar apresentação final do projeto
 4. Realizar ajustes identificados durante a homologação
