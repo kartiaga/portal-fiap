@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { logoutAction } from "./actions";
@@ -18,6 +19,14 @@ export default async function Home() {
       <p className="text-zinc-600 dark:text-zinc-400">
         Logado como <strong>{session.role}</strong>.
       </p>
+      {session.role === "ADMIN" ? (
+        <Link
+          href="/users/new"
+          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+        >
+          Criar novo usuário
+        </Link>
+      ) : null}
       <form action={logoutAction}>
         <button
           type="submit"
