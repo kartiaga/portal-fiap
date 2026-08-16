@@ -12,11 +12,9 @@ export function LoginForm() {
   );
 
   return (
-    <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium text-zinc-700">
-          E-mail
-        </label>
+    <form action={formAction} className="flex w-full flex-col gap-4">
+      <div className="field">
+        <label htmlFor="email">E-mail</label>
         <input
           id="email"
           name="email"
@@ -24,14 +22,11 @@ export function LoginForm() {
           required
           autoComplete="email"
           placeholder="voce@fiap.com.br"
-          className="rounded border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-900"
         />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="password" className="text-sm font-medium text-zinc-700">
-          Senha
-        </label>
+      <div className="field">
+        <label htmlFor="password">Senha</label>
         <input
           id="password"
           name="password"
@@ -39,21 +34,17 @@ export function LoginForm() {
           required
           minLength={8}
           autoComplete="current-password"
-          className="rounded border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-900"
         />
       </div>
 
       {state.error ? (
-        <p role="alert" className="text-sm text-red-600">
-          {state.error}
-        </p>
+        <div role="alert" className="alert alert-danger">
+          <span>!</span>
+          <div>{state.error}</div>
+        </div>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className="btn btn-primary w-full">
         {pending ? "Entrando..." : "Entrar"}
       </button>
     </form>

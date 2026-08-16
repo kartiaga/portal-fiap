@@ -1,26 +1,258 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --red-900: #7a0018;
+  --red-700: #a3001f;
+  --red-600: #c4102e;
+  --red-500: #e4002b;
+  --red-100: #fce8eb;
+  --red-050: #fdf3f4;
+
+  --ink-900: #19181c;
+  --ink-700: #3a383f;
+  --ink-500: #5b5964;
+  --ink-300: #948fa0;
+  --ink-100: #e6e3ea;
+
+  --paper-000: #ffffff;
+  --paper-050: #f6f4f5;
+  --paper-100: #efebec;
+
+  --green-600: #1e7a50;
+  --green-100: #e4f3eb;
+  --amber-600: #b4650a;
+  --amber-100: #fbebd6;
+  --blue-600: #2352a0;
+  --blue-100: #e4ecf9;
+
+  --error: #b3241c;
+  --error-bg: #fdf0ef;
+  --error-border: #f3c9c5;
+
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), monospace;
+
+  --shadow-s: 0 1px 2px rgba(25, 24, 28, 0.06), 0 1px 1px rgba(25, 24, 28, 0.04);
+  --shadow-m: 0 6px 16px rgba(25, 24, 28, 0.08), 0 2px 4px rgba(25, 24, 28, 0.04);
+  --shadow-l: 0 20px 40px rgba(25, 24, 28, 0.12), 0 4px 8px rgba(25, 24, 28, 0.04);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-red-900: var(--red-900);
+  --color-red-700: var(--red-700);
+  --color-red-600: var(--red-600);
+  --color-red-500: var(--red-500);
+  --color-red-100: var(--red-100);
+  --color-red-050: var(--red-050);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-500: var(--ink-500);
+  --color-ink-300: var(--ink-300);
+  --color-ink-100: var(--ink-100);
+
+  --color-paper-000: var(--paper-000);
+  --color-paper-050: var(--paper-050);
+  --color-paper-100: var(--paper-100);
+
+  --color-green-600: var(--green-600);
+  --color-green-100: var(--green-100);
+  --color-amber-600: var(--amber-600);
+  --color-amber-100: var(--amber-100);
+  --color-blue-600: var(--blue-600);
+  --color-blue-100: var(--blue-100);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --radius-s: 6px;
+  --radius-m: 12px;
+  --radius-l: 20px;
+
+  --shadow-s: var(--shadow-s);
+  --shadow-m: var(--shadow-m);
+  --shadow-l: var(--shadow-l);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper-050);
+  color: var(--ink-900);
+}
+
+::selection {
+  background: var(--red-100);
+  color: var(--red-700);
+}
+
+@layer components {
+  /* ---------- Buttons ---------- */
+  .btn {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: var(--radius-s, 6px);
+    padding: 11px 20px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease,
+      background 0.12s ease;
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+  .btn-primary {
+    background: var(--red-600);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: var(--red-700);
+    box-shadow: var(--shadow-s);
+  }
+  .btn-secondary {
+    background: var(--paper-000);
+    color: var(--ink-900);
+    border-color: var(--ink-100);
+  }
+  .btn-secondary:hover {
+    border-color: var(--red-500);
+    color: var(--red-700);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--red-700);
+  }
+  .btn-ghost:hover {
+    background: var(--red-050);
+  }
+  .btn[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ---------- Form ---------- */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-700);
+  }
+  .field input,
+  .field select {
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius-s, 6px);
+    border: 1px solid var(--ink-100);
+    background: var(--paper-000);
+    color: var(--ink-900);
+    outline: none;
+  }
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--red-500);
+    box-shadow: 0 0 0 3px var(--red-100);
+  }
+  .field .hint {
+    font-size: 12px;
+    color: var(--ink-500);
+  }
+  .field.error input {
+    border-color: var(--error);
+  }
+  .field.error .hint {
+    color: var(--error);
+  }
+
+  /* ---------- Avatar ---------- */
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(155deg, var(--red-500), var(--red-700));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .avatar.sm {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  /* ---------- Badges (pills) ---------- */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .pill-red {
+    background: var(--red-100);
+    color: var(--red-700);
+  }
+  .pill-green {
+    background: var(--green-100);
+    color: var(--green-600);
+  }
+  .pill-amber {
+    background: var(--amber-100);
+    color: var(--amber-600);
+  }
+  .pill-blue {
+    background: var(--blue-100);
+    color: var(--blue-600);
+  }
+
+  /* ---------- Alert ---------- */
+  .alert {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    border-radius: var(--radius-m, 12px);
+    border: 1px solid;
+    font-size: 14px;
+    align-items: flex-start;
+  }
+  .alert b {
+    display: block;
+    margin-bottom: 2px;
+  }
+  .alert-success {
+    background: var(--green-100);
+    border-color: #c5e6d5;
+    color: var(--green-600);
+  }
+  .alert-danger {
+    background: var(--red-050);
+    border-color: var(--red-100);
+    color: var(--red-700);
+  }
+
+  /* ---------- Card ---------- */
+  .card-plain {
+    background: var(--paper-000);
+    border: 1px solid var(--ink-100);
+    border-radius: var(--radius-m, 12px);
+    box-shadow: var(--shadow-s);
+  }
 }
