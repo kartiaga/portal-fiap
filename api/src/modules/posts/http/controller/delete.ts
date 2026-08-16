@@ -18,7 +18,7 @@ export async function remove(
       return reply.status(404).send({ message: 'Post not found' })
     }
 
-    return reply.status(200).send({ message: 'Post delete successfully' })
+    return reply.status(200).send({ message: 'Post deleted successfully' })
   } catch (error) {
     console.error(error)
     throw new Error('Failed to delete post')
