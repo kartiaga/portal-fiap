@@ -59,25 +59,51 @@ export class UserRepository {
   }
 
   public async findPaginated(
-    params: PaginationParams = {},
+    params: PaginationParams & { search?: string | undefined } = {},
   ): Promise<PaginatedResult<User>> {
     const limit = resolveLimit(params.limit)
     const fetchLimit = limit + 1
+    const searchPattern = params.search ? `%${params.search}%` : undefined
 
     let result
 
     if (params.cursor) {
       const { createdAt, id } = decodeCursor(params.cursor)
 
+      if (searchPattern) {
+        result = await database.clienteInstance?.query(
+          `
+          SELECT *
+          FROM users
+          WHERE email ILIKE $1
+            AND (created_at, id) < ($2, $3)
+          ORDER BY created_at DESC, id DESC
+          LIMIT $4
+          `,
+          [searchPattern, createdAt, id, fetchLimit],
+        )
+      } else {
+        result = await database.clienteInstance?.query(
+          `
+          SELECT *
+          FROM users
+          WHERE (created_at, id) < ($1, $2)
+          ORDER BY created_at DESC, id DESC
+          LIMIT $3
+          `,
+          [createdAt, id, fetchLimit],
+        )
+      }
+    } else if (searchPattern) {
       result = await database.clienteInstance?.query(
         `
         SELECT *
         FROM users
-        WHERE (created_at, id) < ($1, $2)
+        WHERE email ILIKE $1
         ORDER BY created_at DESC, id DESC
-        LIMIT $3
+        LIMIT $2
         `,
-        [createdAt, id, fetchLimit],
+        [searchPattern, fetchLimit],
       )
     } else {
       result = await database.clienteInstance?.query(

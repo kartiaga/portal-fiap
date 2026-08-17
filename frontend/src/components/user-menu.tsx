@@ -87,14 +87,24 @@ export function UserMenu({ role }: { role: SessionUser["role"] }) {
           </div>
 
           {role === "ADMIN" ? (
-            <Link
-              href="/users/new"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-3 text-sm font-medium text-ink-900 transition hover:bg-paper-050"
-            >
-              Cadastrar novo usuário
-            </Link>
+            <>
+              <Link
+                href="/users/list"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-3 text-sm font-medium text-ink-900 transition hover:bg-paper-050"
+              >
+                Listar usuários
+              </Link>
+              <Link
+                href="/users/new"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-3 text-sm font-medium text-ink-900 transition hover:bg-paper-050"
+              >
+                Cadastrar novo usuário
+              </Link>
+            </>
           ) : null}
 
           <form action={logoutAction}>

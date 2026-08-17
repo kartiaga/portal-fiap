@@ -45,10 +45,14 @@ describe('pagination helpers', () => {
   })
 
   it('returns empty paginated result when there are no rows', () => {
-    const result = buildPaginatedResult([], 20, (item) => ({
-      createdAt: item.createdAt,
-      id: item.id,
-    }))
+    const result = buildPaginatedResult(
+      [] as Array<{ id: string; createdAt: Date }>,
+      20,
+      (item) => ({
+        createdAt: item.createdAt,
+        id: item.id,
+      }),
+    )
 
     expect(result).toEqual({
       items: [],

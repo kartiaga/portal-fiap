@@ -4,8 +4,8 @@ export const DEFAULT_PAGE_SIZE = 20
 export const MAX_PAGE_SIZE = 50
 
 export type PaginationParams = {
-  cursor?: string
-  limit?: number
+  cursor?: string | undefined
+  limit?: number | undefined
 }
 
 export type PaginatedResult<T> = {
