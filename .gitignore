@@ -1,4 +1,7 @@
-/node_modules
-/build
+node_modules
 .env
-/coverage
+coverage
+api/build
+api/node_modules
+frontend/dist
+frontend/node_modules
