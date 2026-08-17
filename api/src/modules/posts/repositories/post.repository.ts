@@ -1,4 +1,11 @@
 import { database } from '@/lib/db'
+import {
+  buildPaginatedResult,
+  decodeCursor,
+  resolveLimit,
+  type PaginatedResult,
+  type PaginationParams,
+} from '@/lib/pagination'
 import type { Post } from '../entities/post'
 
 interface PostRow {
@@ -11,6 +18,17 @@ interface PostRow {
 }
 
 export class PostRepository {
+  private mapRow(row: PostRow): Post {
+    return {
+      id: row.id,
+      title: row.title,
+      content: row.content,
+      authorId: row.author_id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }
+  }
+
   public async create({
     title,
     content,
@@ -24,14 +42,7 @@ export class PostRepository {
     const row = result?.rows[0]
     if (!row) return undefined
 
-    return {
-      id: row.id,
-      title: row.title,
-      content: row.content,
-      authorId: row.author_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }
+    return this.mapRow(row as PostRow)
   }
 
   public async findById(id: string): Promise<Post | undefined> {
@@ -43,14 +54,7 @@ export class PostRepository {
     const row = result?.rows[0]
     if (!row) return undefined
 
-    return {
-      id: row.id,
-      title: row.title,
-      content: row.content,
-      authorId: row.author_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }
+    return this.mapRow(row as PostRow)
   }
 
   public async update(
@@ -65,14 +69,7 @@ export class PostRepository {
     const row = result?.rows[0]
     if (!row) return undefined
 
-    return {
-      id: row.id,
-      title: row.title,
-      content: row.content,
-      authorId: row.author_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }
+    return this.mapRow(row as PostRow)
   }
 
   public async search(term: string): Promise<Post[]> {
@@ -88,14 +85,7 @@ export class PostRepository {
     )
 
     const rows = result?.rows ?? []
-    return rows.map((row: PostRow) => ({
-      id: row.id,
-      title: row.title,
-      content: row.content,
-      authorId: row.author_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }))
+    return rows.map((row: PostRow) => this.mapRow(row))
   }
 
   public async delete(id: string): Promise<Post | undefined> {
@@ -107,30 +97,48 @@ export class PostRepository {
     const row = result?.rows[0]
     if (!row) return undefined
 
-    return {
-      id: row.id,
-      title: row.title,
-      content: row.content,
-      authorId: row.author_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }
+    return this.mapRow(row as PostRow)
   }
 
-  public async findAll(): Promise<Post[]> {
-    const result = await database.clienteInstance?.query(
-      `SELECT * FROM posts ORDER BY created_at DESC`,
-    )
+  public async findPaginated(
+    params: PaginationParams = {},
+  ): Promise<PaginatedResult<Post>> {
+    const limit = resolveLimit(params.limit)
+    const fetchLimit = limit + 1
 
-    const rows = result?.rows ?? []
+    let result
 
-    return rows.map((row: PostRow) => ({
-      id: row.id,
-      title: row.title,
-      content: row.content,
-      authorId: row.author_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+    if (params.cursor) {
+      const { createdAt, id } = decodeCursor(params.cursor)
+
+      result = await database.clienteInstance?.query(
+        `
+        SELECT *
+        FROM posts
+        WHERE (created_at, id) < ($1, $2)
+        ORDER BY created_at DESC, id DESC
+        LIMIT $3
+        `,
+        [createdAt, id, fetchLimit],
+      )
+    } else {
+      result = await database.clienteInstance?.query(
+        `
+        SELECT *
+        FROM posts
+        ORDER BY created_at DESC, id DESC
+        LIMIT $1
+        `,
+        [fetchLimit],
+      )
+    }
+
+    const rows = (result?.rows ?? []) as PostRow[]
+    const posts = rows.map((row) => this.mapRow(row))
+
+    return buildPaginatedResult(posts, limit, (post) => ({
+      createdAt: post.createdAt!,
+      id: post.id!,
     }))
   }
 }

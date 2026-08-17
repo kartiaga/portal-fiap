@@ -262,28 +262,62 @@ export async function postsRoutes(app: FastifyInstance) {
       preHandler: [authenticate],
       schema: {
         tags: ['Posts'],
-        summary: 'Lista todas as postagens',
-        description: 'Retorna a lista de todas as postagens. Requer token JWT.',
+        summary: 'Lista postagens com paginação por cursor',
+        description:
+          'Retorna postagens paginadas para scroll infinito. Requer token JWT.',
         security: [{ bearerAuth: [] }],
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: {
+              type: 'string',
+              description: 'Cursor opaco da página anterior',
+            },
+            limit: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 50,
+              default: 20,
+              description: 'Quantidade de itens por página',
+            },
+          },
+        },
         response: {
           200: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: { type: 'string', format: 'uuid' },
-                title: { type: 'string' },
-                content: { type: 'string' },
-                authorId: { type: 'string', format: 'uuid' },
-                createdAt: {
-                  type: 'string',
-                  format: 'date-time',
-                },
-                updatedAt: {
-                  type: 'string',
-                  format: 'date-time',
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', format: 'uuid' },
+                    title: { type: 'string' },
+                    content: { type: 'string' },
+                    authorId: { type: 'string', format: 'uuid' },
+                    createdAt: {
+                      type: 'string',
+                      format: 'date-time',
+                    },
+                    updatedAt: {
+                      type: 'string',
+                      format: 'date-time',
+                    },
+                  },
                 },
               },
+              nextCursor: {
+                type: ['string', 'null'],
+              },
+              hasMore: {
+                type: 'boolean',
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
             },
           },
           401: {
