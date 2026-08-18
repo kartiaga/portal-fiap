@@ -87,6 +87,7 @@ body {
 }
 
 @layer components {
+
   /* ---------- Buttons ---------- */
   .btn {
     font-family: var(--font-body);
@@ -105,33 +106,41 @@ body {
       box-shadow 0.12s ease,
       background 0.12s ease;
   }
+
   .btn:active {
     transform: translateY(1px);
   }
+
   .btn-primary {
     background: var(--red-600);
     color: #fff;
   }
+
   .btn-primary:hover {
     background: var(--red-700);
     box-shadow: var(--shadow-s);
   }
+
   .btn-secondary {
     background: var(--paper-000);
     color: var(--ink-900);
     border-color: var(--ink-100);
   }
+
   .btn-secondary:hover {
     border-color: var(--red-500);
     color: var(--red-700);
   }
+
   .btn-ghost {
     background: transparent;
     color: var(--red-700);
   }
+
   .btn-ghost:hover {
     background: var(--red-050);
   }
+
   .btn[disabled] {
     opacity: 0.4;
     cursor: not-allowed;
@@ -143,12 +152,15 @@ body {
     flex-direction: column;
     gap: 6px;
   }
+
   .field label {
     font-size: 13px;
     font-weight: 600;
     color: var(--ink-700);
   }
+
   .field input,
+  .field textarea,
   .field select {
     font-family: var(--font-body);
     font-size: 14px;
@@ -159,18 +171,23 @@ body {
     color: var(--ink-900);
     outline: none;
   }
+
   .field input:focus,
+  .field textarea:focus,
   .field select:focus {
     border-color: var(--red-500);
     box-shadow: 0 0 0 3px var(--red-100);
   }
+
   .field .hint {
     font-size: 12px;
     color: var(--ink-500);
   }
+
   .field.error input {
     border-color: var(--error);
   }
+
   .field.error .hint {
     color: var(--error);
   }
@@ -190,6 +207,7 @@ body {
     font-size: 14px;
     flex-shrink: 0;
   }
+
   .avatar.sm {
     width: 30px;
     height: 30px;
@@ -206,18 +224,22 @@ body {
     padding: 4px 10px;
     border-radius: 999px;
   }
+
   .pill-red {
     background: var(--red-100);
     color: var(--red-700);
   }
+
   .pill-green {
     background: var(--green-100);
     color: var(--green-600);
   }
+
   .pill-amber {
     background: var(--amber-100);
     color: var(--amber-600);
   }
+
   .pill-blue {
     background: var(--blue-100);
     color: var(--blue-600);
@@ -233,15 +255,18 @@ body {
     font-size: 14px;
     align-items: flex-start;
   }
+
   .alert b {
     display: block;
     margin-bottom: 2px;
   }
+
   .alert-success {
     background: var(--green-100);
     border-color: #c5e6d5;
     color: var(--green-600);
   }
+
   .alert-danger {
     background: var(--red-050);
     border-color: var(--red-100);
