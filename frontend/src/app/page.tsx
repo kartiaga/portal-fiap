@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { Header } from "@/components/header";
@@ -45,6 +46,17 @@ export default async function Home() {
             </span>
           </p>
         </div>
+
+        {session.role !== "STUDENT" ? (
+          <div className="card-plain w-full max-w-md p-5">
+            <p className="mb-3 text-sm font-medium text-ink-700">Ações rápidas</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link href="/posts/new" className="btn btn-primary flex-1">
+                Nova publicação
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </main>
     </div>
   );
