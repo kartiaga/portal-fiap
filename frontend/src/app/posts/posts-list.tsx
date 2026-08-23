@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { fetchPostsAction, type PostListItem } from "./actions";
 
 type PostsListProps = {
@@ -37,16 +38,18 @@ export function PostsList({
             ...result.data.items,
         ]);
         setCursor(result.data.nextCursor);
-        setHasMore(result.data.hasMore); 
+        setHasMore(result.data.hasMore);
     }
 
     return (
         <div className="flex flex-col gap-4">
             {posts.map((post) => (
                 <article key={post.id} className="card-plain p-5">
-                    <h2 className="font-display text-lg font-semibold text-ink-900">
-                        {post.title}
-                    </h2>
+                    <Link href={`/posts/${post.id}`}>
+                        <h2 className="font-display text-lg font-semibold text-ink-900">
+                            {post.title}
+                        </h2>
+                    </Link>
 
                     <p className="mt-2 text-sm text-ink-500">
                         {post.content}
