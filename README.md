@@ -31,6 +31,14 @@ Oferecer uma API de blogging onde:
 | `DELETE /posts/:id` | Exclusão de postagens | Implementado |
 | `GET /posts/search` | Busca por palavra-chave no título ou conteúdo | Implementado |
 
+### Requisitos funcionais — Frontend
+
+| Página | Descrição | Status |
+|---|---|---|
+| `/posts/admin` | Página administrativa: lista todas as postagens com opções de editar e excluir | Implementado |
+| `/posts/new` | Criação de postagens (docentes) | Implementado |
+| `/posts/:id/edit` | Edição de postagens (docentes) | Implementado |
+
 ### Funcionalidades extras (fora do escopo mínimo do desafio)
 
 Estas rotas foram adicionadas para suportar autenticação e gestão de usuários, necessárias ao controle de acesso entre alunos e docentes:
@@ -120,6 +128,67 @@ Cada módulo contém:
 | `STUDENT` | Visualiza e lê postagens |
 | `TEACHER` | Cria, edita, exclui e gerencia postagens |
 | `ADMIN` | Gerencia usuários e postagens |
+
+## Arquitetura do frontend
+
+O frontend é uma aplicação **Next.js (App Router)** que consome a API REST. Não há acesso direto ao banco: toda leitura e escrita passa pelos endpoints documentados neste README.
+
+```
+frontend/src/
+├── app/
+│   ├── layout.tsx      # Layout raiz (fontes e tema)
+│   ├── page.tsx        # Home autenticada, com atalhos por papel
+│   ├── actions.ts      # Server Action de logout
+│   ├── globals.css     # Tokens e componentes do design system (Tailwind)
+│   ├── login/          # Tela de login
+│   ├── posts/          # Postagens
+│   │   ├── actions.ts      # Server Actions que consomem /posts
+│   │   ├── post-form.tsx   # Formulário compartilhado entre criar e editar
+│   │   ├── admin/          # Página administrativa
+│   │   ├── new/            # Criação
+│   │   └── [id]/edit/      # Edição
+│   └── users/          # Cadastro e listagem de usuários (admin)
+├── components/         # Header e menu de usuário
+├── lib/                # Helpers de API e de sessão (JWT/cookie)
+└── proxy.ts            # Middleware de rotas (Next.js 16)
+```
+
+As chamadas à API ficam em **Server Actions** (`"use server"`), nunca no navegador. Assim o token JWT não fica exposto ao JavaScript do cliente: o componente envia o formulário para a action, e é a action que monta o cabeçalho `Authorization: Bearer <token>` e chama a API.
+
+### Rotas do frontend
+
+| Rota | Acesso | Descrição |
+|---|---|---|
+| `/login` | Público | Autenticação com e-mail e senha |
+| `/` | Autenticado | Home com o papel da sessão e atalhos |
+| `/posts/admin` | `TEACHER`, `ADMIN` | Página administrativa de postagens |
+| `/posts/new` | `TEACHER`, `ADMIN` | Criação de postagem |
+| `/posts/:id/edit` | `TEACHER`, `ADMIN` | Edição de postagem |
+| `/users/list` | `ADMIN` | Listagem de usuários |
+| `/users/new` | `ADMIN` | Cadastro de usuários |
+
+## Página administrativa de postagens
+
+Disponível em `/posts/admin` para `TEACHER` e `ADMIN`, acessível pelo menu do usuário ou pelo atalho da home.
+
+### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Listagem de todas as postagens, com título, trecho do conteúdo e datas de criação e atualização | `GET /posts` |
+| Botão **Carregar mais**, que busca a próxima página pelo cursor devolvido pela API | `GET /posts?cursor=&limit=` |
+| Busca por palavra-chave no título ou no conteúdo | `GET /posts/search?term=` |
+| Botão **Editar** por postagem, que abre `/posts/:id/edit` com o formulário preenchido | `GET /posts/:id` e `PUT /posts/:id` |
+| Botão **Excluir** por postagem, com confirmação em duas etapas antes de enviar a requisição | `DELETE /posts/:id` |
+| Atalho para criar uma nova postagem | `POST /posts` |
+
+Detalhes de comportamento:
+
+- **Exclusão em duas etapas** — o primeiro clique em *Excluir* abre uma confirmação na própria linha (*Cancelar* / *Confirmar exclusão*), evitando remoções acidentais. Após a confirmação, a postagem some da lista e um aviso de sucesso é exibido.
+- **Paginação preservada** — ao excluir, a postagem é removida localmente em vez de recarregar a lista, para não descartar as páginas já trazidas pelo *Carregar mais*.
+- **Busca sem paginação** — `GET /posts/search` devolve uma lista simples. A Server Action normaliza a resposta no mesmo formato paginado das demais chamadas, então o botão *Carregar mais* simplesmente não aparece em resultados de busca.
+- **Validação espelhada** — os formulários de criação e edição aplicam as mesmas regras da API (título com no mínimo 3 caracteres e conteúdo com no mínimo 10), para o erro aparecer antes da chamada de rede.
+- **Autoria** — postagens criadas pelo usuário da sessão recebem a marcação *Sua postagem*.
 
 ## Pré-requisitos
 
