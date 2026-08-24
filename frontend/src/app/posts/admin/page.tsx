@@ -11,6 +11,12 @@ export default async function PostsAdminPage() {
     redirect("/login");
   }
 
+  // Gestão de postagens é exclusiva de docentes e administradores, espelhando
+  // o requireTeacherOrAdmin que a API aplica nas rotas de POST/PUT/DELETE.
+  if (session.role === "STUDENT") {
+    redirect("/");
+  }
+
   return (
     <div className="flex flex-1 flex-col">
       <Header role={session.role} />

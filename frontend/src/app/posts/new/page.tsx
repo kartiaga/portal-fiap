@@ -10,6 +10,11 @@ export default async function NewPostPage() {
     redirect("/login");
   }
 
+  // Só docentes e administradores criam postagens — alunos apenas leem.
+  if (session.role === "STUDENT") {
+    redirect("/");
+  }
+
   return (
     <div className="flex flex-1 flex-col">
       <Header role={session.role} />

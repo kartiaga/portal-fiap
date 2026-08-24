@@ -14,6 +14,11 @@ export default async function EditPostPage({
     redirect("/login");
   }
 
+  // Mesma regra da criação: edição é exclusiva de docentes e administradores.
+  if (session.role === "STUDENT") {
+    redirect("/");
+  }
+
   const { id } = await params;
   const result = await fetchPostAction(id);
 

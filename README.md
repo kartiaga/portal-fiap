@@ -35,9 +35,11 @@ Oferecer uma API de blogging onde:
 
 | Página | Descrição | Status |
 |---|---|---|
+| `/login` | Login de professores, alunos e administradores | Implementado |
 | `/posts/admin` | Página administrativa: lista todas as postagens com opções de editar e excluir | Implementado |
 | `/posts/new` | Criação de postagens (docentes) | Implementado |
 | `/posts/:id/edit` | Edição de postagens (docentes) | Implementado |
+| Controle de acesso | Criação, edição e administração de postagens restritas a usuários autenticados | Implementado |
 
 ### Funcionalidades extras (fora do escopo mínimo do desafio)
 
@@ -166,6 +168,31 @@ As chamadas à API ficam em **Server Actions** (`"use server"`), nunca no navega
 | `/posts/:id/edit` | `TEACHER`, `ADMIN` | Edição de postagem |
 | `/users/list` | `ADMIN` | Listagem de usuários |
 | `/users/new` | `ADMIN` | Cadastro de usuários |
+
+## Autenticação e autorização
+
+O login é feito em `/login` e vale para os três papéis — professores usam as mesmas credenciais cadastradas na API (ver [contas do seed](#6-criar-contas-iniciais-seed)).
+
+### Fluxo de login
+
+1. O formulário chama a Server Action `loginAction`, que envia e-mail e senha para `POST /login`.
+2. Com o token JWT devolvido pela API, a action grava o cookie de sessão e redireciona para `/`.
+3. O cookie é `httpOnly`, `sameSite=lax`, com validade de 15 dias e `secure` habilitado em produção. Como é `httpOnly`, o JavaScript do navegador não consegue lê-lo.
+4. O logout (`logoutAction`) apaga o cookie e devolve o usuário para `/login`.
+
+### Camadas de proteção
+
+O controle de acesso acontece em três níveis, do mais barato ao mais confiável:
+
+| Camada | Onde | O que verifica |
+|---|---|---|
+| Middleware | `frontend/src/proxy.ts` | Checagem otimista: se não existe cookie de sessão, redireciona para `/login` antes de renderizar qualquer rota. Se o usuário já está logado e acessa `/login`, redireciona para `/` |
+| Server Component | Cada `page.tsx` protegida | `getSession()` decodifica o JWT, confere a expiração e redireciona para `/login` se o token não for mais válido. Em seguida valida o papel e redireciona para `/` quem não tiver permissão |
+| API | `preHandler` das rotas | Valida a assinatura do JWT (`authenticate`) e o papel (`requireTeacherOrAdmin`, `requireAdmin`). É a única camada que confere a assinatura do token |
+
+> O frontend apenas **decodifica** o payload do JWT para exibir o papel na interface sem uma chamada de rede extra. Toda operação sensível reenvia o token para a API, que é quem valida a assinatura — nenhuma decisão de segurança depende só do cliente.
+
+As páginas de **criação**, **edição** e **administração** de postagens exigem sessão válida e papel `TEACHER` ou `ADMIN`. Um aluno autenticado que acessar essas URLs diretamente é redirecionado para `/`, e os atalhos correspondentes não aparecem no menu do usuário nem na home.
 
 ## Página administrativa de postagens
 
