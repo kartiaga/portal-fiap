@@ -18,6 +18,7 @@ export async function createPostAction(
     const cleanTitle = title.trim();
     const cleanContent = content.trim();
     if (cleanTitle.length < 3) return { error: "O título deve ter pelo menos 3 caracteres." };
+    if (cleanTitle.length > 255) return { error: "O título deve ter no máximo 255 caracteres." };
     if (cleanContent.length < 10) return { error: "O conteúdo deve ter pelo menos 10 caracteres." };
     const token = await getToken();
     if (!token) return { error: "Sessão expirada. Faça login novamente." };

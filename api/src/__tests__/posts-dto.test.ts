@@ -1,4 +1,3 @@
-import type { FastifyRequest } from 'fastify'
 import { createPostSchema } from '@/modules/posts/dto/create-post.dto'
 import { updatePostSchema } from '@/modules/posts/dto/update-post.dto'
 
@@ -49,6 +48,24 @@ describe('Post DTOs', () => {
 
             expect(() => createPostSchema.parse(payload)).toThrow()
         })
+
+        it('should accept a title with exactly 255 characters', () => {
+            const payload = {
+                title: 'a'.repeat(255),
+                content: 'This is a test post with sufficient content length.',
+            }
+
+            expect(createPostSchema.parse(payload).title).toHaveLength(255)
+        })
+
+        it('should reject a title longer than 255 characters', () => {
+            const payload = {
+                title: 'a'.repeat(256),
+                content: 'This is a test post with sufficient content length.',
+            }
+
+            expect(() => createPostSchema.parse(payload)).toThrow()
+        })
     })
 
     describe('updatePostSchema', () => {
@@ -92,6 +109,15 @@ describe('Post DTOs', () => {
 
             expect(result.title).toBe('abc')
             expect(result.content).toBe('0123456789')
+        })
+
+        it('should reject an update title longer than 255 characters', () => {
+            const payload = {
+                title: 'a'.repeat(256),
+                content: 'This is an updated post with sufficient content length.',
+            }
+
+            expect(() => updatePostSchema.parse(payload)).toThrow()
         })
     })
 })

@@ -68,6 +68,8 @@ Usuários com papel `STUDENT` visualizam as publicações, mas não veem os cont
 
 Após criar ou editar uma publicação, a aplicação navega imediatamente para `/posts` e exibe uma mensagem de sucesso. Após excluir uma publicação na listagem ou nos detalhes, o usuário também retorna para `/posts` com o feedback correspondente. As mensagens desaparecem automaticamente após alguns segundos com uma animação.
 
+Os formulários de criação e edição validam títulos com no mínimo 3 e no máximo 255 caracteres, conforme o limite `varchar(255)` definido no banco de dados.
+
 ### Requisitos técnicos
 
 | Requisito | Decisão / status |
@@ -593,6 +595,8 @@ Content-Type: application/json
 }
 ```
 
+O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve conter pelo menos 10 caracteres.
+
 **Resposta (201):**
 
 ```json
@@ -691,6 +695,8 @@ Content-Type: application/json
   "content": "Conteúdo atualizado da publicação"
 }
 ```
+
+Os campos `title` e `content` seguem as mesmas validações da criação: o título deve conter entre 3 e 255 caracteres e o conteúdo deve conter pelo menos 10 caracteres.
 
 **Resposta (200):**
 
