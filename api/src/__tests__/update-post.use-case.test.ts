@@ -2,70 +2,44 @@ import { UpdatePostUseCase } from '@/modules/posts/use-cases/update-post.use-cas
 import type { PostRepository } from '@/modules/posts/repositories/post.repository'
 
 describe('UpdatePostUseCase', () => {
-    it('should update a post with title and content', async () => {
-        const postId = 'post-1'
-        const updateData = {
-            title: 'Updated Title',
-            content: 'This is the updated content with enough characters.',
-        }
-        const updatedPost = {
-            id: postId,
-            ...updateData,
+    it('delegates the update to the repository', async () => {
+        const post = {
+            id: 'post-1',
+            title: 'Updated title',
+            content: 'Updated content with enough characters.',
             authorId: 'user-1',
+        }
+        const updateData = {
+            title: post.title,
+            content: post.content,
         }
 
         const postRepository = {
-            update: jest.fn().mockResolvedValue(updatedPost),
+            update: jest.fn().mockResolvedValue(post),
         } as unknown as PostRepository
 
         const useCase = new UpdatePostUseCase(postRepository)
-        const result = await useCase.handler(postId, updateData)
+        const result = await useCase.handler(post.id, updateData)
 
-        expect(postRepository.update).toHaveBeenCalledWith(postId, updateData)
-        expect(result).toEqual(updatedPost)
+        expect(postRepository.update).toHaveBeenCalledWith(post.id, updateData)
+        expect(result).toEqual(post)
     })
 
-    it('should return undefined if post not found', async () => {
-        const postId = 'non-existent-post'
-        const updateData = {
-            title: 'Updated Title',
-            content: 'Updated content.',
-        }
-
+    it('returns undefined when the post does not exist', async () => {
         const postRepository = {
             update: jest.fn().mockResolvedValue(undefined),
         } as unknown as PostRepository
 
         const useCase = new UpdatePostUseCase(postRepository)
-        const result = await useCase.handler(postId, updateData)
-
-        expect(postRepository.update).toHaveBeenCalledWith(postId, updateData)
-        expect(result).toBeUndefined()
-    })
-
-    it('should pass only title and content to repository', async () => {
-        const postId = 'post-1'
-        const updateData = {
-            title: 'New Title',
-            content: 'New content here with minimum length.',
-        }
-        const updatedPost = {
-            id: postId,
-            ...updateData,
-            authorId: 'user-1',
-        }
-
-        const postRepository = {
-            update: jest.fn().mockResolvedValue(updatedPost),
-        } as unknown as PostRepository
-
-        const useCase = new UpdatePostUseCase(postRepository)
-        await useCase.handler(postId, updateData)
-
-        expect(postRepository.update).toHaveBeenCalledWith(postId, {
-            title: updateData.title,
-            content: updateData.content,
+        const result = await useCase.handler('post-999', {
+            title: 'Updated title',
+            content: 'Updated content with enough characters.',
         })
-        expect(postRepository.update).not.toHaveBeenCalledWith(postId, expect.objectContaining({ authorId: expect.anything() }))
+
+        expect(postRepository.update).toHaveBeenCalledWith('post-999', {
+            title: 'Updated title',
+            content: 'Updated content with enough characters.',
+        })
+        expect(result).toBeUndefined()
     })
 })

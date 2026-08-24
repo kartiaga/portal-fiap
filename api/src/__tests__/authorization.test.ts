@@ -37,10 +37,19 @@ describe('authorization middleware', () => {
     expect(reply.send).toHaveBeenCalledWith({ message: 'Forbidden' })
   })
 
-  it('allows teacher or admin roles', async () => {
+  it('allows the TEACHER role to manage posts', async () => {
     const reply = makeReply() as unknown as FastifyReply
     await requireTeacherOrAdmin(
       { user: { role: UserRole.TEACHER } } as unknown as FastifyRequest,
+      reply,
+    )
+    expect(reply.status).not.toHaveBeenCalled()
+  })
+
+  it('allows the ADMIN role to manage posts', async () => {
+    const reply = makeReply() as unknown as FastifyReply
+    await requireTeacherOrAdmin(
+      { user: { role: UserRole.ADMIN } } as unknown as FastifyRequest,
       reply,
     )
     expect(reply.status).not.toHaveBeenCalled()

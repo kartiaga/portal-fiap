@@ -2,7 +2,7 @@
 
 API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
 
-> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js com telas de criação e edição de posts, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
+> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js com listagem e gestão de publicações, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
 
 ## Sobre o desafio
 
@@ -40,16 +40,31 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | `POST /login` | Autenticação com JWT | Implementado |
 | `POST /users` | Cadastro de usuários (admin) | Implementado |
 
-### Frontend — Telas implementadas
+### Telas do frontend
 
-As seguintes telas foram desenvolvidas no frontend Next.js para interagir com a API:
+Após o login, a tela inicial do sistema é a listagem de posts em `/posts`.
 
-| Rota | Descrição | Acesso | Status |
-|---|---|---|---|
-| `/posts/new` | Formulário para criar nova publicação | TEACHER, ADMIN | Implementado |
-| `/posts/[id]/edit` | Formulário para editar publicação existente | TEACHER, ADMIN | Implementado |
-| `/users/new` | Formulário para cadastrar novo usuário | ADMIN | Implementado |
-| `/users/list` | Listagem e busca de usuários | ADMIN | Implementado |
+| Rota | Descrição | Acesso |
+|---|---|---|
+| `/login` | Autenticação com e-mail e senha | Público |
+| `/` | Redireciona usuários autenticados para `/posts` | Autenticado |
+| `/posts` | Listagem paginada de publicações | Usuários autenticados |
+| `/posts/[id]` | Visualização de uma publicação | Usuários autenticados |
+| `/posts/new` | Criação de publicação | `TEACHER`, `ADMIN` |
+| `/posts/[id]/edit` | Edição de publicação existente | `TEACHER`, `ADMIN` |
+| `/users/list` | Listagem e busca de usuários | `ADMIN` |
+| `/users/new` | Cadastro de usuários | `ADMIN` |
+
+Na tela `/posts`, usuários com papel `TEACHER` ou `ADMIN` podem:
+
+- acessar **Criar post** no topo direito;
+- editar cada publicação pelo botão **Editar**;
+- excluir cada publicação pelo botão **Excluir**;
+- confirmar a exclusão em um modal próprio da aplicação, sem utilizar a caixa nativa do navegador.
+
+Usuários com papel `STUDENT` visualizam as publicações, mas não veem os controles de criação, edição e exclusão.
+
+Após criar ou editar uma publicação, a aplicação navega imediatamente para `/posts` e exibe uma mensagem de sucesso. O feedback desaparece automaticamente após alguns segundos com uma animação.
 
 ### Requisitos técnicos
 
@@ -818,66 +833,12 @@ Quando não existem postagens cadastradas, o endpoint retorna:
 | content | text | Conteúdo |
 | author_id | UUID | Referência ao autor |
 
-## Frontend — Rotas implementadas
-
-O frontend Next.js fornece as seguintes telas protegidas por autenticação e papel de usuário:
-
-### Autenticação e acesso
-
-- **`/login`** — Tela de login com e-mail e senha. Redireciona para `/` se já autenticado.
-- **`/`** (Home) — Dashboard principal. Exibe informações de sessão e CTA de "Nova publicação" para usuários `TEACHER` e `ADMIN`.
-
-### Gestão de publicações (Teacher/Admin)
-
-#### `GET /posts/new`
-
-Tela para criação de uma nova publicação. Requer autenticação com papel `TEACHER` ou `ADMIN`.
-
-- **Componentes:** `page.tsx`, `create-post-form.tsx`, `actions.ts`
-- **Acesso:** Bloqueado para `STUDENT` (redireciona para `/`)
-- **Formulário:**
-  - `title` (string, mínimo 3 caracteres) — Título da publicação
-  - `content` (string, mínimo 10 caracteres) — Conteúdo da publicação
-- **Ação:** `createPostAction` valida os campos, lê o JWT do cookie da sessão e chama `POST /posts` na API
-- **Feedback:** Exibe mensagem de sucesso ou erro conforme o resultado da requisição
-
----
-
-#### `GET /posts/[id]/edit`
-
-Tela para edição de uma publicação existente. Requer autenticação com papel `TEACHER` ou `ADMIN`.
-
-- **Componentes:** `page.tsx`, `update-post-form.tsx`, `actions.ts`
-- **Parâmetro:** `id` (UUID da publicação)
-- **Acesso:** Bloqueado para `STUDENT` (redireciona para `/`)
-- **Comportamento:**
-  1. Busca a publicação no backend via `fetchPostByIdAction` (`GET /posts/:id`)
-  2. Se não encontrada, exibe mensagem de erro com link para voltar
-  3. Se encontrada, preenche o formulário com os dados atuais
-- **Formulário:**
-  - `id` (hidden input) — Identificador da publicação
-  - `title` (string, mínimo 3 caracteres) — Título atualizado
-  - `content` (string, mínimo 10 caracteres) — Conteúdo atualizado
-- **Ação:** `updatePostAction` valida os campos e chama `PUT /posts/:id` na API
-- **Feedback:** Exibe mensagem de sucesso ou erro conforme o resultado
-
----
-
-### Menu de navegação
-
-- **User Menu** (`user-menu.tsx`) — Exibe "Criar publicação" para usuários com papel `TEACHER` ou `ADMIN`
-- **Header** — Mostra avatar do usuário e menu de logout
-
----
-
 ## Próximos passos
 
-1. Criar telas de listagem de publicações (feed) com paginação
-2. Implementar validação de propriedade (apenas autor pode editar seu próprio post)
-3. Adicionar delete de posts na interface
-4. Incluir o frontend no pipeline de CD
-5. Gravar apresentação final do projeto
-6. Realizar ajustes identificados durante a homologação
+1. Evoluir telas e integrações do frontend com a API
+2. Incluir o frontend no pipeline de CD
+3. Gravar apresentação final do projeto
+4. Realizar ajustes identificados durante a homologação
 
 ## Integrantes
 
