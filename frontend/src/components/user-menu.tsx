@@ -86,6 +86,15 @@ export function UserMenu({ role }: { role: SessionUser["role"] }) {
             </p>
           </div>
 
+          <Link
+            href="/posts"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-3 text-sm font-medium text-ink-900 transition hover:bg-paper-050"
+          >
+            Listar posts
+          </Link>
+
           {role === "ADMIN" ? (
             <>
               <Link
