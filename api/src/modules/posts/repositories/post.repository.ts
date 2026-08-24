@@ -1,11 +1,13 @@
 import { database } from '@/lib/db'
+
 import {
-  buildPaginatedResult,
   decodeCursor,
+  encodeCursor,
   resolveLimit,
   type PaginatedResult,
   type PaginationParams,
 } from '@/lib/pagination'
+
 import type { Post } from '../entities/post'
 
 interface PostRow {
@@ -14,6 +16,7 @@ interface PostRow {
   content: string
   author_id: string
   created_at: Date
+  cursor_created_at: string
   updated_at: Date
 }
 
@@ -75,12 +78,12 @@ export class PostRepository {
   public async search(term: string): Promise<Post[]> {
     const result = await database.clienteInstance?.query(
       `
-            SELECT *
-            FROM posts
-            WHERE title ILIKE $1
-                OR content ILIKE $1
-                ORDER BY created_at DESC
-                `,
+      SELECT *
+      FROM posts
+      WHERE title ILIKE $1
+        OR content ILIKE $1
+      ORDER BY created_at DESC
+      `,
       [`%${term}%`],
     )
 
@@ -106,6 +109,12 @@ export class PostRepository {
     const limit = resolveLimit(params.limit)
     const fetchLimit = limit + 1
 
+    const SELECT_COLUMNS = `
+      id, title, content, author_id, created_at,
+      to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
+      updated_at
+    `
+
     let result
 
     if (params.cursor) {
@@ -113,9 +122,9 @@ export class PostRepository {
 
       result = await database.clienteInstance?.query(
         `
-        SELECT *
+        SELECT ${SELECT_COLUMNS}
         FROM posts
-        WHERE (created_at, id) < ($1, $2)
+        WHERE (created_at, id) < ($1::timestamptz, $2::uuid)
         ORDER BY created_at DESC, id DESC
         LIMIT $3
         `,
@@ -124,7 +133,7 @@ export class PostRepository {
     } else {
       result = await database.clienteInstance?.query(
         `
-        SELECT *
+        SELECT ${SELECT_COLUMNS}
         FROM posts
         ORDER BY created_at DESC, id DESC
         LIMIT $1
@@ -136,9 +145,23 @@ export class PostRepository {
     const rows = (result?.rows ?? []) as PostRow[]
     const posts = rows.map((row) => this.mapRow(row))
 
-    return buildPaginatedResult(posts, limit, (post) => ({
-      createdAt: post.createdAt!,
-      id: post.id!,
-    }))
+    const hasMore = rows.length > limit
+    const items = hasMore ? posts.slice(0, limit) : posts
+
+    if (!hasMore) {
+      return {
+        items,
+        nextCursor: null,
+        hasMore: false,
+      }
+    }
+
+    const lastRow = rows[limit - 1]
+
+    return {
+      items,
+      nextCursor: encodeCursor(lastRow.cursor_created_at, lastRow.id),
+      hasMore: true,
+    }
   }
 }

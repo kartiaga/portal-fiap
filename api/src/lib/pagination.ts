@@ -38,16 +38,19 @@ export function resolveLimit(limit?: number): number {
   return Math.min(Math.max(limit, 1), MAX_PAGE_SIZE)
 }
 
-export function encodeCursor(createdAt: Date, id: string): string {
+export function encodeCursor(createdAt: string, id: string): string {
   const payload: CursorPayload = {
-    createdAt: createdAt.toISOString(),
+    createdAt,
     id,
   }
 
   return Buffer.from(JSON.stringify(payload)).toString('base64url')
 }
 
-export function decodeCursor(cursor: string): { createdAt: Date; id: string } {
+export function decodeCursor(cursor: string): {
+  createdAt: string
+  id: string
+} {
   try {
     const json = Buffer.from(cursor, 'base64url').toString('utf-8')
     const payload = JSON.parse(json) as CursorPayload
@@ -56,14 +59,12 @@ export function decodeCursor(cursor: string): { createdAt: Date; id: string } {
       throw new Error('Invalid cursor')
     }
 
-    const createdAt = new Date(payload.createdAt)
-
-    if (Number.isNaN(createdAt.getTime())) {
+    if (Number.isNaN(new Date(payload.createdAt).getTime())) {
       throw new Error('Invalid cursor')
     }
 
     return {
-      createdAt,
+      createdAt: payload.createdAt,
       id: payload.id,
     }
   } catch {
@@ -74,7 +75,7 @@ export function decodeCursor(cursor: string): { createdAt: Date; id: string } {
 export function buildPaginatedResult<T>(
   rows: T[],
   limit: number,
-  getCursorSource: (item: T) => { createdAt: Date; id: string },
+  getCursorSource: (item: T) => { createdAt: string; id: string },
 ): PaginatedResult<T> {
   const hasMore = rows.length > limit
   const items = hasMore ? rows.slice(0, limit) : rows

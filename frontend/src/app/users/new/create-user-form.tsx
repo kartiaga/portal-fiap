@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { createUserAction, type CreateUserState } from "./actions";
+import { createUserAction, type CreateUserState } from "../actions";
 
 const initialState: CreateUserState = {};
 
