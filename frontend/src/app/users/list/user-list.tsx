@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import {
-  fetchUsersAction,
-  type UserListItem,
-} from "./actions";
+import { fetchUsersAction, type UserListItem } from "./actions";
 
 const ROLE_LABEL: Record<UserListItem["role"], string> = {
   ADMIN: "Administrador",
@@ -50,9 +47,7 @@ export function UserList() {
       }
 
       setItems((current) =>
-        options.append
-          ? [...current, ...result.data.items]
-          : result.data.items,
+        options.append ? [...current, ...result.data.items] : result.data.items,
       );
       setNextCursor(result.data.nextCursor);
       setHasMore(result.data.hasMore);
@@ -100,7 +95,11 @@ export function UserList() {
             placeholder="Ex.: @fiap.com.br"
           />
         </div>
-        <button type="submit" disabled={isPending} className="btn btn-secondary">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="btn btn-secondary"
+        >
           {isPending ? "Buscando..." : "Buscar"}
         </button>
       </form>
@@ -132,7 +131,9 @@ export function UserList() {
                     Criado em {formatDate(user.createdAt)}
                   </p>
                 </div>
-                <span className={ROLE_PILL[user.role]}>{ROLE_LABEL[user.role]}</span>
+                <span className={ROLE_PILL[user.role]}>
+                  {ROLE_LABEL[user.role]}
+                </span>
               </li>
             ))}
           </ul>
