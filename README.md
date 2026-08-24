@@ -62,9 +62,11 @@ Na tela `/posts`, usuários com papel `TEACHER` ou `ADMIN` podem:
 - excluir cada publicação pelo botão **Excluir**;
 - confirmar a exclusão em um modal próprio da aplicação, sem utilizar a caixa nativa do navegador.
 
+Na tela de detalhes `/posts/[id]`, usuários com papel `TEACHER` ou `ADMIN` também podem editar ou excluir a publicação. A exclusão utiliza o mesmo modal personalizado e, após a confirmação, retorna para `/posts` com o feedback de sucesso.
+
 Usuários com papel `STUDENT` visualizam as publicações, mas não veem os controles de criação, edição e exclusão.
 
-Após criar ou editar uma publicação, a aplicação navega imediatamente para `/posts` e exibe uma mensagem de sucesso. O feedback desaparece automaticamente após alguns segundos com uma animação.
+Após criar ou editar uma publicação, a aplicação navega imediatamente para `/posts` e exibe uma mensagem de sucesso. Após excluir uma publicação na listagem ou nos detalhes, o usuário também retorna para `/posts` com o feedback correspondente. As mensagens desaparecem automaticamente após alguns segundos com uma animação.
 
 ### Requisitos técnicos
 

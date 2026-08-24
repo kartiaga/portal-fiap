@@ -23,7 +23,9 @@ export default async function PostsPage({
         ? "Publicação criada com sucesso."
         : feedback === "updated"
             ? "Publicação atualizada com sucesso."
-            : null;
+            : feedback === "deleted"
+                ? "Publicação excluída com sucesso."
+                : null;
 
     return (
         <div className="flex flex-1 flex-col">

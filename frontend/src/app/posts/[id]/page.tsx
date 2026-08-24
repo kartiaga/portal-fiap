@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { Header } from "@/components/header";
 import { fetchPostAction } from "./actions";
+import { PostActions } from "./post-actions";
 
 function formatData(dateString: string): string {
     return new Date(dateString).toLocaleDateString("pt-BR", {
@@ -52,6 +53,13 @@ export default async function PostPage({
                         <div className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-ink-700">
                             {result.data.content}
                         </div>
+
+                        {session.role !== "STUDENT" ? (
+                            <PostActions
+                                postId={result.data.id}
+                                postTitle={result.data.title}
+                            />
+                        ) : null}
                     </article>
 
                 )}
