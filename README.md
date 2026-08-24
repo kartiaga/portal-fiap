@@ -75,7 +75,7 @@ Após criar ou editar uma publicação, a aplicação navega imediatamente para 
 | Back-end em Node.js | Implementado (TypeScript + Fastify) |
 | Persistência de dados | Implementado (PostgreSQL + migrations) |
 | Containerização com Docker | Implementado (`Dockerfile` em `api/` e `frontend/` + `docker-compose.yaml`) |
-| GitHub Actions (CI) | Implementado — execução automática de testes em Pull Requests |
+| GitHub Actions (CI) | Implementado — API e frontend validados automaticamente em Pull Requests |
 | GitHub Actions (CD / deploy) | Implementado (build e push da imagem da API para o GHCR) |
 | Cobertura de testes (≥ 20%) | Implementado — 100% nos arquivos cobertos pelo Jest |
 | Documentação técnica | Implementado (README + Swagger/OpenAPI) |
@@ -427,6 +427,20 @@ npm test
 ```
 
 Os testes também rodam automaticamente em pull requests via GitHub Actions (`.github/workflows/run_tests_on_pull_request.yml`).
+
+### Validação do frontend
+
+O frontend possui uma pipeline separada em `.github/workflows/frontend-ci.yml`. Ela é executada em Pull Requests e pode ser acionada manualmente pelo GitHub Actions.
+
+As etapas são:
+
+```bash
+npm run test --workspace frontend --if-present
+npm run lint --workspace frontend
+npm run build --workspace frontend
+```
+
+Atualmente o frontend ainda não possui testes automatizados configurados. Por isso, a etapa de testes é condicional e será executada automaticamente quando um script `test` for adicionado ao workspace `frontend`. O lint e o build são executados sempre.
 
 ---
 
