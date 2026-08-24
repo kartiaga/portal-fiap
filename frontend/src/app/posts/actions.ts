@@ -72,3 +72,39 @@ export async function fetchPostsAction(
         };
     }
 }
+
+export async function deletePostAction(
+    id: string,
+): Promise<{ success?: string; error?: string }> {
+    const token = await getToken();
+
+    if (!token) {
+        return { error: "Sessão expirada. Faça login novamente." };
+    }
+
+    try {
+        const response = await fetch(`${getApiUrl()}/posts/${id}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+        });
+
+        if (!response.ok) {
+            const body: { message?: string } | null = await response
+                .json()
+                .catch(() => null);
+
+            return {
+                error: body?.message ?? "Não foi possível excluir o post.",
+            };
+        }
+
+        return { success: "Post excluído com sucesso." };
+    } catch {
+        return {
+            error: "Não foi possível conectar à API. Tente novamente em instantes.",
+        };
+    }
+}
