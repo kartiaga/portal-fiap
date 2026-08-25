@@ -56,5 +56,5 @@ export async function loginAction(
   // fica FORA do try/catch acima. Se estivesse dentro, o catch genérico
   // engoliria esse erro e o redirecionamento nunca aconteceria de fato.
   await setSessionCookie(token);
-  redirect("/");
+  redirect("/posts");
 }

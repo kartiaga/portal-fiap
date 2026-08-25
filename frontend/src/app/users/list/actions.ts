@@ -23,9 +23,7 @@ export type FetchUsersParams = {
   limit?: number;
 };
 
-export type FetchUsersResult =
-  | { data: PaginatedUsers }
-  | { error: string };
+export type FetchUsersResult = { data: PaginatedUsers } | { error: string };
 
 export async function fetchUsersAction(
   params: FetchUsersParams = {},

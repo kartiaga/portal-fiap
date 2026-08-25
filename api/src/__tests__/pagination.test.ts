@@ -14,7 +14,7 @@ describe('pagination helpers', () => {
     const decoded = decodeCursor(cursor)
 
     expect(decoded.id).toBe(id)
-    expect(decoded.createdAt.toISOString()).toBe(createdAt.toISOString())
+    expect(decoded.createdAt).toBe(createdAt.toISOString())
   })
 
   it('throws when cursor is invalid', () => {
@@ -29,9 +29,9 @@ describe('pagination helpers', () => {
 
   it('builds paginated result with hasMore and nextCursor', () => {
     const rows = [
-      { id: '1', createdAt: new Date('2026-01-03T00:00:00.000Z') },
-      { id: '2', createdAt: new Date('2026-01-02T00:00:00.000Z') },
-      { id: '3', createdAt: new Date('2026-01-01T00:00:00.000Z') },
+      { id: '1', createdAt: '2026-01-03T00:00:00.000Z' },
+      { id: '2', createdAt: '2026-01-02T00:00:00.000Z' },
+      { id: '3', createdAt: '2026-01-01T00:00:00.000Z' },
     ]
 
     const result = buildPaginatedResult(rows, 2, (item) => ({
