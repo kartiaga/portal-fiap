@@ -1,0 +1,20 @@
+name: Enforce main source branch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches:
+      - main
+
+jobs:
+  check-source-branch:
+    name: Validar branch de origem
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar se o PR vem da develop
+        run: |
+          echo "Branch de origem: $GITHUB_HEAD_REF"
+          if [ "$GITHUB_HEAD_REF" != "develop" ]; then
+            echo "::error::Somente PRs vindos da branch 'develop' podem ser mesclados na 'main'."
+            exit 1
+          fi
