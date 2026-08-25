@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import {
-  createPostAction,
-  updatePostAction,
-  type PostFormState,
-  type PostItem,
-} from "./actions";
+import { updatePostAction, type Post } from "./[id]/edit/actions";
+import { createPostAction, type PostState } from "./new/actions";
+
+type PostFormState = PostState;
+type PostItem = Post;
 
 const initialState: PostFormState = {};
 

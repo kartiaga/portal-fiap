@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { deletePostAction, fetchPostsAction, type PostItem } from "../actions";
+import {
+  deletePostAction,
+  fetchPostsAction,
+  searchPostsAction,
+  type PostItem,
+} from "../actions";
 
 const EXCERPT_MAX_LENGTH = 160;
 
@@ -38,9 +43,22 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
     async (options: { cursor?: string; search?: string; append?: boolean }) => {
       setError(null);
 
+      if (options.search) {
+        const result = await searchPostsAction(options.search);
+
+        if ("error" in result) {
+          setError(result.error);
+          return;
+        }
+
+        setItems(result.data);
+        setNextCursor(null);
+        setHasMore(false);
+        return;
+      }
+
       const result = await fetchPostsAction({
         cursor: options.cursor,
-        search: options.search || undefined,
         limit: 10,
       });
 
@@ -90,7 +108,7 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
     startTransition(async () => {
       const result = await deletePostAction(id);
 
-      if ("error" in result) {
+      if (result.error) {
         setError(result.error);
         return;
       }
@@ -99,7 +117,7 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
       // descartaria as páginas já trazidas pelo "Carregar mais".
       setItems((current) => current.filter((post) => post.id !== id));
       setConfirmingId(null);
-      setNotice(result.success);
+      setNotice(result.success ?? null);
     });
   }
 

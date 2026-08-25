@@ -8,7 +8,7 @@ export type PostListItem = {
   content: string;
   authorId: string;
   createdAt: string;
-  updateAt: string;
+  updatedAt: string;
 };
 
 export type PaginatedPosts = {
@@ -23,6 +23,11 @@ export type FetchPostsParams = {
 };
 
 export type FetchPostsResult = { data: PaginatedPosts } | { error: string };
+
+export type SearchPostsResult = { data: PostListItem[] } | { error: string };
+
+/** Alias usado em telas de administração. */
+export type PostItem = PostListItem;
 
 export async function fetchPostsAction(
   params: FetchPostsParams = {},
@@ -67,6 +72,48 @@ export async function fetchPostsAction(
   } catch {
     return {
       error: "Não foi possível conectar à API. Tente novamnete em instantes.",
+    };
+  }
+}
+
+export async function searchPostsAction(
+  term: string,
+): Promise<SearchPostsResult> {
+  const token = await getToken();
+
+  if (!token) {
+    return { error: "Sessão expirada. Faça login novamente." };
+  }
+
+  const query = new URLSearchParams({ term: term.trim() });
+
+  try {
+    const response = await fetch(
+      `${getApiUrl()}/posts/search?${query.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) {
+      const body: { message?: string } | null = await response
+        .json()
+        .catch(() => null);
+
+      return {
+        error: body?.message ?? "Não foi possível buscar os posts.",
+      };
+    }
+
+    const data = (await response.json()) as PostListItem[];
+
+    return { data };
+  } catch {
+    return {
+      error: "Não foi possível conectar à API. Tente novamente em instantes.",
     };
   }
 }
