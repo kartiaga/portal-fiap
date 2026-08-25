@@ -2,7 +2,7 @@
 
 API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
 
-> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
+> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js com listagem e gestão de publicações, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
 
 ## Sobre o desafio
 
@@ -50,6 +50,36 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | `POST /login` | Autenticação com JWT | Implementado |
 | `POST /users` | Cadastro de usuários (admin) | Implementado |
 
+### Telas do frontend
+
+Após o login, a tela inicial do sistema é a listagem de posts em `/posts`.
+
+| Rota | Descrição | Acesso |
+|---|---|---|
+| `/login` | Autenticação com e-mail e senha | Público |
+| `/` | Redireciona usuários autenticados para `/posts` | Autenticado |
+| `/posts` | Listagem paginada de publicações | Usuários autenticados |
+| `/posts/[id]` | Visualização de uma publicação | Usuários autenticados |
+| `/posts/new` | Criação de publicação | `TEACHER`, `ADMIN` |
+| `/posts/[id]/edit` | Edição de publicação existente | `TEACHER`, `ADMIN` |
+| `/users/list` | Listagem e busca de usuários | `ADMIN` |
+| `/users/new` | Cadastro de usuários | `ADMIN` |
+
+Na tela `/posts`, usuários com papel `TEACHER` ou `ADMIN` podem:
+
+- acessar **Criar post** no topo direito;
+- editar cada publicação pelo botão **Editar**;
+- excluir cada publicação pelo botão **Excluir**;
+- confirmar a exclusão em um modal próprio da aplicação, sem utilizar a caixa nativa do navegador.
+
+Na tela de detalhes `/posts/[id]`, usuários com papel `TEACHER` ou `ADMIN` também podem editar ou excluir a publicação. A exclusão utiliza o mesmo modal personalizado e, após a confirmação, retorna para `/posts` com o feedback de sucesso.
+
+Usuários com papel `STUDENT` visualizam as publicações, mas não veem os controles de criação, edição e exclusão.
+
+Após criar ou editar uma publicação, a aplicação navega imediatamente para `/posts` e exibe uma mensagem de sucesso. Após excluir uma publicação na listagem ou nos detalhes, o usuário também retorna para `/posts` com o feedback correspondente. As mensagens desaparecem automaticamente após alguns segundos com uma animação.
+
+Os formulários de criação e edição validam títulos com no mínimo 3 e no máximo 255 caracteres, conforme o limite `varchar(255)` definido no banco de dados.
+
 ### Requisitos técnicos
 
 | Requisito | Decisão / status |
@@ -57,7 +87,7 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | Back-end em Node.js | Implementado (TypeScript + Fastify) |
 | Persistência de dados | Implementado (PostgreSQL + migrations) |
 | Containerização com Docker | Implementado (`Dockerfile` em `api/` e `frontend/` + `docker-compose.yaml`) |
-| GitHub Actions (CI) | Implementado — execução automática de testes em Pull Requests |
+| GitHub Actions (CI) | Implementado — API e frontend validados automaticamente em Pull Requests |
 | GitHub Actions (CD / deploy) | Implementado (build e push da imagem da API para o GHCR) |
 | Cobertura de testes (≥ 20%) | Implementado — 100% nos arquivos cobertos pelo Jest |
 | Documentação técnica | Implementado (README + Swagger/OpenAPI) |
@@ -496,6 +526,20 @@ npm test
 
 Os testes também rodam automaticamente em pull requests via GitHub Actions (`.github/workflows/run_tests_on_pull_request.yml`).
 
+### Validação do frontend
+
+O frontend possui uma pipeline separada em `.github/workflows/frontend-ci.yml`. Ela é executada em Pull Requests e pode ser acionada manualmente pelo GitHub Actions.
+
+As etapas são:
+
+```bash
+npm run test --workspace frontend --if-present
+npm run lint --workspace frontend
+npm run build --workspace frontend
+```
+
+Atualmente o frontend ainda não possui testes automatizados configurados. Por isso, a etapa de testes é condicional e será executada automaticamente quando um script `test` for adicionado ao workspace `frontend`. O lint e o build são executados sempre.
+
 ---
 
 ## Scripts disponíveis
@@ -647,6 +691,8 @@ Content-Type: application/json
 }
 ```
 
+O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve conter pelo menos 10 caracteres.
+
 **Resposta (201):**
 
 ```json
@@ -745,6 +791,8 @@ Content-Type: application/json
   "content": "Conteúdo atualizado da publicação"
 }
 ```
+
+Os campos `title` e `content` seguem as mesmas validações da criação: o título deve conter entre 3 e 255 caracteres e o conteúdo deve conter pelo menos 10 caracteres.
 
 **Resposta (200):**
 

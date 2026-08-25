@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { createUserAction, type CreateUserState } from "./actions";
+import { createUserAction, type CreateUserState } from "../actions";
 
 const initialState: CreateUserState = {};
 
@@ -73,7 +73,11 @@ export function CreateUserForm() {
         </div>
       ) : null}
 
-      <button type="submit" disabled={pending} className="btn btn-primary w-full">
+      <button
+        type="submit"
+        disabled={pending}
+        className="btn btn-primary w-full"
+      >
         {pending ? "Criando..." : "Criar usuário"}
       </button>
     </form>

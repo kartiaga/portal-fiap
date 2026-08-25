@@ -23,7 +23,7 @@ export async function postsRoutes(app: FastifyInstance) {
           type: 'object',
           required: ['title', 'content'],
           properties: {
-            title: { type: 'string', minLength: 3 },
+            title: { type: 'string', minLength: 3, maxLength: 255 },
             content: { type: 'string', minLength: 10 },
           },
         },
@@ -134,7 +134,7 @@ export async function postsRoutes(app: FastifyInstance) {
           type: 'object',
           required: ['title', 'content'],
           properties: {
-            title: { type: 'string', minLength: 3 },
+            title: { type: 'string', minLength: 3, maxLength: 255 },
             content: { type: 'string', minLength: 10 },
           },
         },
