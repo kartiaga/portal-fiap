@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { Header } from "@/components/header";
@@ -44,6 +45,12 @@ export default async function Home() {
               {ROLE_LABEL[session.role]}
             </span>
           </p>
+
+          {session.role !== "STUDENT" ? (
+            <Link href="/posts/admin" className="btn btn-primary mt-6 w-full">
+              Gerenciar postagens
+            </Link>
+          ) : null}
         </div>
       </main>
     </div>
