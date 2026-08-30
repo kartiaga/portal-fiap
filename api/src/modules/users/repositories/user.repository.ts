@@ -1,5 +1,6 @@
 import { database } from '@/lib/db'
 import {
+  buildPaginatedResult,
   decodeCursor,
   encodeCursor,
   resolveLimit,
@@ -124,25 +125,7 @@ export class UserRepository {
     }
 
     const rows = (result?.rows ?? []) as UserRow[]
-    const users = rows.map((row) => this.mapRow(row))
-
-    const hasMore = rows.length > limit
-    const items = hasMore ? users.slice(0, limit) : users
-
-    if (!hasMore) {
-      return {
-        items,
-        nextCursor: null,
-        hasMore: false,
-      }
-    }
-
-    const lastRow = rows[limit - 1]
-
-    return {
-      items,
-      nextCursor: encodeCursor(lastRow.cursor_created_at, lastRow.id),
-      hasMore: true,
-    }
+    
+   return buildPaginatedResult(rows, limit, (row) => this.mapRow(row))
   }
 }
