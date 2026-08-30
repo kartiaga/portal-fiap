@@ -67,6 +67,3 @@ frontend/
 - [Documentação do Next.js](https://nextjs.org/docs)
 - [README principal do projeto](../README.md)
 
-## Testes
-
-O frontend não possui testes automatizados nesta fase. A cobertura de testes com Jest não é um requisito técnico do Tech Challenge Fase 03 (ver PDF do desafio) — a entrega desta fase está focada em desenvolvimento React, responsividade, integração com a API e documentação. Os testes automatizados do back-end (Jest) continuam cobrindo os endpoints consumidos pelo frontend.

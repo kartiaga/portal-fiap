@@ -79,7 +79,7 @@ export class UserRepository {
       if (searchPattern) {
         result = await database.clienteInstance?.query(
           `
-           SELECT ${SELECT_COLUMNS}SELECT *
+           SELECT ${SELECT_COLUMNS}
           FROM users
           WHERE email ILIKE $1
             AND (created_at, id) < ($2::timestamptz, $3::uuid)
