@@ -80,22 +80,22 @@ export function decodeCursor(cursor: string): {
 export function buildPaginatedResult<T extends CursorRow, R>(
   rows: T[],
   limit: number,
-  mapRow: (item: T) => R
+  mapRow: (item: T) => R,
 ): PaginatedResult<R> {
   const records = rows.map(mapRow)
 
   const hasMore = rows.length > limit
   const items = hasMore ? records.slice(0, limit) : records
 
-    if (!hasMore) {
-      return {
-        items,
-        nextCursor: null,
-        hasMore: false,
-      }
+  if (!hasMore) {
+    return {
+      items,
+      nextCursor: null,
+      hasMore: false,
     }
+  }
 
-   const lastRow = rows[limit - 1]
+  const lastRow = rows[limit - 1]
 
   if (!lastRow) {
     return {

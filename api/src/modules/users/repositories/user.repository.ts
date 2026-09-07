@@ -2,7 +2,6 @@ import { database } from '@/lib/db'
 import {
   buildPaginatedResult,
   decodeCursor,
-  encodeCursor,
   resolveLimit,
   type PaginatedResult,
   type PaginationParams,
@@ -125,7 +124,7 @@ export class UserRepository {
     }
 
     const rows = (result?.rows ?? []) as UserRow[]
-    
-   return buildPaginatedResult(rows, limit, (row) => this.mapRow(row))
+
+    return buildPaginatedResult(rows, limit, (row) => this.mapRow(row))
   }
 }

@@ -3,7 +3,6 @@ import { database } from '@/lib/db'
 import {
   buildPaginatedResult,
   decodeCursor,
-  encodeCursor,
   resolveLimit,
   type PaginatedResult,
   type PaginationParams,
@@ -144,8 +143,7 @@ export class PostRepository {
     }
 
     const rows = (result?.rows ?? []) as PostRow[]
-    
 
-    return buildPaginatedResult( rows, limit, (row) => this.mapRow(row))    
+    return buildPaginatedResult(rows, limit, (row) => this.mapRow(row))
   }
 }
