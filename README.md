@@ -22,48 +22,48 @@ Oferecer uma API de blogging onde:
 
 ### Requisitos funcionais — Posts
 
-| Endpoint | Descrição | Status |
-|---|---|---|
-| `GET /posts` | Lista de posts para alunos | Implementado |
-| `GET /posts/:id` | Leitura de um post específico | Implementado |
-| `POST /posts` | Criação de postagens (docentes) | Implementado |
-| `PUT /posts/:id` | Edição de postagens | Implementado |
-| `DELETE /posts/:id` | Exclusão de postagens | Implementado |
+| Endpoint            | Descrição                                     | Status       |
+| ------------------- | --------------------------------------------- | ------------ |
+| `GET /posts`        | Lista de posts para alunos                    | Implementado |
+| `GET /posts/:id`    | Leitura de um post específico                 | Implementado |
+| `POST /posts`       | Criação de postagens (docentes)               | Implementado |
+| `PUT /posts/:id`    | Edição de postagens                           | Implementado |
+| `DELETE /posts/:id` | Exclusão de postagens                         | Implementado |
 | `GET /posts/search` | Busca por palavra-chave no título ou conteúdo | Implementado |
 
 ### Requisitos funcionais — Frontend
 
-| Página | Descrição | Status |
-|---|---|---|
-| `/login` | Login de professores, alunos e administradores | Implementado |
-| `/posts/admin` | Página administrativa: lista todas as postagens com opções de editar e excluir | Implementado |
-| `/posts/new` | Criação de postagens (docentes) | Implementado |
-| `/posts/:id/edit` | Edição de postagens (docentes) | Implementado |
+| Página             | Descrição                                                                      | Status       |
+| ------------------ | ------------------------------------------------------------------------------ | ------------ |
+| `/login`           | Login de professores, alunos e administradores                                 | Implementado |
+| `/posts/admin`     | Página administrativa: lista todas as postagens com opções de editar e excluir | Implementado |
+| `/posts/new`       | Criação de postagens (docentes)                                                | Implementado |
+| `/posts/:id/edit`  | Edição de postagens (docentes)                                                 | Implementado |
 | Controle de acesso | Criação, edição e administração de postagens restritas a usuários autenticados | Implementado |
 
 ### Funcionalidades extras (fora do escopo mínimo do desafio)
 
 Estas rotas foram adicionadas para suportar autenticação e gestão de usuários, necessárias ao controle de acesso entre alunos e docentes:
 
-| Endpoint | Descrição | Status |
-|---|---|---|
-| `POST /login` | Autenticação com JWT | Implementado |
+| Endpoint      | Descrição                    | Status       |
+| ------------- | ---------------------------- | ------------ |
+| `POST /login` | Autenticação com JWT         | Implementado |
 | `POST /users` | Cadastro de usuários (admin) | Implementado |
 
 ### Telas do frontend
 
 Após o login, a tela inicial do sistema é a listagem de posts em `/posts`.
 
-| Rota | Descrição | Acesso |
-|---|---|---|
-| `/login` | Autenticação com e-mail e senha | Público |
-| `/` | Redireciona usuários autenticados para `/posts` | Autenticado |
-| `/posts` | Listagem paginada de publicações | Usuários autenticados |
-| `/posts/[id]` | Visualização de uma publicação | Usuários autenticados |
-| `/posts/new` | Criação de publicação | `TEACHER`, `ADMIN` |
-| `/posts/[id]/edit` | Edição de publicação existente | `TEACHER`, `ADMIN` |
-| `/users/list` | Listagem e busca de usuários | `ADMIN` |
-| `/users/new` | Cadastro de usuários | `ADMIN` |
+| Rota               | Descrição                                       | Acesso                |
+| ------------------ | ----------------------------------------------- | --------------------- |
+| `/login`           | Autenticação com e-mail e senha                 | Público               |
+| `/`                | Redireciona usuários autenticados para `/posts` | Autenticado           |
+| `/posts`           | Listagem paginada de publicações                | Usuários autenticados |
+| `/posts/[id]`      | Visualização de uma publicação                  | Usuários autenticados |
+| `/posts/new`       | Criação de publicação                           | `TEACHER`, `ADMIN`    |
+| `/posts/[id]/edit` | Edição de publicação existente                  | `TEACHER`, `ADMIN`    |
+| `/users/list`      | Listagem e busca de usuários                    | `ADMIN`               |
+| `/users/new`       | Cadastro de usuários                            | `ADMIN`               |
 
 Na tela `/posts`, usuários com papel `TEACHER` ou `ADMIN` podem:
 
@@ -82,15 +82,15 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 
 ### Requisitos técnicos
 
-| Requisito | Decisão / status |
-|---|---|
-| Back-end em Node.js | Implementado (TypeScript + Fastify) |
-| Persistência de dados | Implementado (PostgreSQL + migrations) |
-| Containerização com Docker | Implementado (`Dockerfile` em `api/` e `frontend/` + `docker-compose.yaml`) |
-| GitHub Actions (CI) | Implementado — API e frontend validados automaticamente em Pull Requests |
-| GitHub Actions (CD / deploy) | Implementado (build e push da imagem da API para o GHCR) |
-| Cobertura de testes (≥ 20%) | Implementado — 100% nos arquivos cobertos pelo Jest |
-| Documentação técnica | Implementado (README + Swagger/OpenAPI) |
+| Requisito                    | Decisão / status                                                            |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| Back-end em Node.js          | Implementado (TypeScript + Fastify)                                         |
+| Persistência de dados        | Implementado (PostgreSQL + migrations)                                      |
+| Containerização com Docker   | Implementado (`Dockerfile` em `api/` e `frontend/` + `docker-compose.yaml`) |
+| GitHub Actions (CI)          | Implementado — API e frontend validados automaticamente em Pull Requests    |
+| GitHub Actions (CD / deploy) | Implementado (build e push da imagem da API para o GHCR)                    |
+| Cobertura de testes (≥ 20%)  | Implementado — 100% nos arquivos cobertos pelo Jest                         |
+| Documentação técnica         | Implementado (README + Swagger/OpenAPI)                                     |
 
 ### Entregáveis finais
 
@@ -100,21 +100,21 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 
 ## Tecnologias
 
-| Camada | Tecnologia |
-|---|---|
-| Frontend | [Next.js](https://nextjs.org/) 16 + [React](https://react.dev/) 19 |
-| Runtime | [Node.js](https://nodejs.org/) 20+ |
-| Linguagem | [TypeScript](https://www.typescriptlang.org/) |
-| Framework HTTP | [Fastify](https://fastify.dev/) |
-| Banco de dados | [PostgreSQL](https://www.postgresql.org/) 16 |
-| Migrations | [node-pg-migrate](https://github.com/salsita/node-pg-migrate) |
-| Autenticação | [@fastify/jwt](https://github.com/fastify/fastify-jwt) |
+| Camada           | Tecnologia                                                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Frontend         | [Next.js](https://nextjs.org/) 16 + [React](https://react.dev/) 19                                                           |
+| Runtime          | [Node.js](https://nodejs.org/) 20+                                                                                           |
+| Linguagem        | [TypeScript](https://www.typescriptlang.org/)                                                                                |
+| Framework HTTP   | [Fastify](https://fastify.dev/)                                                                                              |
+| Banco de dados   | [PostgreSQL](https://www.postgresql.org/) 16                                                                                 |
+| Migrations       | [node-pg-migrate](https://github.com/salsita/node-pg-migrate)                                                                |
+| Autenticação     | [@fastify/jwt](https://github.com/fastify/fastify-jwt)                                                                       |
 | Documentação API | [@fastify/swagger](https://github.com/fastify/fastify-swagger) + [Swagger UI](https://github.com/fastify/fastify-swagger-ui) |
-| Validação | [Zod](https://zod.dev/) |
-| Senhas | [bcrypt](https://github.com/kelektiv/node.bcrypt.js) |
-| Containerização | [Docker](https://www.docker.com/) + [Docker Compose](https://docs.docker.com/compose/) |
-| Testes | [Jest](https://jestjs.io/) |
-| CI | [GitHub Actions](https://github.com/features/actions) |
+| Validação        | [Zod](https://zod.dev/)                                                                                                      |
+| Senhas           | [bcrypt](https://github.com/kelektiv/node.bcrypt.js)                                                                         |
+| Containerização  | [Docker](https://www.docker.com/) + [Docker Compose](https://docs.docker.com/compose/)                                       |
+| Testes           | [Jest](https://jestjs.io/)                                                                                                   |
+| CI               | [GitHub Actions](https://github.com/features/actions)                                                                        |
 
 ## Estrutura do repositório
 
@@ -155,11 +155,11 @@ Cada módulo contém:
 
 ### Papéis de usuário
 
-| Papel | Descrição |
-|---|---|
-| `STUDENT` | Visualiza e lê postagens |
+| Papel     | Descrição                                |
+| --------- | ---------------------------------------- |
+| `STUDENT` | Visualiza e lê postagens                 |
 | `TEACHER` | Cria, edita, exclui e gerencia postagens |
-| `ADMIN` | Gerencia usuários e postagens |
+| `ADMIN`   | Gerencia usuários e postagens            |
 
 ## Arquitetura do frontend
 
@@ -189,16 +189,16 @@ As chamadas à API ficam em **Server Actions** (`"use server"`), nunca no navega
 
 ### Rotas do frontend
 
-| Rota | Acesso | Descrição |
-|---|---|---|
-| `/login` | Público | Autenticação com e-mail e senha |
-| `/` | Autenticado | Home com o papel da sessão e atalhos |
-| `/posts/:id` | Usuários autenticados | Leitura do conteúdo completo de uma publicação |
-| `/posts/admin` | `TEACHER`, `ADMIN` | Página administrativa de postagens |
-| `/posts/new` | `TEACHER`, `ADMIN` | Criação de postagem |
-| `/posts/:id/edit` | `TEACHER`, `ADMIN` | Edição de postagem |
-| `/users/list` | `ADMIN` | Listagem de usuários |
-| `/users/new` | `ADMIN` | Cadastro de usuários |
+| Rota              | Acesso                | Descrição                                      |
+| ----------------- | --------------------- | ---------------------------------------------- |
+| `/login`          | Público               | Autenticação com e-mail e senha                |
+| `/`               | Autenticado           | Home com o papel da sessão e atalhos           |
+| `/posts/:id`      | Usuários autenticados | Leitura do conteúdo completo de uma publicação |
+| `/posts/admin`    | `TEACHER`, `ADMIN`    | Página administrativa de postagens             |
+| `/posts/new`      | `TEACHER`, `ADMIN`    | Criação de postagem                            |
+| `/posts/:id/edit` | `TEACHER`, `ADMIN`    | Edição de postagem                             |
+| `/users/list`     | `ADMIN`               | Listagem de usuários                           |
+| `/users/new`      | `ADMIN`               | Cadastro de usuários                           |
 
 ## Autenticação e autorização
 
@@ -215,11 +215,11 @@ O login é feito em `/login` e vale para os três papéis — professores usam a
 
 O controle de acesso acontece em três níveis, do mais barato ao mais confiável:
 
-| Camada | Onde | O que verifica |
-|---|---|---|
-| Middleware | `frontend/src/proxy.ts` | Checagem otimista: se não existe cookie de sessão, redireciona para `/login` antes de renderizar qualquer rota. Se o usuário já está logado e acessa `/login`, redireciona para `/` |
+| Camada           | Onde                      | O que verifica                                                                                                                                                                             |
+| ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Middleware       | `frontend/src/proxy.ts`   | Checagem otimista: se não existe cookie de sessão, redireciona para `/login` antes de renderizar qualquer rota. Se o usuário já está logado e acessa `/login`, redireciona para `/`        |
 | Server Component | Cada `page.tsx` protegida | `getSession()` decodifica o JWT, confere a expiração e redireciona para `/login` se o token não for mais válido. Em seguida valida o papel e redireciona para `/` quem não tiver permissão |
-| API | `preHandler` das rotas | Valida a assinatura do JWT (`authenticate`) e o papel (`requireTeacherOrAdmin`, `requireAdmin`). É a única camada que confere a assinatura do token |
+| API              | `preHandler` das rotas    | Valida a assinatura do JWT (`authenticate`) e o papel (`requireTeacherOrAdmin`, `requireAdmin`). É a única camada que confere a assinatura do token                                        |
 
 > O frontend apenas **decodifica** o payload do JWT para exibir o papel na interface sem uma chamada de rede extra. Toda operação sensível reenvia o token para a API, que é quem valida a assinatura — nenhuma decisão de segurança depende só do cliente.
 
@@ -231,22 +231,22 @@ Disponível em `/posts/admin` para `TEACHER` e `ADMIN`, acessível pelo menu do 
 
 ### Funcionalidades
 
-| Funcionalidade | Endpoint consumido |
-|---|---|
-| Listagem de todas as postagens, com título, trecho do conteúdo e datas de criação e atualização | `GET /posts` |
-| Botão **Carregar mais**, que busca a próxima página pelo cursor devolvido pela API | `GET /posts?cursor=&limit=` |
-| Busca por palavra-chave no título ou no conteúdo | `GET /posts/search?term=` |
-| Botão **Editar** por postagem, que abre `/posts/:id/edit` com o formulário preenchido | `GET /posts/:id` e `PUT /posts/:id` |
-| Botão **Excluir** por postagem, com confirmação em duas etapas antes de enviar a requisição | `DELETE /posts/:id` |
-| Atalho para criar uma nova postagem | `POST /posts` |
+| Funcionalidade                                                                                  | Endpoint consumido                  |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Listagem de todas as postagens, com título, trecho do conteúdo e datas de criação e atualização | `GET /posts`                        |
+| Botão **Carregar mais**, que busca a próxima página pelo cursor devolvido pela API              | `GET /posts?cursor=&limit=`         |
+| Busca por palavra-chave no título ou no conteúdo                                                | `GET /posts/search?term=`           |
+| Botão **Editar** por postagem, que abre `/posts/:id/edit` com o formulário preenchido           | `GET /posts/:id` e `PUT /posts/:id` |
+| Botão **Excluir** por postagem, com confirmação em duas etapas antes de enviar a requisição     | `DELETE /posts/:id`                 |
+| Atalho para criar uma nova postagem                                                             | `POST /posts`                       |
 
 Detalhes de comportamento:
 
-- **Exclusão em duas etapas** — o primeiro clique em *Excluir* abre uma confirmação na própria linha (*Cancelar* / *Confirmar exclusão*), evitando remoções acidentais. Após a confirmação, a postagem some da lista e um aviso de sucesso é exibido.
-- **Paginação preservada** — ao excluir, a postagem é removida localmente em vez de recarregar a lista, para não descartar as páginas já trazidas pelo *Carregar mais*.
-- **Busca sem paginação** — `GET /posts/search` devolve uma lista simples. A Server Action normaliza a resposta no mesmo formato paginado das demais chamadas, então o botão *Carregar mais* simplesmente não aparece em resultados de busca.
+- **Exclusão em duas etapas** — o primeiro clique em _Excluir_ abre uma confirmação na própria linha (_Cancelar_ / _Confirmar exclusão_), evitando remoções acidentais. Após a confirmação, a postagem some da lista e um aviso de sucesso é exibido.
+- **Paginação preservada** — ao excluir, a postagem é removida localmente em vez de recarregar a lista, para não descartar as páginas já trazidas pelo _Carregar mais_.
+- **Busca sem paginação** — `GET /posts/search` devolve uma lista simples. A Server Action normaliza a resposta no mesmo formato paginado das demais chamadas, então o botão _Carregar mais_ simplesmente não aparece em resultados de busca.
 - **Validação espelhada** — os formulários de criação e edição aplicam as mesmas regras da API (título com no mínimo 3 caracteres e conteúdo com no mínimo 10), para o erro aparecer antes da chamada de rede.
-- **Autoria** — postagens criadas pelo usuário da sessão recebem a marcação *Sua postagem*.
+- **Autoria** — postagens criadas pelo usuário da sessão recebem a marcação _Sua postagem_.
 
 ## Pré-requisitos
 
@@ -258,10 +258,10 @@ Detalhes de comportamento:
 
 Existem **duas formas** de rodar o projeto. Escolha a que fizer mais sentido para você:
 
-| Modo | Quando usar |
-|---|---|
-| **Desenvolvimento local** | Dia a dia de desenvolvimento, com hot reload (`npm run dev`) |
-| **Docker completo** | Simular produção, validar containerização ou rodar sem instalar Node na máquina |
+| Modo                      | Quando usar                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| **Desenvolvimento local** | Dia a dia de desenvolvimento, com hot reload (`npm run dev`)                    |
+| **Docker completo**       | Simular produção, validar containerização ou rodar sem instalar Node na máquina |
 
 ---
 
@@ -296,12 +296,12 @@ docker compose up postgres -d
 
 O PostgreSQL ficará disponível em `localhost:5431`:
 
-| Variável | Valor |
-|---|---|
-| Banco | `portal-fiap` |
-| Usuário | `postgres` |
-| Senha | `postgres` |
-| Porta (host) | `5431` |
+| Variável     | Valor         |
+| ------------ | ------------- |
+| Banco        | `portal-fiap` |
+| Usuário      | `postgres`    |
+| Senha        | `postgres`    |
+| Porta (host) | `5431`        |
 
 #### 4. Configurar variáveis de ambiente
 
@@ -327,6 +327,7 @@ JWT_SECRET=sua-chave-secreta-com-pelo-menos-32-caracteres
 ```
 
 > **Importante:**
+>
 > - `JWT_SECRET` deve ter no mínimo 32 caracteres.
 > - `DATABASE_URL` é utilizada pelas migrations (`node-pg-migrate`).
 > - Evite usar o caractere `$` no `JWT_SECRET` se for referenciar variáveis no `docker-compose.yaml` (o Compose interpreta `$` como interpolação).
@@ -345,9 +346,9 @@ npm run seed
 
 O script `api/scripts/seed.ts` insere **somente** registros na tabela `users`. Ele não cria perfis nem postagens.
 
-| E-mail | Senha | Papel |
-|---|---|---|
-| `admin@fiap.com.br` | `12345678` | `ADMIN` |
+| E-mail                | Senha      | Papel     |
+| --------------------- | ---------- | --------- |
+| `admin@fiap.com.br`   | `12345678` | `ADMIN`   |
 | `student@fiap.com.br` | `12345678` | `STUDENT` |
 | `teacher@fiap.com.br` | `12345678` | `TEACHER` |
 
@@ -441,28 +442,28 @@ open http://localhost:3000
 
 #### Serviços no Docker Compose
 
-| Serviço | Container | Porta no host | Descrição |
-|---|---|---|---|
-| `postgres` | `portal-fiap-db` | `5431` | Banco PostgreSQL 16 |
-| `api` | `portal-fiap-api` | `3001` | API Node.js (migrations automáticas no startup) |
-| `frontend` | `portal-fiap-frontend` | `3000` | Frontend Next.js (porta interna `3000`) |
+| Serviço    | Container              | Porta no host | Descrição                                       |
+| ---------- | ---------------------- | ------------- | ----------------------------------------------- |
+| `postgres` | `portal-fiap-db`       | `5431`        | Banco PostgreSQL 16                             |
+| `api`      | `portal-fiap-api`      | `3001`        | API Node.js (migrations automáticas no startup) |
+| `frontend` | `portal-fiap-frontend` | `3000`        | Frontend Next.js (porta interna `3000`)         |
 
 #### Variáveis de ambiente no Docker
 
 No modo Docker, a API usa as variáveis definidas em `docker-compose.yaml`:
 
-| Variável | Valor no container |
-|---|---|
-| `POSTGRES_HOST` | `postgres` (nome do serviço na rede Docker) |
-| `POSTGRES_PORT` | `5432` (porta interna do container) |
-| `DATABASE_URL` | `postgres://postgres:postgres@postgres:5432/portal-fiap` |
+| Variável        | Valor no container                                       |
+| --------------- | -------------------------------------------------------- |
+| `POSTGRES_HOST` | `postgres` (nome do serviço na rede Docker)              |
+| `POSTGRES_PORT` | `5432` (porta interna do container)                      |
+| `DATABASE_URL`  | `postgres://postgres:postgres@postgres:5432/portal-fiap` |
 
 O frontend recebe:
 
-| Variável | Valor | Uso |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` (build arg) | `http://localhost:3001` | Chamadas do browser para a API no host |
-| `API_URL` | `http://api:3000` | Comunicação server-side dentro da rede Docker |
+| Variável                          | Valor                   | Uso                                           |
+| --------------------------------- | ----------------------- | --------------------------------------------- |
+| `NEXT_PUBLIC_API_URL` (build arg) | `http://localhost:3001` | Chamadas do browser para a API no host        |
+| `API_URL`                         | `http://api:3000`       | Comunicação server-side dentro da rede Docker |
 
 > **Atenção:** o `api/.env` local aponta para `localhost:5431` (desenvolvimento fora do Docker). Não substitua as variáveis de rede do compose sem ajustar o host/porta.
 
@@ -547,19 +548,19 @@ Atualmente o frontend ainda não possui testes automatizados configurados. Por i
 
 Scripts na **raiz** do monorepo:
 
-| Script | Descrição |
-|---|---|
-| `npm run dev:api` | Inicia a API em modo desenvolvimento (hot reload) |
-| `npm run dev:frontend` | Inicia o frontend em modo desenvolvimento (porta `3000`) |
-| `npm run build:api` | Compila a API para ESM em `api/build/` |
-| `npm run build:frontend` | Gera o build de produção do Next.js |
-| `npm run start:api` | Inicia a API compilada |
-| `npm run start:frontend` | Inicia o frontend compilado (porta `3000`) |
-| `npm run migrate:up` | Aplica migrations pendentes |
-| `npm run migrate:down` | Reverte a última migration |
-| `npm run seed` | Cria as 3 contas padrão de desenvolvimento |
-| `npm test` | Executa a suíte de testes da API |
-| `npm run lint` | Executa o ESLint na API |
+| Script                   | Descrição                                                |
+| ------------------------ | -------------------------------------------------------- |
+| `npm run dev:api`        | Inicia a API em modo desenvolvimento (hot reload)        |
+| `npm run dev:frontend`   | Inicia o frontend em modo desenvolvimento (porta `3000`) |
+| `npm run build:api`      | Compila a API para ESM em `api/build/`                   |
+| `npm run build:frontend` | Gera o build de produção do Next.js                      |
+| `npm run start:api`      | Inicia a API compilada                                   |
+| `npm run start:frontend` | Inicia o frontend compilado (porta `3000`)               |
+| `npm run migrate:up`     | Aplica migrations pendentes                              |
+| `npm run migrate:down`   | Reverte a última migration                               |
+| `npm run seed`           | Cria as 3 contas padrão de desenvolvimento               |
+| `npm test`               | Executa a suíte de testes da API                         |
+| `npm run lint`           | Executa o ESLint na API                                  |
 
 Os mesmos scripts também podem ser executados dentro de `api/` (ex.: `cd api && npm run dev`, `npm run lint:fix`, `npm run migrate:create` ou `npm test -- --coverage`).
 
@@ -618,8 +619,7 @@ docker compose up -d --build
 A aplicação disponibiliza documentação por meio do Swagger/OpenAPI.
 Com o servidor em execução, acesse:
 http://localhost:3001/docs
-A interface permite consultar os endpoints, parâmetros, requisitos de autenticação e formatos de resposta. 
-
+A interface permite consultar os endpoints, parâmetros, requisitos de autenticação e formatos de resposta.
 
 ### `POST /login`
 
@@ -726,9 +726,9 @@ Authorization: Bearer <token>
 
 **Query string:**
 
-| Parâmetro | Tipo | Obrigatório | Descrição |
-|---|---|---|---|
-| `term` | string | Sim | Palavra-chave utilizada na busca |
+| Parâmetro | Tipo   | Obrigatório | Descrição                        |
+| --------- | ------ | ----------- | -------------------------------- |
+| `term`    | string | Sim         | Palavra-chave utilizada na busca |
 
 **Exemplo de requisição:**
 
@@ -780,9 +780,9 @@ Content-Type: application/json
 
 **Parâmetro da rota:**
 
-| Parâmetro | Tipo | Descrição |
-|---|---|---|
-| `id` | UUID | Identificador da publicação |
+| Parâmetro | Tipo | Descrição                   |
+| --------- | ---- | --------------------------- |
+| `id`      | UUID | Identificador da publicação |
 
 **Body:**
 
@@ -830,9 +830,9 @@ Authorization: Bearer <token>
 
 **Parâmetro da rota:**
 
-| Parâmetro | Tipo | Descrição |
-|---|---|---|
-| `id` | UUID | Identificador da publicação |
+| Parâmetro | Tipo | Descrição                   |
+| --------- | ---- | --------------------------- |
+| `id`      | UUID | Identificador da publicação |
 
 **Resposta (200):**
 
@@ -863,9 +863,9 @@ Retorna uma publicação específica utilizando o ID informado na rota.
 
 **Parâmetro da rota:**
 
-| Parâmetro | Tipo | Descrição |
-|---|---|---|
-| `id` | UUID | Identificador da publicação |
+| Parâmetro | Tipo | Descrição                   |
+| --------- | ---- | --------------------------- |
+| `id`      | UUID | Identificador da publicação |
 
 **Resposta (200):**
 
@@ -927,30 +927,30 @@ Quando não existem postagens cadastradas, o endpoint retorna:
 
 ### users
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | UUID | Identificador único |
-| email | varchar | E-mail (único) |
-| password | varchar | Senha hasheada |
-| role | enum | `STUDENT`, `TEACHER` ou `ADMIN` |
+| Campo    | Tipo    | Descrição                       |
+| -------- | ------- | ------------------------------- |
+| id       | UUID    | Identificador único             |
+| email    | varchar | E-mail (único)                  |
+| password | varchar | Senha hasheada                  |
+| role     | enum    | `STUDENT`, `TEACHER` ou `ADMIN` |
 
 ### profiles
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | UUID | Identificador único |
-| user_id | UUID | Referência ao usuário |
-| name | varchar | Nome do perfil |
+| Campo      | Tipo    | Descrição                |
+| ---------- | ------- | ------------------------ |
+| id         | UUID    | Identificador único      |
+| user_id    | UUID    | Referência ao usuário    |
+| name       | varchar | Nome do perfil           |
 | avatar_url | varchar | URL do avatar (opcional) |
 
 ### posts
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | UUID | Identificador único |
-| title | varchar | Título |
-| content | text | Conteúdo |
-| author_id | UUID | Referência ao autor |
+| Campo     | Tipo    | Descrição           |
+| --------- | ------- | ------------------- |
+| id        | UUID    | Identificador único |
+| title     | varchar | Título              |
+| content   | text    | Conteúdo            |
+| author_id | UUID    | Referência ao autor |
 
 ## Próximos passos
 
@@ -976,7 +976,8 @@ Durante os testes, foram identificados e corrigidos problemas relacionados à pa
 
 A experiência contribuiu para o aprimoramento dos conhecimentos da equipe em desenvolvimento full stack, integração entre frontend e API, banco de dados, autenticação e trabalho colaborativo.
 
-
 ## Licença
 
 ISC
+
+Teste de PR na main
