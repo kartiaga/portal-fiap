@@ -1,6 +1,7 @@
 import { database } from '@/lib/db'
 
 import {
+  buildPaginatedResult,
   decodeCursor,
   encodeCursor,
   resolveLimit,
@@ -143,25 +144,8 @@ export class PostRepository {
     }
 
     const rows = (result?.rows ?? []) as PostRow[]
-    const posts = rows.map((row) => this.mapRow(row))
+    
 
-    const hasMore = rows.length > limit
-    const items = hasMore ? posts.slice(0, limit) : posts
-
-    if (!hasMore) {
-      return {
-        items,
-        nextCursor: null,
-        hasMore: false,
-      }
-    }
-
-    const lastRow = rows[limit - 1]
-
-    return {
-      items,
-      nextCursor: encodeCursor(lastRow.cursor_created_at, lastRow.id),
-      hasMore: true,
-    }
+    return buildPaginatedResult( rows, limit, (row) => this.mapRow(row))    
   }
 }

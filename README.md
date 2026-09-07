@@ -193,6 +193,7 @@ As chamadas à API ficam em **Server Actions** (`"use server"`), nunca no navega
 |---|---|---|
 | `/login` | Público | Autenticação com e-mail e senha |
 | `/` | Autenticado | Home com o papel da sessão e atalhos |
+| `/posts/:id` | Usuários autenticados | Leitura do conteúdo completo de uma publicação |
 | `/posts/admin` | `TEACHER`, `ADMIN` | Página administrativa de postagens |
 | `/posts/new` | `TEACHER`, `ADMIN` | Criação de postagem |
 | `/posts/:id/edit` | `TEACHER`, `ADMIN` | Edição de postagem |
@@ -587,7 +588,7 @@ O projeto usa ESM em produção. Certifique-se de que o `api/package.json` cont�
 
 ```json
 "build": "tsup src/server.ts --format esm --out-dir build --clean",
-"start": "node build/server.cjs"
+"start": "node build/server.js"
 ```
 
 ### Aviso `The "sibdob" variable is not set` no Docker Compose
@@ -967,17 +968,14 @@ Quando não existem postagens cadastradas, o endpoint retorna:
 
 ## Experiência da equipe e desafios do desenvolvimento
 
-Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir as responsabilidades entre os integrantes em comum acordo. Essa organização permitiu que cada funcionalidade fosse desenvolvida de forma independente e estruturada.
+Durante o desenvolvimento do projeto, a equipe dividiu as atividades entre os integrantes, trabalhando de forma colaborativa por meio de branches e Pull Requests. A comunicação constante facilitou a integração das funcionalidades, a revisão do código e a troca de conhecimento.
 
-Para a integração das funcionalidades, foi adotado um fluxo de trabalho baseado em branches e Pull Requests, permitindo a revisão das implementações e reduzindo a ocorrência de conflitos durante o desenvolvimento.
+Um dos principais desafios foi a adaptação às tecnologias utilizadas, especialmente Node.js, Fastify, PostgreSQL e Next.js, além da organização da aplicação em camadas.
 
-A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando a troca de conhecimento, o esclarecimento de dúvidas e o apoio mútuo sempre que necessário.
+Durante os testes, foram identificados e corrigidos problemas relacionados à paginação por cursor, principalmente na precisão do campo created_at entre PostgreSQL e JavaScript e no controle da paginação no frontend. Os problemas foram investigados com testes manuais, análise do código e consultas ao banco de dados.
 
-Como ocorre em muitos projetos de desenvolvimento de software, a adoção de novas tecnologias representou um desafio inicial para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, ao PostgreSQL e à organização da aplicação em camadas.
+A experiência contribuiu para o aprimoramento dos conhecimentos da equipe em desenvolvimento full stack, integração entre frontend e API, banco de dados, autenticação e trabalho colaborativo.
 
-Ao longo do desenvolvimento, a familiaridade com as ferramentas aumentou gradualmente, e as dificuldades iniciais foram sendo superadas conforme as funcionalidades eram implementadas, testadas e integradas ao projeto.
-
-Ao final do processo, a equipe considera que os objetivos propostos foram atingidos e avalia positivamente a experiência adquirida durante o desenvolvimento da solução.
 
 ## Licença
 
