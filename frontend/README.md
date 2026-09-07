@@ -66,3 +66,4 @@ frontend/
 
 - [Documentação do Next.js](https://nextjs.org/docs)
 - [README principal do projeto](../README.md)
+

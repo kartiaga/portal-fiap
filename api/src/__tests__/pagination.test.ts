@@ -7,14 +7,14 @@ import {
 
 describe('pagination helpers', () => {
   it('encodes and decodes a cursor', () => {
-    const createdAt = new Date('2026-01-01T12:00:00.000Z')
+    const createdAt = '2026-01-01T12:00:00.000Z'
     const id = 'post-123'
 
     const cursor = encodeCursor(createdAt, id)
     const decoded = decodeCursor(cursor)
 
     expect(decoded.id).toBe(id)
-    expect(decoded.createdAt).toBe(createdAt.toISOString())
+    expect(decoded.createdAt).toBe(createdAt)
   })
 
   it('throws when cursor is invalid', () => {

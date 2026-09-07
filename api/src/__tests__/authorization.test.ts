@@ -37,7 +37,7 @@ describe('authorization middleware', () => {
     expect(reply.send).toHaveBeenCalledWith({ message: 'Forbidden' })
   })
 
-  it('allows teacher or admin roles', async () => {
+  it('allows the TEACHER role to create, edit, and delete posts', async () => {
     const reply = makeReply() as unknown as FastifyReply
     await requireTeacherOrAdmin(
       { user: { role: UserRole.TEACHER } } as unknown as FastifyRequest,
@@ -46,7 +46,16 @@ describe('authorization middleware', () => {
     expect(reply.status).not.toHaveBeenCalled()
   })
 
-  it('denies when no allowed role matches', async () => {
+  it('allows the ADMIN role to create, edit, and delete posts', async () => {
+    const reply = makeReply() as unknown as FastifyReply
+    await requireTeacherOrAdmin(
+      { user: { role: UserRole.ADMIN } } as unknown as FastifyRequest,
+      reply,
+    )
+    expect(reply.status).not.toHaveBeenCalled()
+  })
+
+  it('denies STUDENT from creating, editing, or deleting posts', async () => {
     const request = {
       user: { role: UserRole.STUDENT },
     } as unknown as FastifyRequest

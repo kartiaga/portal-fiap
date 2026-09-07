@@ -15,6 +15,7 @@ interface UserRow {
   password: string
   role: UserRole
   created_at: Date
+  cursor_created_at: string
   updated_at: Date
 }
 
@@ -65,6 +66,11 @@ export class UserRepository {
     const fetchLimit = limit + 1
     const searchPattern = params.search ? `%${params.search}%` : undefined
 
+    const SELECT_COLUMNS = `
+      id, email, password, role, created_at,
+      to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
+      updated_at
+    `
     let result
 
     if (params.cursor) {
@@ -73,10 +79,10 @@ export class UserRepository {
       if (searchPattern) {
         result = await database.clienteInstance?.query(
           `
-          SELECT *
+           SELECT ${SELECT_COLUMNS}
           FROM users
           WHERE email ILIKE $1
-            AND (created_at, id) < ($2, $3)
+            AND (created_at, id) < ($2::timestamptz, $3::uuid)
           ORDER BY created_at DESC, id DESC
           LIMIT $4
           `,
@@ -85,9 +91,9 @@ export class UserRepository {
       } else {
         result = await database.clienteInstance?.query(
           `
-          SELECT *
+          SELECT ${SELECT_COLUMNS}
           FROM users
-          WHERE (created_at, id) < ($1, $2)
+          WHERE (created_at, id) < ($1::timestamptz, $2::uuid)
           ORDER BY created_at DESC, id DESC
           LIMIT $3
           `,
@@ -97,7 +103,7 @@ export class UserRepository {
     } else if (searchPattern) {
       result = await database.clienteInstance?.query(
         `
-        SELECT *
+        SELECT ${SELECT_COLUMNS}
         FROM users
         WHERE email ILIKE $1
         ORDER BY created_at DESC, id DESC
@@ -108,7 +114,7 @@ export class UserRepository {
     } else {
       result = await database.clienteInstance?.query(
         `
-        SELECT *
+        SELECT ${SELECT_COLUMNS}
         FROM users
         ORDER BY created_at DESC, id DESC
         LIMIT $1
@@ -118,11 +124,7 @@ export class UserRepository {
     }
 
     const rows = (result?.rows ?? []) as UserRow[]
-    const users = rows.map((row) => this.mapRow(row))
 
-    return buildPaginatedResult(users, limit, (user) => ({
-      createdAt: user.createdAt!,
-      id: user.id!,
-    }))
+    return buildPaginatedResult(rows, limit, (row) => this.mapRow(row))
   }
 }

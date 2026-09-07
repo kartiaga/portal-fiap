@@ -19,6 +19,11 @@ type CursorPayload = {
   id: string
 }
 
+type CursorRow = {
+  cursor_created_at: string
+  id: string
+}
+
 export const paginationQuerySchema = z.object({
   cursor: z.string().optional(),
   limit: z.coerce
@@ -72,16 +77,17 @@ export function decodeCursor(cursor: string): {
   }
 }
 
-export function buildPaginatedResult<T>(
+export function buildPaginatedResult<T extends CursorRow, R>(
   rows: T[],
   limit: number,
-  getCursorSource: (item: T) => { createdAt: string; id: string },
-): PaginatedResult<T> {
-  const hasMore = rows.length > limit
-  const items = hasMore ? rows.slice(0, limit) : rows
-  const lastItem = items.at(-1)
+  mapRow: (item: T) => R,
+): PaginatedResult<R> {
+  const records = rows.map(mapRow)
 
-  if (!lastItem || !hasMore) {
+  const hasMore = rows.length > limit
+  const items = hasMore ? records.slice(0, limit) : records
+
+  if (!hasMore) {
     return {
       items,
       nextCursor: null,
@@ -89,11 +95,19 @@ export function buildPaginatedResult<T>(
     }
   }
 
-  const { createdAt, id } = getCursorSource(lastItem)
+  const lastRow = rows[limit - 1]
+
+  if (!lastRow) {
+    return {
+      items,
+      nextCursor: null,
+      hasMore: false,
+    }
+  }
 
   return {
     items,
-    nextCursor: encodeCursor(createdAt, id),
+    nextCursor: encodeCursor(lastRow.cursor_created_at, lastRow.id),
     hasMore: true,
   }
 }

@@ -2,7 +2,7 @@
 
 API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
 
-> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
+> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js com listagem e gestão de publicações, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
 
 ## Sobre o desafio
 
@@ -31,6 +31,16 @@ Oferecer uma API de blogging onde:
 | `DELETE /posts/:id` | Exclusão de postagens | Implementado |
 | `GET /posts/search` | Busca por palavra-chave no título ou conteúdo | Implementado |
 
+### Requisitos funcionais — Frontend
+
+| Página | Descrição | Status |
+|---|---|---|
+| `/login` | Login de professores, alunos e administradores | Implementado |
+| `/posts/admin` | Página administrativa: lista todas as postagens com opções de editar e excluir | Implementado |
+| `/posts/new` | Criação de postagens (docentes) | Implementado |
+| `/posts/:id/edit` | Edição de postagens (docentes) | Implementado |
+| Controle de acesso | Criação, edição e administração de postagens restritas a usuários autenticados | Implementado |
+
 ### Funcionalidades extras (fora do escopo mínimo do desafio)
 
 Estas rotas foram adicionadas para suportar autenticação e gestão de usuários, necessárias ao controle de acesso entre alunos e docentes:
@@ -40,6 +50,36 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | `POST /login` | Autenticação com JWT | Implementado |
 | `POST /users` | Cadastro de usuários (admin) | Implementado |
 
+### Telas do frontend
+
+Após o login, a tela inicial do sistema é a listagem de posts em `/posts`.
+
+| Rota | Descrição | Acesso |
+|---|---|---|
+| `/login` | Autenticação com e-mail e senha | Público |
+| `/` | Redireciona usuários autenticados para `/posts` | Autenticado |
+| `/posts` | Listagem paginada de publicações | Usuários autenticados |
+| `/posts/[id]` | Visualização de uma publicação | Usuários autenticados |
+| `/posts/new` | Criação de publicação | `TEACHER`, `ADMIN` |
+| `/posts/[id]/edit` | Edição de publicação existente | `TEACHER`, `ADMIN` |
+| `/users/list` | Listagem e busca de usuários | `ADMIN` |
+| `/users/new` | Cadastro de usuários | `ADMIN` |
+
+Na tela `/posts`, usuários com papel `TEACHER` ou `ADMIN` podem:
+
+- acessar **Criar post** no topo direito;
+- editar cada publicação pelo botão **Editar**;
+- excluir cada publicação pelo botão **Excluir**;
+- confirmar a exclusão em um modal próprio da aplicação, sem utilizar a caixa nativa do navegador.
+
+Na tela de detalhes `/posts/[id]`, usuários com papel `TEACHER` ou `ADMIN` também podem editar ou excluir a publicação. A exclusão utiliza o mesmo modal personalizado e, após a confirmação, retorna para `/posts` com o feedback de sucesso.
+
+Usuários com papel `STUDENT` visualizam as publicações, mas não veem os controles de criação, edição e exclusão.
+
+Após criar ou editar uma publicação, a aplicação navega imediatamente para `/posts` e exibe uma mensagem de sucesso. Após excluir uma publicação na listagem ou nos detalhes, o usuário também retorna para `/posts` com o feedback correspondente. As mensagens desaparecem automaticamente após alguns segundos com uma animação.
+
+Os formulários de criação e edição validam títulos com no mínimo 3 e no máximo 255 caracteres, conforme o limite `varchar(255)` definido no banco de dados.
+
 ### Requisitos técnicos
 
 | Requisito | Decisão / status |
@@ -47,7 +87,7 @@ Estas rotas foram adicionadas para suportar autenticação e gestão de usuário
 | Back-end em Node.js | Implementado (TypeScript + Fastify) |
 | Persistência de dados | Implementado (PostgreSQL + migrations) |
 | Containerização com Docker | Implementado (`Dockerfile` em `api/` e `frontend/` + `docker-compose.yaml`) |
-| GitHub Actions (CI) | Implementado — execução automática de testes em Pull Requests |
+| GitHub Actions (CI) | Implementado — API e frontend validados automaticamente em Pull Requests |
 | GitHub Actions (CD / deploy) | Implementado (build e push da imagem da API para o GHCR) |
 | Cobertura de testes (≥ 20%) | Implementado — 100% nos arquivos cobertos pelo Jest |
 | Documentação técnica | Implementado (README + Swagger/OpenAPI) |
@@ -120,6 +160,93 @@ Cada módulo contém:
 | `STUDENT` | Visualiza e lê postagens |
 | `TEACHER` | Cria, edita, exclui e gerencia postagens |
 | `ADMIN` | Gerencia usuários e postagens |
+
+## Arquitetura do frontend
+
+O frontend é uma aplicação **Next.js (App Router)** que consome a API REST. Não há acesso direto ao banco: toda leitura e escrita passa pelos endpoints documentados neste README.
+
+```
+frontend/src/
+├── app/
+│   ├── layout.tsx      # Layout raiz (fontes e tema)
+│   ├── page.tsx        # Home autenticada, com atalhos por papel
+│   ├── actions.ts      # Server Action de logout
+│   ├── globals.css     # Tokens e componentes do design system (Tailwind)
+│   ├── login/          # Tela de login
+│   ├── posts/          # Postagens
+│   │   ├── actions.ts      # Server Actions que consomem /posts
+│   │   ├── post-form.tsx   # Formulário compartilhado entre criar e editar
+│   │   ├── admin/          # Página administrativa
+│   │   ├── new/            # Criação
+│   │   └── [id]/edit/      # Edição
+│   └── users/          # Cadastro e listagem de usuários (admin)
+├── components/         # Header e menu de usuário
+├── lib/                # Helpers de API e de sessão (JWT/cookie)
+└── proxy.ts            # Middleware de rotas (Next.js 16)
+```
+
+As chamadas à API ficam em **Server Actions** (`"use server"`), nunca no navegador. Assim o token JWT não fica exposto ao JavaScript do cliente: o componente envia o formulário para a action, e é a action que monta o cabeçalho `Authorization: Bearer <token>` e chama a API.
+
+### Rotas do frontend
+
+| Rota | Acesso | Descrição |
+|---|---|---|
+| `/login` | Público | Autenticação com e-mail e senha |
+| `/` | Autenticado | Home com o papel da sessão e atalhos |
+| `/posts/:id` | Usuários autenticados | Leitura do conteúdo completo de uma publicação |
+| `/posts/admin` | `TEACHER`, `ADMIN` | Página administrativa de postagens |
+| `/posts/new` | `TEACHER`, `ADMIN` | Criação de postagem |
+| `/posts/:id/edit` | `TEACHER`, `ADMIN` | Edição de postagem |
+| `/users/list` | `ADMIN` | Listagem de usuários |
+| `/users/new` | `ADMIN` | Cadastro de usuários |
+
+## Autenticação e autorização
+
+O login é feito em `/login` e vale para os três papéis — professores usam as mesmas credenciais cadastradas na API (ver [contas do seed](#6-criar-contas-iniciais-seed)).
+
+### Fluxo de login
+
+1. O formulário chama a Server Action `loginAction`, que envia e-mail e senha para `POST /login`.
+2. Com o token JWT devolvido pela API, a action grava o cookie de sessão e redireciona para `/`.
+3. O cookie é `httpOnly`, `sameSite=lax`, com validade de 15 dias e `secure` habilitado em produção. Como é `httpOnly`, o JavaScript do navegador não consegue lê-lo.
+4. O logout (`logoutAction`) apaga o cookie e devolve o usuário para `/login`.
+
+### Camadas de proteção
+
+O controle de acesso acontece em três níveis, do mais barato ao mais confiável:
+
+| Camada | Onde | O que verifica |
+|---|---|---|
+| Middleware | `frontend/src/proxy.ts` | Checagem otimista: se não existe cookie de sessão, redireciona para `/login` antes de renderizar qualquer rota. Se o usuário já está logado e acessa `/login`, redireciona para `/` |
+| Server Component | Cada `page.tsx` protegida | `getSession()` decodifica o JWT, confere a expiração e redireciona para `/login` se o token não for mais válido. Em seguida valida o papel e redireciona para `/` quem não tiver permissão |
+| API | `preHandler` das rotas | Valida a assinatura do JWT (`authenticate`) e o papel (`requireTeacherOrAdmin`, `requireAdmin`). É a única camada que confere a assinatura do token |
+
+> O frontend apenas **decodifica** o payload do JWT para exibir o papel na interface sem uma chamada de rede extra. Toda operação sensível reenvia o token para a API, que é quem valida a assinatura — nenhuma decisão de segurança depende só do cliente.
+
+As páginas de **criação**, **edição** e **administração** de postagens exigem sessão válida e papel `TEACHER` ou `ADMIN`. Um aluno autenticado que acessar essas URLs diretamente é redirecionado para `/`, e os atalhos correspondentes não aparecem no menu do usuário nem na home.
+
+## Página administrativa de postagens
+
+Disponível em `/posts/admin` para `TEACHER` e `ADMIN`, acessível pelo menu do usuário ou pelo atalho da home.
+
+### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Listagem de todas as postagens, com título, trecho do conteúdo e datas de criação e atualização | `GET /posts` |
+| Botão **Carregar mais**, que busca a próxima página pelo cursor devolvido pela API | `GET /posts?cursor=&limit=` |
+| Busca por palavra-chave no título ou no conteúdo | `GET /posts/search?term=` |
+| Botão **Editar** por postagem, que abre `/posts/:id/edit` com o formulário preenchido | `GET /posts/:id` e `PUT /posts/:id` |
+| Botão **Excluir** por postagem, com confirmação em duas etapas antes de enviar a requisição | `DELETE /posts/:id` |
+| Atalho para criar uma nova postagem | `POST /posts` |
+
+Detalhes de comportamento:
+
+- **Exclusão em duas etapas** — o primeiro clique em *Excluir* abre uma confirmação na própria linha (*Cancelar* / *Confirmar exclusão*), evitando remoções acidentais. Após a confirmação, a postagem some da lista e um aviso de sucesso é exibido.
+- **Paginação preservada** — ao excluir, a postagem é removida localmente em vez de recarregar a lista, para não descartar as páginas já trazidas pelo *Carregar mais*.
+- **Busca sem paginação** — `GET /posts/search` devolve uma lista simples. A Server Action normaliza a resposta no mesmo formato paginado das demais chamadas, então o botão *Carregar mais* simplesmente não aparece em resultados de busca.
+- **Validação espelhada** — os formulários de criação e edição aplicam as mesmas regras da API (título com no mínimo 3 caracteres e conteúdo com no mínimo 10), para o erro aparecer antes da chamada de rede.
+- **Autoria** — postagens criadas pelo usuário da sessão recebem a marcação *Sua postagem*.
 
 ## Pré-requisitos
 
@@ -400,6 +527,20 @@ npm test
 
 Os testes também rodam automaticamente em pull requests via GitHub Actions (`.github/workflows/run_tests_on_pull_request.yml`).
 
+### Validação do frontend
+
+O frontend possui uma pipeline separada em `.github/workflows/frontend-ci.yml`. Ela é executada em Pull Requests e pode ser acionada manualmente pelo GitHub Actions.
+
+As etapas são:
+
+```bash
+npm run test --workspace frontend --if-present
+npm run lint --workspace frontend
+npm run build --workspace frontend
+```
+
+Atualmente o frontend ainda não possui testes automatizados configurados. Por isso, a etapa de testes é condicional e será executada automaticamente quando um script `test` for adicionado ao workspace `frontend`. O lint e o build são executados sempre.
+
 ---
 
 ## Scripts disponíveis
@@ -447,7 +588,7 @@ O projeto usa ESM em produção. Certifique-se de que o `api/package.json` cont�
 
 ```json
 "build": "tsup src/server.ts --format esm --out-dir build --clean",
-"start": "node build/server.cjs"
+"start": "node build/server.js"
 ```
 
 ### Aviso `The "sibdob" variable is not set` no Docker Compose
@@ -551,6 +692,8 @@ Content-Type: application/json
 }
 ```
 
+O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve conter pelo menos 10 caracteres.
+
 **Resposta (201):**
 
 ```json
@@ -649,6 +792,8 @@ Content-Type: application/json
   "content": "Conteúdo atualizado da publicação"
 }
 ```
+
+Os campos `title` e `content` seguem as mesmas validações da criação: o título deve conter entre 3 e 255 caracteres e o conteúdo deve conter pelo menos 10 caracteres.
 
 **Resposta (200):**
 
@@ -823,17 +968,14 @@ Quando não existem postagens cadastradas, o endpoint retorna:
 
 ## Experiência da equipe e desafios do desenvolvimento
 
-Durante o desenvolvimento do projeto, a equipe optou por dividir as atividades em partes menores e distribuir as responsabilidades entre os integrantes em comum acordo. Essa organização permitiu que cada funcionalidade fosse desenvolvida de forma independente e estruturada.
+Durante o desenvolvimento do projeto, a equipe dividiu as atividades entre os integrantes, trabalhando de forma colaborativa por meio de branches e Pull Requests. A comunicação constante facilitou a integração das funcionalidades, a revisão do código e a troca de conhecimento.
 
-Para a integração das funcionalidades, foi adotado um fluxo de trabalho baseado em branches e Pull Requests, permitindo a revisão das implementações e reduzindo a ocorrência de conflitos durante o desenvolvimento.
+Um dos principais desafios foi a adaptação às tecnologias utilizadas, especialmente Node.js, Fastify, PostgreSQL e Next.js, além da organização da aplicação em camadas.
 
-A comunicação entre os integrantes foi mantida de forma ativa durante todo o projeto, possibilitando a troca de conhecimento, o esclarecimento de dúvidas e o apoio mútuo sempre que necessário.
+Durante os testes, foram identificados e corrigidos problemas relacionados à paginação por cursor, principalmente na precisão do campo created_at entre PostgreSQL e JavaScript e no controle da paginação no frontend. Os problemas foram investigados com testes manuais, análise do código e consultas ao banco de dados.
 
-Como ocorre em muitos projetos de desenvolvimento de software, a adoção de novas tecnologias representou um desafio inicial para a equipe, especialmente em relação ao ecossistema Node.js, ao framework Fastify, ao PostgreSQL e à organização da aplicação em camadas.
+A experiência contribuiu para o aprimoramento dos conhecimentos da equipe em desenvolvimento full stack, integração entre frontend e API, banco de dados, autenticação e trabalho colaborativo.
 
-Ao longo do desenvolvimento, a familiaridade com as ferramentas aumentou gradualmente, e as dificuldades iniciais foram sendo superadas conforme as funcionalidades eram implementadas, testadas e integradas ao projeto.
-
-Ao final do processo, a equipe considera que os objetivos propostos foram atingidos e avalia positivamente a experiência adquirida durante o desenvolvimento da solução.
 
 ## Licença
 

@@ -20,7 +20,7 @@ export function proxy(request: NextRequest) {
   }
 
   if (hasSessionCookie && isPublicRoute) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/posts", request.url));
   }
 
   return NextResponse.next();
