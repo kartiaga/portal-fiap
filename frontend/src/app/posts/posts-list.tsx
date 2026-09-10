@@ -87,6 +87,10 @@ export function PostsList({
             </h2>
           </Link>
 
+          <p className="mt-1 text-xs text-ink-500">
+            Por {post.authorName ?? "Autor desconhecido"}
+          </p>
+
           <p className="mt-2 text-sm text-ink-500">{post.content}</p>
 
           {canManagePosts ? (

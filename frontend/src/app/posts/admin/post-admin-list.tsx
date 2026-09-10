@@ -138,7 +138,11 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
             placeholder="Ex.: matemática"
           />
         </div>
-        <button type="submit" disabled={isPending} className="btn btn-secondary">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="btn btn-secondary"
+        >
           {isPending ? "Buscando..." : "Buscar"}
         </button>
       </form>
@@ -175,6 +179,9 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
                     </p>
                     <p className="mt-1 text-sm text-ink-700">
                       {toExcerpt(post.content)}
+                    </p>
+                    <p className="mt-1 text-xs text-ink-500">
+                      Por {post.authorName ?? "Autor desconhecido"}
                     </p>
                     <p className="mt-2 font-mono text-xs text-ink-500">
                       Criada em {formatDate(post.createdAt)} · Atualizada em{" "}
