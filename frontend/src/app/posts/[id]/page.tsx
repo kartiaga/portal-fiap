@@ -50,7 +50,8 @@ export default async function PostPage({
             </h1>
 
             <p className="mt-2 text-xs text-ink-500">
-              Publicado em {formatData(result.data.createdAt)}
+              Publicado em {formatData(result.data.createdAt)} por{" "}
+              {result.data.authorName ?? "Autor desconhecido"}
             </p>
 
             <div className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-ink-700">

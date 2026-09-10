@@ -15,6 +15,7 @@ interface PostRow {
   title: string
   content: string
   author_id: string
+  author_name?: string | null
   created_at: Date
   cursor_created_at: string
   updated_at: Date
@@ -27,6 +28,7 @@ export class PostRepository {
       title: row.title,
       content: row.content,
       authorId: row.author_id,
+      authorName: row.author_name ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }
@@ -50,7 +52,13 @@ export class PostRepository {
 
   public async findById(id: string): Promise<Post | undefined> {
     const result = await database.clienteInstance?.query(
-      `SELECT * FROM posts WHERE id = $1 LIMIT 1`,
+      `
+      SELECT posts.*, profiles.name AS author_name
+      FROM posts
+      LEFT JOIN profiles ON profiles.user_id = posts.author_id
+      WHERE posts.id = $1
+      LIMIT 1
+      `,
       [id],
     )
 
@@ -78,11 +86,12 @@ export class PostRepository {
   public async search(term: string): Promise<Post[]> {
     const result = await database.clienteInstance?.query(
       `
-      SELECT *
+      SELECT posts.*, profiles.name AS author_name
       FROM posts
-      WHERE title ILIKE $1
-        OR content ILIKE $1
-      ORDER BY created_at DESC
+      LEFT JOIN profiles ON profiles.user_id = posts.author_id
+      WHERE posts.title ILIKE $1
+        OR posts.content ILIKE $1
+      ORDER BY posts.created_at DESC
       `,
       [`%${term}%`],
     )
@@ -110,9 +119,10 @@ export class PostRepository {
     const fetchLimit = limit + 1
 
     const SELECT_COLUMNS = `
-      id, title, content, author_id, created_at,
-      to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
-      updated_at
+      posts.id, posts.title, posts.content, posts.author_id,
+      profiles.name AS author_name, posts.created_at,
+      to_char(posts.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
+      posts.updated_at
     `
 
     let result
@@ -124,8 +134,9 @@ export class PostRepository {
         `
         SELECT ${SELECT_COLUMNS}
         FROM posts
-        WHERE (created_at, id) < ($1::timestamptz, $2::uuid)
-        ORDER BY created_at DESC, id DESC
+        LEFT JOIN profiles ON profiles.user_id = posts.author_id
+        WHERE (posts.created_at, posts.id) < ($1::timestamptz, $2::uuid)
+        ORDER BY posts.created_at DESC, posts.id DESC
         LIMIT $3
         `,
         [createdAt, id, fetchLimit],
@@ -135,7 +146,8 @@ export class PostRepository {
         `
         SELECT ${SELECT_COLUMNS}
         FROM posts
-        ORDER BY created_at DESC, id DESC
+        LEFT JOIN profiles ON profiles.user_id = posts.author_id
+        ORDER BY posts.created_at DESC, posts.id DESC
         LIMIT $1
         `,
         [fetchLimit],

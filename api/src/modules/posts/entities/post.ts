@@ -3,6 +3,7 @@ export class Post {
   title: string
   content: string
   authorId: string
+  authorName?: string | undefined
   createdAt?: Date
   updatedAt?: Date
 

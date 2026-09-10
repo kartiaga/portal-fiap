@@ -7,6 +7,7 @@ export type PostListItem = {
   title: string;
   content: string;
   authorId: string;
+  authorName?: string | null;
   createdAt: string;
   updatedAt: string;
 };

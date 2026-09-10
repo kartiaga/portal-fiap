@@ -7,6 +7,7 @@ export type Post = {
   title: string;
   content: string;
   authorId: string;
+  authorName?: string | null;
   createdAt: string;
   updatedAt: string;
 };
