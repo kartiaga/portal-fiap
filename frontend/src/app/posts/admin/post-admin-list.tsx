@@ -156,7 +156,7 @@ export function PostAdminList({
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
       >
         <div className="field flex-1">
-          <label htmlFor="search">Buscar por título ou conteúdo</label>
+          <label htmlFor="search">Buscar por título, conteúdo ou autor</label>
           <input
             id="search"
             name="search"

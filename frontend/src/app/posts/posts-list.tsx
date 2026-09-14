@@ -162,7 +162,7 @@ export function PostsList({
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por título ou conteúdo"
+            placeholder="Buscar por título, conteúdo ou autor"
           />
         </div>
         <button

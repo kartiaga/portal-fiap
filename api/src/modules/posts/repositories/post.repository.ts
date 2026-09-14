@@ -91,6 +91,7 @@ export class PostRepository {
       LEFT JOIN profiles ON profiles.user_id = posts.author_id
       WHERE posts.title ILIKE $1
         OR posts.content ILIKE $1
+        OR profiles.name ILIKE $1
       ORDER BY posts.created_at DESC
       `,
       [`%${term}%`],
