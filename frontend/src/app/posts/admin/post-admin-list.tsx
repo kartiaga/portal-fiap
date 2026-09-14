@@ -28,7 +28,13 @@ function toExcerpt(content: string): string {
     : normalized;
 }
 
-export function PostAdminList({ currentUserId }: { currentUserId: string }) {
+export function PostAdminList({
+  currentUserId,
+  role,
+}: {
+  currentUserId: string;
+  role: "TEACHER" | "ADMIN";
+}) {
   const [items, setItems] = useState<PostItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -243,7 +249,7 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
                       </button>
                     </div>
                   </div>
-                ) : (
+                ) : role === "ADMIN" || post.authorId === currentUserId ? (
                   <div className="flex gap-2">
                     <Link
                       href={`/posts/${post.id}/edit`}
@@ -262,7 +268,7 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
                       Excluir
                     </button>
                   </div>
-                )}
+                ) : null}
               </li>
             ))}
           </ul>

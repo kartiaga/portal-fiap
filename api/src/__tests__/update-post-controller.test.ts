@@ -1,4 +1,7 @@
 import type { UpdatePostUseCase } from '@/modules/posts/use-cases/update-post.use-case'
+import { UserRole } from '@/modules/users/entities/user'
+
+const requester = { id: 'user-1', role: UserRole.TEACHER }
 
 describe('Update Post Controller', () => {
   it('should handle post update correctly when use-case succeeds', async () => {
@@ -20,6 +23,7 @@ describe('Update Post Controller', () => {
         title: 'Updated Title',
         content: 'Updated content with minimum length.',
       },
+      requester,
     )
 
     expect(result).toEqual(mockPost)
@@ -29,6 +33,7 @@ describe('Update Post Controller', () => {
         title: 'Updated Title',
         content: 'Updated content with minimum length.',
       }),
+      requester,
     )
   })
 
@@ -37,10 +42,14 @@ describe('Update Post Controller', () => {
       handler: jest.fn().mockResolvedValue(undefined),
     } as unknown as UpdatePostUseCase
 
-    const result = await mockUseCase.handler('non-existent-id', {
-      title: 'Any Title',
-      content: 'Any content here.',
-    })
+    const result = await mockUseCase.handler(
+      'non-existent-id',
+      {
+        title: 'Any Title',
+        content: 'Any content here.',
+      },
+      requester,
+    )
 
     expect(result).toBeUndefined()
   })
@@ -55,8 +64,12 @@ describe('Update Post Controller', () => {
       content: 'New content with enough characters.',
     }
 
-    await mockUseCase.handler('test-id', updateData)
+    await mockUseCase.handler('test-id', updateData, requester)
 
-    expect(mockUseCase.handler).toHaveBeenCalledWith('test-id', updateData)
+    expect(mockUseCase.handler).toHaveBeenCalledWith(
+      'test-id',
+      updateData,
+      requester,
+    )
   })
 })

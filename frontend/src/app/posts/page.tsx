@@ -56,6 +56,7 @@ export default async function PostsPage({
             nextCursor={result.data.nextCursor}
             hasMore={result.data.hasMore}
             role={session.role}
+            currentUserId={session.sub}
           />
         )}
       </main>

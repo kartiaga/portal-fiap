@@ -58,7 +58,8 @@ export default async function PostPage({
               {result.data.content}
             </div>
 
-            {session.role !== "STUDENT" ? (
+            {session.role === "ADMIN" ||
+            session.sub === result.data.authorId ? (
               <PostActions
                 postId={result.data.id}
                 postTitle={result.data.title}

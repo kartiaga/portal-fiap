@@ -17,6 +17,8 @@ export default async function PostsAdminPage() {
     redirect("/");
   }
 
+  const role = session.role as "TEACHER" | "ADMIN";
+
   return (
     <div className="flex flex-1 flex-col">
       <Header role={session.role} />
@@ -35,7 +37,7 @@ export default async function PostsAdminPage() {
           </p>
         </div>
 
-        <PostAdminList currentUserId={session.sub} />
+        <PostAdminList currentUserId={session.sub} role={role} />
 
         <Link href="/posts/new" className="btn btn-ghost self-start">
           Criar nova postagem

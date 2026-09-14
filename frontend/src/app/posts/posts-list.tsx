@@ -16,6 +16,7 @@ type PostsListProps = {
   nextCursor: string | null;
   hasMore: boolean;
   role: SessionUser["role"];
+  currentUserId: string;
 };
 
 const SEARCH_DEBOUNCE_MS = 500;
@@ -25,6 +26,7 @@ export function PostsList({
   nextCursor,
   hasMore: initialHasMore,
   role,
+  currentUserId,
 }: PostsListProps) {
   const [posts, setPosts] = useState<PostListItem[]>(initialPosts);
   const [cursor, setCursor] = useState<string | null>(nextCursor);
@@ -32,7 +34,10 @@ export function PostsList({
   const [error, setError] = useState<string | null>(null);
   const [postToDelete, setPostToDelete] = useState<PostListItem | null>(null);
   const [isDeleting, startDeleting] = useTransition();
-  const canManagePosts = role === "TEACHER" || role === "ADMIN";
+
+  function canManagePost(post: PostListItem): boolean {
+    return role === "ADMIN" || post.authorId === currentUserId;
+  }
 
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -198,7 +203,7 @@ export function PostsList({
 
           <p className="mt-2 text-sm text-ink-500">{post.content}</p>
 
-          {canManagePosts ? (
+          {canManagePost(post) ? (
             <div className="mt-4 flex gap-3 border-t border-ink-100 pt-4">
               <Link
                 href={`/posts/${post.id}/edit`}
