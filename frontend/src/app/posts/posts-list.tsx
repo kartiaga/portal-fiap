@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import type { SessionUser } from "@/lib/session";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
   deletePostAction,
   fetchPostsAction,
+  searchPostsAction,
   type PostListItem,
 } from "./actions";
 
@@ -15,6 +17,8 @@ type PostsListProps = {
   hasMore: boolean;
   role: SessionUser["role"];
 };
+
+const SEARCH_DEBOUNCE_MS = 500;
 
 export function PostsList({
   initialPosts,
@@ -29,6 +33,74 @@ export function PostsList({
   const [postToDelete, setPostToDelete] = useState<PostListItem | null>(null);
   const [isDeleting, startDeleting] = useTransition();
   const canManagePosts = role === "TEACHER" || role === "ADMIN";
+
+  const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [isSearching, startSearching] = useTransition();
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
+  const isFirstRun = useRef(true);
+
+  const runSearch = useCallback(async (term: string) => {
+    setError(null);
+
+    if (!term) {
+      const result = await fetchPostsAction({ limit: 10 });
+
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+
+      setPosts(result.data.items);
+      setCursor(result.data.nextCursor);
+      setHasMore(result.data.hasMore);
+      return;
+    }
+
+    const result = await searchPostsAction(term);
+
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+
+    setPosts(result.data);
+    setCursor(null);
+    setHasMore(false);
+  }, []);
+
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+
+    const term = debouncedSearch.trim();
+
+    startSearching(() => {
+      setAppliedSearch(term);
+      void runSearch(term);
+    });
+  }, [debouncedSearch, runSearch]);
+
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const term = search.trim();
+
+    startSearching(() => {
+      setAppliedSearch(term);
+      void runSearch(term);
+    });
+  }
+
+  function handleClearSearch() {
+    setSearch("");
+
+    startSearching(() => {
+      setAppliedSearch("");
+      void runSearch("");
+    });
+  }
 
   function confirmDelete() {
     if (!postToDelete) {
@@ -73,10 +145,43 @@ export function PostsList({
 
   return (
     <div className="flex flex-col gap-4">
+      <form
+        onSubmit={handleSearchSubmit}
+        className="flex flex-col gap-3 sm:flex-row sm:items-end"
+      >
+        <div className="field flex-1">
+          <label htmlFor="post-search">Buscar posts</label>
+          <input
+            id="post-search"
+            name="post-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar por título ou conteúdo"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleClearSearch}
+          disabled={search.length === 0 || isSearching}
+          className="btn btn-secondary"
+        >
+          Limpar
+        </button>
+      </form>
+
       {error ? (
         <div role="alert" className="alert alert-danger">
           <p>{error}</p>
         </div>
+      ) : null}
+
+      {posts.length === 0 && !isSearching ? (
+        <p className="card-plain px-6 py-10 text-center text-sm text-ink-500">
+          {appliedSearch
+            ? "Nenhuma postagem encontrada para esta busca."
+            : "Nenhuma postagem publicada."}
+        </p>
       ) : null}
 
       {posts.map((post) => (
@@ -124,7 +229,7 @@ export function PostsList({
         </button>
       )}
 
-      {!hasMore && (
+      {!hasMore && posts.length > 0 && (
         <p className="py-4 text-center text-sm text-ink-500">
           Não há mais posts.
         </p>

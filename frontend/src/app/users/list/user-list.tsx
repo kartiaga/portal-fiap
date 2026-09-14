@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { fetchUsersAction, type UserListItem } from "./actions";
+
+const SEARCH_DEBOUNCE_MS = 500;
 
 const ROLE_LABEL: Record<UserListItem["role"], string> = {
   ADMIN: "Administrador",
@@ -30,6 +33,7 @@ export function UserList() {
   const [appliedSearch, setAppliedSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
 
   const loadUsers = useCallback(
     async (options: { cursor?: string; search?: string; append?: boolean }) => {
@@ -56,14 +60,31 @@ export function UserList() {
   );
 
   useEffect(() => {
+    const term = debouncedSearch.trim();
+
     startTransition(() => {
-      void loadUsers({ search: appliedSearch });
+      setAppliedSearch(term);
+      void loadUsers({ search: term });
     });
-  }, [appliedSearch, loadUsers]);
+  }, [debouncedSearch, loadUsers]);
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setAppliedSearch(search.trim());
+    const term = search.trim();
+
+    startTransition(() => {
+      setAppliedSearch(term);
+      void loadUsers({ search: term });
+    });
+  }
+
+  function handleClearSearch() {
+    setSearch("");
+
+    startTransition(() => {
+      setAppliedSearch("");
+      void loadUsers({ search: "" });
+    });
   }
 
   function handleLoadMore() {
@@ -96,11 +117,12 @@ export function UserList() {
           />
         </div>
         <button
-          type="submit"
-          disabled={isPending}
+          type="button"
+          onClick={handleClearSearch}
+          disabled={search.length === 0 || isPending}
           className="btn btn-secondary"
         >
-          {isPending ? "Buscando..." : "Buscar"}
+          Limpar
         </button>
       </form>
 
