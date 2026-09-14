@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
   deletePostAction,
   fetchPostsAction,
@@ -10,6 +11,7 @@ import {
 } from "../actions";
 
 const EXCERPT_MAX_LENGTH = 160;
+const SEARCH_DEBOUNCE_MS = 500;
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -26,7 +28,13 @@ function toExcerpt(content: string): string {
     : normalized;
 }
 
-export function PostAdminList({ currentUserId }: { currentUserId: string }) {
+export function PostAdminList({
+  currentUserId,
+  role,
+}: {
+  currentUserId: string;
+  role: "TEACHER" | "ADMIN";
+}) {
   const [items, setItems] = useState<PostItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -38,6 +46,7 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
 
   const loadPosts = useCallback(
     async (options: { cursor?: string; search?: string; append?: boolean }) => {
@@ -77,16 +86,35 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
   );
 
   useEffect(() => {
+    const term = debouncedSearch.trim();
+
     startTransition(async () => {
-      await loadPosts({ search: appliedSearch });
+      setAppliedSearch(term);
+      await loadPosts({ search: term });
     });
-  }, [appliedSearch, loadPosts]);
+  }, [debouncedSearch, loadPosts]);
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice(null);
     setConfirmingId(null);
-    setAppliedSearch(search.trim());
+    const term = search.trim();
+
+    startTransition(async () => {
+      setAppliedSearch(term);
+      await loadPosts({ search: term });
+    });
+  }
+
+  function handleClearSearch() {
+    setNotice(null);
+    setConfirmingId(null);
+    setSearch("");
+
+    startTransition(async () => {
+      setAppliedSearch("");
+      await loadPosts({ search: "" });
+    });
   }
 
   function handleLoadMore() {
@@ -128,7 +156,7 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
       >
         <div className="field flex-1">
-          <label htmlFor="search">Buscar por título ou conteúdo</label>
+          <label htmlFor="search">Buscar por título, conteúdo ou autor</label>
           <input
             id="search"
             name="search"
@@ -139,11 +167,12 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
           />
         </div>
         <button
-          type="submit"
-          disabled={isPending}
+          type="button"
+          onClick={handleClearSearch}
+          disabled={search.length === 0 || isPending}
           className="btn btn-secondary"
         >
-          {isPending ? "Buscando..." : "Buscar"}
+          Limpar
         </button>
       </form>
 
@@ -220,7 +249,7 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
                       </button>
                     </div>
                   </div>
-                ) : (
+                ) : role === "ADMIN" || post.authorId === currentUserId ? (
                   <div className="flex gap-2">
                     <Link
                       href={`/posts/${post.id}/edit`}
@@ -239,7 +268,7 @@ export function PostAdminList({ currentUserId }: { currentUserId: string }) {
                       Excluir
                     </button>
                   </div>
-                )}
+                ) : null}
               </li>
             ))}
           </ul>

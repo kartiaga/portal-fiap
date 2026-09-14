@@ -15,6 +15,15 @@ export default async function EditPostPage({
   if (session.role === "STUDENT") redirect("/");
   const { id } = await params;
   const result = await fetchPostByIdAction(id);
+
+  if (
+    result.data &&
+    session.role !== "ADMIN" &&
+    session.sub !== result.data.authorId
+  ) {
+    redirect("/posts");
+  }
+
   if (result.error || !result.data)
     return (
       <div className="flex flex-1 flex-col">

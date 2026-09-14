@@ -64,7 +64,8 @@ export async function postsRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Posts'],
         summary: 'Busca postagens',
-        description: 'Busca postagens por palavra-chave no título ou conteúdo.',
+        description:
+          'Busca postagens por palavra-chave no título, conteúdo ou nome do autor.',
         security: [{ bearerAuth: [] }],
         querystring: {
           type: 'object',
