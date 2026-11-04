@@ -118,12 +118,13 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 
 ## Estrutura do repositório
 
-O projeto é um **monorepo** com backend e frontend separados:
+O projeto é um **monorepo** com backend, frontend e aplicativo mobile separados:
 
 ```
 portal-fiap/
 ├── api/                # API REST (Node.js + Fastify + PostgreSQL)
 ├── frontend/           # Frontend (Next.js + React)
+├── mobile/             # Aplicativo mobile (React Native + Expo), ver mobile/README.md
 ├── docker-compose.yaml # Orquestração local (API + frontend + banco)
 └── package.json        # Scripts de conveniência na raiz
 ```
