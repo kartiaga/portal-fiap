@@ -54,12 +54,15 @@ src/
 │       ├── _layout.tsx     Guard de perfil
 │       ├── index.tsx       Tela inicial
 │       └── (teacher)/      Exige professor ou administrador
-│           └── admin.tsx
+│           ├── admin.tsx   Página administrativa de postagens
+│           └── posts/[id]/edit.tsx  Provisória (item 4)
 ├── auth/session-context.tsx  Estado da sessão (Context API) e o hook useSession
 ├── components/             Componentes reutilizáveis
+├── hooks/                  Estado de telas (use-admin-posts)
 ├── lib/
 │   ├── api.ts              Cliente HTTP (apiFetch)
 │   ├── jwt.ts              Leitura dos dados do token
+│   ├── posts.ts            Chamadas à API de postagens
 │   └── permissions.ts      Regras de permissão por perfil
 └── theme/                  Cores e raios, espelhando o frontend web
 ```
@@ -78,7 +81,20 @@ src/
 
 Os guards usam `Stack.Protected` e controlam apenas a navegação. Quem garante a permissão é a API, que valida o token e o perfil em cada endpoint protegido.
 
-### Como adicionar telas
+## Página administrativa
+
+Disponível para professores e administradores pelo botão **Administrar postagens** da tela inicial.
+
+| Funcionalidade | Endpoint |
+| ------------------------------------------------------- | --------------------------- |
+| Lista de todas as postagens, com próxima página ao rolar | `GET /posts?cursor=&limit=` |
+| Atualizar ao puxar a lista e ao voltar para a tela       | `GET /posts`                |
+| Excluir, com confirmação                                 | `DELETE /posts/:id`         |
+| Editar, que abre `/posts/:id/edit`                       | definido pelo item 4        |
+
+Os botões seguem a regra da API: administradores alteram qualquer postagem, e professores, apenas as próprias. As postagens de outros autores continuam na lista, sem os botões.
+
+## Como adicionar telas
 
 - **Exclusiva de professores** (criar ou editar post, gerenciar usuários): crie o arquivo em `src/app/(app)/(teacher)/`, por exemplo `posts/new.tsx`. O guard já se aplica.
 - **Para qualquer usuário logado** (lista ou leitura de posts): crie o arquivo em `src/app/(app)/`.

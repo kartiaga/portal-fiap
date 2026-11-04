@@ -5,32 +5,47 @@ import { colors, radius } from '@/theme';
 type ButtonProps = {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'danger';
   loading?: boolean;
+  disabled?: boolean;
+  /** Use quando o texto sozinho for ambíguo, como em uma lista de botões "Editar". */
+  accessibilityLabel?: string;
 };
 
-export function Button({ label, onPress, variant = 'primary', loading = false }: ButtonProps) {
-  const isPrimary = variant === 'primary';
+const CONTENT_COLOR = {
+  primary: colors.paper000,
+  secondary: colors.ink900,
+  danger: colors.red700,
+};
+
+export function Button({
+  label,
+  onPress,
+  variant = 'primary',
+  loading = false,
+  disabled = false,
+  accessibilityLabel = label,
+}: ButtonProps) {
+  const inactive = loading || disabled;
+  const contentColor = CONTENT_COLOR[variant];
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled: loading, busy: loading }}
-      disabled={loading}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: inactive, busy: loading }}
+      disabled={inactive}
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
-        isPrimary ? styles.primary : styles.secondary,
-        pressed && isPrimary && styles.primaryPressed,
-        loading && styles.loading,
+        variant === 'primary' ? styles.primary : styles.outlined,
+        pressed && variant === 'primary' && styles.primaryPressed,
+        inactive && styles.inactive,
       ]}>
       {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.paper000 : colors.ink900} />
+        <ActivityIndicator color={contentColor} />
       ) : (
-        <Text style={[styles.label, { color: isPrimary ? colors.paper000 : colors.ink900 }]}>
-          {label}
-        </Text>
+        <Text style={[styles.label, { color: contentColor }]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -48,7 +63,7 @@ const styles = StyleSheet.create({
   },
   primary: { backgroundColor: colors.red600 },
   primaryPressed: { backgroundColor: colors.red700 },
-  secondary: { backgroundColor: colors.paper000, borderColor: colors.ink100 },
-  loading: { opacity: 0.7 },
+  outlined: { backgroundColor: colors.paper000, borderColor: colors.ink100 },
+  inactive: { opacity: 0.6 },
   label: { fontSize: 15, fontWeight: '600' },
 });
