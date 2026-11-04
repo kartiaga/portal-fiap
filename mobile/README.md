@@ -4,7 +4,7 @@ Aplicativo React Native (Expo) do Tech Challenge da Fase 4. Consome a mesma API 
 
 ## Setup
 
-Pré-requisitos: Node.js 20 ou superior e o app **Expo Go** no celular, ou um simulador iOS/emulador Android.
+Pré-requisitos: Node.js 22.13+ ou 24.3+ e o app **Expo Go** no celular, ou um simulador iOS/emulador Android.
 
 1. Suba a API, na raiz do repositório, e crie as contas iniciais (ver o [README principal](../README.md#6-criar-contas-iniciais-seed)).
 
