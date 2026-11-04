@@ -103,6 +103,7 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 | Camada | Tecnologia |
 |---|---|
 | Frontend | [Next.js](https://nextjs.org/) 16 + [React](https://react.dev/) 19 |
+| Mobile | [React Native](https://reactnative.dev/) + [Expo](https://expo.dev/) |
 | Runtime | [Node.js](https://nodejs.org/) 20+ |
 | Linguagem | [TypeScript](https://www.typescriptlang.org/) |
 | Framework HTTP | [Fastify](https://fastify.dev/) |
@@ -124,7 +125,7 @@ O projeto é um **monorepo** com backend, frontend e aplicativo mobile separados
 portal-fiap/
 ├── api/                # API REST (Node.js + Fastify + PostgreSQL)
 ├── frontend/           # Frontend (Next.js + React)
-├── mobile/             # Aplicativo mobile (React Native + Expo), ver mobile/README.md
+├── mobile/             # Aplicativo mobile (React Native + Expo)
 ├── docker-compose.yaml # Orquestração local (API + frontend + banco)
 └── package.json        # Scripts de conveniência na raiz
 ```
@@ -248,6 +249,156 @@ Detalhes de comportamento:
 - **Busca sem paginação** — `GET /posts/search` devolve uma lista simples. A Server Action normaliza a resposta no mesmo formato paginado das demais chamadas, então o botão *Carregar mais* simplesmente não aparece em resultados de busca.
 - **Validação espelhada** — os formulários de criação e edição aplicam as mesmas regras da API (título com no mínimo 3 caracteres e conteúdo com no mínimo 10), para o erro aparecer antes da chamada de rede.
 - **Autoria** — postagens criadas pelo usuário da sessão recebem a marcação *Sua postagem*.
+
+## Aplicativo mobile
+
+O aplicativo do **Tech Challenge da Fase 4** fica em `mobile/`. Ele é feito em **React Native com Expo**, usa componentes funcionais e hooks, e consome os mesmos endpoints REST do frontend web.
+
+### Setup do aplicativo
+
+Pré-requisitos: Node.js 22.13+ ou 24.3+ e o app **Expo Go** no celular, ou um simulador iOS ou emulador Android.
+
+1. Suba a API e crie as [contas de desenvolvimento](#6-criar-contas-iniciais-seed).
+2. Instale as dependências e inicie o app:
+
+```bash
+cd mobile
+npm install
+npm start
+```
+
+O `mobile/` não faz parte dos workspaces npm da raiz e tem o próprio `package-lock.json`, então o `npm install` precisa ser executado dentro dessa pasta.
+
+Por padrão, o app chama a porta `3001` da máquina que está rodando o Metro. Para usar outro endereço, copie `mobile/.env.example` para `mobile/.env`, defina `EXPO_PUBLIC_API_URL` e reinicie o Metro.
+
+### Arquitetura do aplicativo
+
+```
+mobile/src/
+├── app/                     # Rotas (Expo Router): cada arquivo é uma tela
+│   ├── _layout.tsx          # Provider da sessão e guard de autenticação
+│   ├── login.tsx            # Tela de login
+│   └── (app)/               # Exige usuário autenticado
+│       ├── _layout.tsx      # Guard de perfil
+│       ├── index.tsx        # Tela inicial
+│       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
+├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
+├── components/              # Botão e campo de texto reutilizáveis
+├── lib/
+│   ├── api.ts               # Cliente HTTP (apiFetch)
+│   ├── jwt.ts               # Leitura dos dados do token
+│   └── permissions.ts       # Regras de permissão por perfil
+└── theme/                   # Cores e raios, espelhando o frontend web
+```
+
+### Tela de login
+
+É a primeira tela para quem não tem sessão. Vale para os três perfis, porque a API exige token até para listar postagens. O perfil define o que cada usuário pode fazer depois de entrar.
+
+#### Como usar
+
+1. Informe o **e-mail**. Espaços no início e no fim são ignorados.
+2. Informe a **senha**. O ícone de olho mostra ou oculta os caracteres.
+3. Toque em **Entrar** ou use a tecla de envio do teclado. Enquanto a requisição está em andamento, o botão fica desabilitado e exibe um indicador de carregamento.
+
+Em caso de sucesso, o usuário vai direto para a tela inicial. Para testar, use as [contas de desenvolvimento](#6-criar-contas-iniciais-seed).
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Professor | `teacher@fiap.com.br` | `12345678` |
+| Administrador | `admin@fiap.com.br` | `12345678` |
+| Estudante | `student@fiap.com.br` | `12345678` |
+
+#### Validações e mensagens
+
+Os campos são validados antes da chamada à API, com as mesmas regras do endpoint `POST /login`.
+
+| Situação | Mensagem exibida |
+|---|---|
+| E-mail vazio ou em formato inválido | Informe um e-mail válido. |
+| Senha com menos de 8 caracteres | A senha deve ter pelo menos 8 caracteres. |
+| Credenciais recusadas pela API (`401`) | E-mail ou senha incorretos. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Qualquer outra falha | Não foi possível entrar. Tente novamente. |
+
+A mensagem de credenciais recusadas é a mesma para e-mail inexistente e senha incorreta, assim a tela não revela quais e-mails estão cadastrados.
+
+#### Fluxo de autenticação
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant L as Tela de login
+    participant S as SessionProvider
+    participant A as API
+    participant K as SecureStore
+
+    U->>L: Informa e-mail e senha
+    L->>L: Valida os campos
+    L->>S: signIn(email, senha)
+    S->>A: POST /login
+    alt Credenciais válidas
+        A-->>S: 200 com token JWT
+        S->>S: Valida o token e lê id, perfil e expiração
+        S->>K: Salva o token
+        S-->>U: Guard abre a área logada
+    else Credenciais inválidas
+        A-->>S: 401
+        S-->>L: Erro
+        L-->>U: Exibe a mensagem na tela
+    end
+```
+
+#### Sessão
+
+| Evento | Comportamento |
+|---|---|
+| Login | O token é salvo no armazenamento seguro do aparelho |
+| Abertura do app | O token salvo é lido, e o usuário entra sem digitar a senha |
+| Token expirado ou malformado | O token é apagado, e o usuário volta ao login |
+| API responde `401` a uma chamada autenticada | A sessão é encerrada, e o usuário volta ao login |
+| Botão **Sair** | O token é apagado, e o usuário volta ao login |
+
+O token gerado pela API vale por 15 dias.
+
+### Autorização no aplicativo
+
+A navegação usa `Stack.Protected` do Expo Router. Uma rota protegida não fica disponível quando a condição não é atendida, mesmo se aberta por link direto, e quem tenta acessá-la é redirecionado.
+
+| Área | Quem acessa |
+|---|---|
+| `login` | Apenas quem não tem sessão |
+| `(app)` | Qualquer usuário autenticado |
+| `(app)/(teacher)` | `TEACHER` e `ADMIN` |
+
+Toda tela criada em `(app)/(teacher)` herda essa proteção, e opções indisponíveis para o perfil não são exibidas.
+
+#### Decisões de segurança
+
+- **Armazenamento:** o token fica no `expo-secure-store`, que usa o Keychain no iOS e o Keystore no Android. A senha não é salva no aparelho.
+- **Validação do token:** o app apenas lê os dados do JWT para decidir o que exibir. A assinatura e as permissões são verificadas pela API em cada endpoint protegido, então os guards do app não substituem essa validação.
+- **Transporte:** builds de produção devem usar uma API com HTTPS, porque a senha e o token trafegam nas requisições.
+
+### Testes do aplicativo
+
+```bash
+cd mobile
+npm test           # Testes automatizados
+npm run typecheck  # Verificação de tipos
+npm run lint       # ESLint
+```
+
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos e o acesso por perfil. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+
+### Solução de problemas do aplicativo
+
+| Sintoma | O que verificar |
+|---|---|
+| Não foi possível conectar à API | Confirme que a API está no ar com `docker ps`. Em um celular físico, use a mesma rede do computador. Se o endereço detectado não funcionar, defina `EXPO_PUBLIC_API_URL` com o IP da máquina e reinicie o Metro |
+| E-mail ou senha incorretos com uma conta de teste | Crie as contas com `npm run seed`, na raiz do repositório |
+| Erro na instalação ou ao iniciar o Metro | Confirme a versão do Node.js e se o comando foi executado dentro de `mobile/` |
+
+Mais detalhes para quem desenvolve novas telas estão em [mobile/README.md](mobile/README.md).
 
 ## Pré-requisitos
 
