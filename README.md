@@ -282,11 +282,15 @@ mobile/src/
 │       ├── _layout.tsx      # Guard de perfil
 │       ├── index.tsx        # Tela inicial
 │       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
+│           ├── admin.tsx    # Página administrativa de postagens
+│           └── posts/[id]/edit.tsx # Edição de postagem (provisória)
 ├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
-├── components/              # Botão e campo de texto reutilizáveis
+├── components/              # Componentes reutilizáveis
+├── hooks/                   # Estado de telas (use-admin-posts)
 ├── lib/
 │   ├── api.ts               # Cliente HTTP (apiFetch)
 │   ├── jwt.ts               # Leitura dos dados do token
+│   ├── posts.ts             # Chamadas à API de postagens
 │   └── permissions.ts       # Regras de permissão por perfil
 └── theme/                   # Cores e raios, espelhando o frontend web
 ```
@@ -379,6 +383,74 @@ Toda tela criada em `(app)/(teacher)` herda essa proteção, e opções indispon
 - **Validação do token:** o app apenas lê os dados do JWT para decidir o que exibir. A assinatura e as permissões são verificadas pela API em cada endpoint protegido, então os guards do app não substituem essa validação.
 - **Transporte:** builds de produção devem usar uma API com HTTPS, porque a senha e o token trafegam nas requisições.
 
+### Página administrativa do aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Administrar postagens** da tela inicial. Estudantes não veem o botão e não acessam a rota, mesmo por link direto.
+
+#### Como usar
+
+1. Na tela inicial, toque em **Administrar postagens**.
+2. Role a lista para carregar mais postagens ou puxe para baixo para atualizá-la.
+3. Toque em **Excluir** e confirme para apagar uma postagem. A exclusão não pode ser desfeita.
+4. Toque em **Editar** para abrir a tela de edição da postagem. O formulário faz parte da entrega de edição de postagens e, até lá, essa rota exibe uma tela provisória.
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Lista de todas as postagens, com título, autor, data de atualização e trecho do conteúdo | `GET /posts` |
+| Próxima página, carregada ao rolar a lista (20 postagens por vez) | `GET /posts?cursor=&limit=` |
+| Atualização ao puxar a lista e ao voltar para a tela | `GET /posts` |
+| Exclusão com confirmação | `DELETE /posts/:id` |
+
+Detalhes de comportamento:
+
+- **Permissões por postagem:** seguindo a regra da API, o `ADMIN` altera qualquer postagem, e o `TEACHER`, apenas as próprias. As postagens de outros autores continuam na lista, sem os botões.
+- **Autoria:** postagens do usuário da sessão recebem a marcação *Sua postagem*. Se a API não informar o nome do autor, a lista mostra *Autor não informado*.
+- **Paginação preservada na exclusão:** a postagem é removida localmente, sem recarregar a lista, para não descartar as páginas já carregadas.
+- **Respostas atrasadas:** só a requisição mais recente altera a lista, então uma resposta antiga não traz de volta uma postagem já excluída.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida |
+|---|---|
+| Postagem excluída | Postagem excluída. |
+| A postagem já não existe (`404`) | Esta postagem já havia sido excluída. |
+| Sem permissão para excluir (`403`) | Você não tem permissão para excluir esta postagem. |
+| Falha ao excluir | Não foi possível excluir a postagem. |
+| Falha ao carregar a lista | Não foi possível carregar as postagens. |
+| Falha ao carregar a próxima página | Não foi possível carregar mais postagens. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Nenhuma postagem cadastrada | Nenhuma postagem cadastrada. |
+
+Se a primeira carga falhar, a tela exibe o botão **Tentar novamente**.
+
+#### Fluxo de exclusão
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant T as Página administrativa
+    participant A as API
+
+    U->>T: Toca em Excluir
+    T-->>U: Pede confirmação
+    alt Usuário confirma
+        U->>T: Confirma
+        T->>A: DELETE /posts/:id
+        alt Exclusão autorizada
+            A-->>T: 200
+            T-->>U: Remove da lista e exibe o aviso
+        else Recusada ou com falha
+            A-->>T: 403, 404 ou erro
+            T-->>U: Exibe a mensagem correspondente
+        end
+    else Usuário cancela
+        U->>T: Cancela
+        T-->>U: Mantém a postagem
+    end
+```
+
 ### Testes do aplicativo
 
 ```bash
@@ -388,7 +460,7 @@ npm run typecheck  # Verificação de tipos
 npm run lint       # ESLint
 ```
 
-Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos e o acesso por perfil. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
 
 ### Solução de problemas do aplicativo
 

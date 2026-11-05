@@ -11,6 +11,7 @@ jest.mock('expo-secure-store', () => ({
 }));
 
 const store = jest.mocked(SecureStore);
+const ADMIN_EMPTY = 'Nenhuma postagem cadastrada.';
 const fetchMock = jest.fn();
 
 function makeToken(role: string, secondsToExpire = 3600): string {
@@ -26,6 +27,12 @@ function renderApp(initialUrl = '/') {
 beforeEach(() => {
   jest.clearAllMocks();
   setAuthToken(null);
+  fetchMock.mockReset();
+  fetchMock.mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ items: [], nextCursor: null, hasMore: false }),
+  });
   global.fetch = fetchMock;
   store.getItemAsync.mockResolvedValue(null);
   store.setItemAsync.mockResolvedValue(undefined);
@@ -42,7 +49,7 @@ describe('sem sessão', () => {
   it.each(['/', '/admin'])('redireciona %s para o login', async (url) => {
     await renderApp(url);
     expect(await screen.findByLabelText('Senha')).toBeOnTheScreen();
-    expect(screen.queryByText('Página administrativa de postagens.')).toBeNull();
+    expect(screen.queryByText(ADMIN_EMPTY)).toBeNull();
   });
 
   it('descarta token expirado salvo no aparelho', async () => {
@@ -88,7 +95,7 @@ describe('com sessão', () => {
   it('permite a professor acessar a administração', async () => {
     store.getItemAsync.mockResolvedValue(makeToken('TEACHER'));
     await renderApp('/admin');
-    expect(await screen.findByText('Página administrativa de postagens.')).toBeOnTheScreen();
+    expect(await screen.findByText(ADMIN_EMPTY)).toBeOnTheScreen();
   });
 
   it('volta para a tela inicial a partir da administração, mesmo sem histórico', async () => {
@@ -105,7 +112,7 @@ describe('com sessão', () => {
     await renderApp();
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Administrar postagens' }));
-    expect(await screen.findByText('Página administrativa de postagens.')).toBeOnTheScreen();
+    expect(await screen.findByText(ADMIN_EMPTY)).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
     expect(await screen.findByText('Perfil: Professor(a)')).toBeOnTheScreen();
@@ -116,7 +123,7 @@ describe('com sessão', () => {
     await renderApp('/admin');
 
     expect(await screen.findByText('Perfil: Estudante')).toBeOnTheScreen();
-    expect(screen.queryByText('Página administrativa de postagens.')).toBeNull();
+    expect(screen.queryByText(ADMIN_EMPTY)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Administrar postagens' })).toBeNull();
   });
 
