@@ -160,12 +160,12 @@ describe('permissões', () => {
 
 describe('edição', () => {
   it('abre a tela de edição da postagem', async () => {
-    mockApi(() => page([makePost('a')]));
+    mockApi((url) => (url.endsWith('/posts/a') ? json(200, makePost('a')) : page([makePost('a')])));
     await renderAdmin();
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Editar Título a' }));
 
-    expect(await screen.findByText('O formulário de edição ainda será implementado.')).toBeOnTheScreen();
+    expect(await screen.findByDisplayValue('Título a')).toBeOnTheScreen();
     expect(screen).toHavePathname('/posts/a/edit');
   });
 });

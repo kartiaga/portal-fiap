@@ -23,6 +23,7 @@ export function useAdminPosts() {
     const request = ++latestRequest.current;
     setLoadingMore(false);
     setRefreshing(showRefreshing);
+    setNotice(null);
 
     try {
       const page = await getPosts();
@@ -107,6 +108,7 @@ export function useAdminPosts() {
     deletingId,
     loadError,
     notice,
+    showNotice: setNotice,
     reload,
     loadMore,
     remove,
