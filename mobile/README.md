@@ -56,6 +56,7 @@ src/
 │       ├── posts/[id].tsx  Leitura de uma postagem
 │       └── (teacher)/      Exige professor ou administrador
 │           ├── admin.tsx   Página administrativa de postagens
+│           ├── posts/new.tsx        Criação de postagem
 │           └── posts/[id]/edit.tsx  Provisória (item 4)
 ├── auth/session-context.tsx  Estado da sessão (Context API) e o hook useSession
 ├── components/             Componentes reutilizáveis
@@ -64,6 +65,7 @@ src/
 │   ├── api.ts              Cliente HTTP (apiFetch) e mensagens de erro
 │   ├── format.ts           Formatação de datas
 │   ├── jwt.ts              Leitura dos dados do token
+│   ├── notice.ts           Aviso de sucesso entregue à tela para onde o usuário volta
 │   ├── posts.ts            Chamadas à API de postagens
 │   └── permissions.ts      Regras de permissão por perfil
 └── theme/                  Cores e raios, espelhando o frontend web
@@ -106,6 +108,18 @@ Tocar em um item da lista abre `/posts/:id`, que busca a postagem em `GET /posts
 A tela recarrega ao voltar para ela, para refletir uma edição. Se a postagem não existir mais (`404`), a tela oferece **Voltar para a lista**; em outras falhas, **Tentar novamente**.
 
 A API não tem endpoints de comentários, então o item opcional de comentários não foi implementado.
+
+## Criação de postagem
+
+Professores e administradores abrem `/posts/new` pelo botão **Nova postagem** da tela inicial. O formulário (`components/post-form.tsx`) é compartilhado com a edição e tem:
+
+- **Autor**, apenas para leitura: a API define o autor pelo token, então o campo mostra *Você*;
+- **Título**, de 3 a 255 caracteres;
+- **Conteúdo**, com pelo menos 10 caracteres.
+
+As regras são as mesmas da API e são verificadas antes do envio, ignorando espaços nas pontas. Ao publicar (`POST /posts`), o app volta para a lista, que recarrega e mostra *Postagem publicada.* Em caso de erro, o formulário continua preenchido.
+
+O aviso de sucesso passa de uma tela para outra por `lib/notice.ts`: a tela que fecha chama `setFlashNotice`, e a que volta a aparecer chama `takeFlashNotice` ao receber foco.
 
 ## Página administrativa
 
