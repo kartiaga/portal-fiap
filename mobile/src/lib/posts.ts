@@ -16,6 +16,12 @@ export type PostsPage = {
   hasMore: boolean;
 };
 
+/** Campos que o usuário informa. O autor é definido pela API a partir do token. */
+export type PostInput = {
+  title: string;
+  content: string;
+};
+
 const PAGE_SIZE = 20;
 
 export function getPosts(cursor?: string | null): Promise<PostsPage> {
@@ -32,6 +38,10 @@ export function getPost(id: string): Promise<Post> {
 export function searchPosts(term: string): Promise<Post[]> {
   const query = new URLSearchParams({ term });
   return apiFetch<Post[]>(`/posts/search?${query.toString()}`);
+}
+
+export function createPost(input: PostInput): Promise<Post> {
+  return apiFetch<Post>('/posts', { method: 'POST', body: JSON.stringify(input) });
 }
 
 export async function deletePost(id: string): Promise<void> {

@@ -7,9 +7,9 @@ import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
 import { PostCard } from '@/components/post-card';
 import { TextField } from '@/components/text-field';
-import type { Notice } from '@/hooks/use-admin-posts';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { usePostsFeed } from '@/hooks/use-posts-feed';
+import { takeFlashNotice, type Notice } from '@/lib/notice';
 import { canManagePosts } from '@/lib/permissions';
 import { colors } from '@/theme';
 
@@ -29,14 +29,27 @@ export default function HomeScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const term = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
-  const { posts, appliedTerm, loaded, refreshing, loadingMore, loadError, notice, reload, loadMore } =
-    usePostsFeed(term);
+  const {
+    posts,
+    appliedTerm,
+    loaded,
+    refreshing,
+    loadingMore,
+    loadError,
+    notice,
+    showNotice,
+    reload,
+    loadMore,
+  } = usePostsFeed(term);
 
   // Roda ao abrir a tela, ao voltar para ela e sempre que o termo de busca muda.
+  // Ao voltar da criação de uma postagem, também exibe o aviso deixado por ela.
   useFocusEffect(
     useCallback(() => {
+      const flash = takeFlashNotice();
       void reload();
-    }, [reload]),
+      if (flash) showNotice(flash);
+    }, [reload, showNotice]),
   );
 
   function renderEmptyState() {
@@ -79,11 +92,14 @@ export default function HomeScreen() {
           <View style={styles.header}>
             <Text style={styles.profile}>{user ? `Perfil: ${ROLE_LABELS[user.role]}` : ''}</Text>
             {canManagePosts(user?.role) ? (
-              <Button
-                label="Administrar postagens"
-                variant="secondary"
-                onPress={() => router.push('/admin')}
-              />
+              <View style={styles.teacherActions}>
+                <Button label="Nova postagem" onPress={() => router.push('/posts/new')} />
+                <Button
+                  label="Administrar postagens"
+                  variant="secondary"
+                  onPress={() => router.push('/admin')}
+                />
+              </View>
             ) : null}
             <TextField
               label="Buscar postagens"
@@ -116,6 +132,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.paper050 },
   content: { flexGrow: 1, gap: 12, padding: 16 },
   header: { gap: 12 },
+  teacherActions: { gap: 8 },
   headerAction: { fontSize: 16, fontWeight: '600', color: colors.red600 },
   profile: { fontSize: 14, color: colors.ink500 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },

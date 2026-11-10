@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 
-import type { Notice } from '@/hooks/use-admin-posts';
 import { getErrorMessage } from '@/lib/api';
+import type { Notice } from '@/lib/notice';
 import { getPosts, searchPosts, type Post } from '@/lib/posts';
 
 /**
@@ -92,6 +92,7 @@ export function usePostsFeed(term: string) {
     loadingMore,
     loadError,
     notice,
+    showNotice: setNotice,
     reload,
     loadMore,
   };

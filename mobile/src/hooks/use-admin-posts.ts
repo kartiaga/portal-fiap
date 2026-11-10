@@ -1,9 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 
 import { ApiError, getErrorMessage } from '@/lib/api';
+import type { Notice } from '@/lib/notice';
 import { deletePost, getPosts, type Post } from '@/lib/posts';
-
-export type Notice = { kind: 'success' | 'error'; text: string };
 
 export function useAdminPosts() {
   const [posts, setPosts] = useState<Post[]>([]);
