@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: Run frontend tests
-        run: npm run test --workspace frontend --if-present
+        run: npm run test --workspace frontend
 
       - name: Run frontend lint
         run: npm run lint --workspace frontend
