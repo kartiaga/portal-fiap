@@ -24,6 +24,12 @@ export function getPosts(cursor?: string | null): Promise<PostsPage> {
   return apiFetch<PostsPage>(`/posts?${query.toString()}`);
 }
 
+// A busca da API procura no título, no conteúdo e no nome do autor, e não é paginada.
+export function searchPosts(term: string): Promise<Post[]> {
+  const query = new URLSearchParams({ term });
+  return apiFetch<Post[]>(`/posts/search?${query.toString()}`);
+}
+
 export async function deletePost(id: string): Promise<void> {
   await apiFetch(`/posts/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }

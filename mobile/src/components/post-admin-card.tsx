@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { formatDate } from '@/lib/format';
 import type { Post } from '@/lib/posts';
 import { colors, radius } from '@/theme';
 
@@ -13,11 +14,6 @@ type PostAdminCardProps = {
   onEdit: () => void;
   onDelete: () => void;
 };
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('pt-BR');
-}
 
 export function PostAdminCard({
   post,

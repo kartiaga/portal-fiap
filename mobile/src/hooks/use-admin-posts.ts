@@ -1,13 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
 
-import { ApiError } from '@/lib/api';
+import { ApiError, getErrorMessage } from '@/lib/api';
 import { deletePost, getPosts, type Post } from '@/lib/posts';
 
 export type Notice = { kind: 'success' | 'error'; text: string };
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof ApiError && error.status === 0 ? error.message : fallback;
-}
 
 export function useAdminPosts() {
   const [posts, setPosts] = useState<Post[]>([]);
