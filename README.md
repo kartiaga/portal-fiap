@@ -281,12 +281,13 @@ mobile/src/
 │   └── (app)/               # Exige usuário autenticado
 │       ├── _layout.tsx      # Guard de perfil
 │       ├── index.tsx        # Tela inicial: lista de postagens com busca
+│       ├── posts/[id].tsx   # Leitura de uma postagem
 │       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
 │           ├── admin.tsx    # Página administrativa de postagens
 │           └── posts/[id]/edit.tsx # Edição de postagem (provisória)
 ├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
 ├── components/              # Componentes reutilizáveis
-├── hooks/                   # Estado de telas (use-posts-feed, use-admin-posts, use-debounced-value)
+├── hooks/                   # Estado de telas (use-posts-feed, use-post, use-admin-posts, use-debounced-value)
 ├── lib/
 │   ├── api.ts               # Cliente HTTP (apiFetch) e mensagens de erro
 │   ├── format.ts            # Formatação de datas
@@ -390,7 +391,7 @@ Toda tela criada em `(app)/(teacher)` herda essa proteção, e opções indispon
 
 #### Como usar
 
-1. Role a lista para ver mais postagens. Cada item mostra título, autor, data de publicação e um trecho do conteúdo.
+1. Role a lista para ver mais postagens. Cada item mostra título, autor, data de publicação e um trecho do conteúdo. Toque em um item para lê-lo por completo.
 2. Digite uma palavra-chave em **Buscar postagens** para filtrar por título, conteúdo ou nome do autor. A busca começa sozinha meio segundo depois que você para de digitar.
 3. Apague o termo para voltar à lista completa.
 4. Puxe a lista para baixo para atualizá-la.
@@ -424,6 +425,35 @@ Detalhes de comportamento:
 | API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
 
 Se a primeira carga falhar, a tela exibe o botão **Tentar novamente**. Se a lista já estiver na tela, ela é mantida e o erro aparece acima dela.
+
+### Leitura de postagem no aplicativo
+
+Disponível para os três perfis, ao tocar em uma postagem da lista.
+
+#### Como usar
+
+1. Na tela inicial, toque em uma postagem.
+2. Leia o conteúdo completo. O texto pode ser selecionado e copiado.
+3. Use o botão de voltar do cabeçalho para retornar à lista.
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Título, autor, data de publicação, data da última atualização e conteúdo completo | `GET /posts/:id` |
+| Atualização ao voltar para a tela, para refletir uma edição | `GET /posts/:id` |
+
+A data de atualização só aparece quando é diferente da data de publicação. A API não tem endpoints de comentários, então o item opcional de comentários do desafio não foi implementado.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida | Ação oferecida |
+|---|---|---|
+| A postagem não existe (`404`) | Postagem não encontrada. Ela pode ter sido excluída. | **Voltar para a lista** |
+| Falha ao carregar | Não foi possível carregar a postagem. | **Tentar novamente** |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. | **Tentar novamente** |
+
+Se a postagem já estiver na tela e uma atualização falhar, ela continua visível e o erro aparece acima do título.
 
 ### Página administrativa do aplicativo
 
@@ -502,7 +532,7 @@ npm run typecheck  # Verificação de tipos
 npm run lint       # ESLint
 ```
 
-Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca, a leitura de postagem e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
 
 ### Solução de problemas do aplicativo
 

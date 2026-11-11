@@ -24,6 +24,10 @@ export function getPosts(cursor?: string | null): Promise<PostsPage> {
   return apiFetch<PostsPage>(`/posts?${query.toString()}`);
 }
 
+export function getPost(id: string): Promise<Post> {
+  return apiFetch<Post>(`/posts/${encodeURIComponent(id)}`);
+}
+
 // A busca da API procura no título, no conteúdo e no nome do autor, e não é paginada.
 export function searchPosts(term: string): Promise<Post[]> {
   const query = new URLSearchParams({ term });

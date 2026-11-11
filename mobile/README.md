@@ -53,12 +53,13 @@ src/
 │   └── (app)/              Exige usuário autenticado
 │       ├── _layout.tsx     Guard de perfil
 │       ├── index.tsx       Tela inicial: lista de postagens com busca
+│       ├── posts/[id].tsx  Leitura de uma postagem
 │       └── (teacher)/      Exige professor ou administrador
 │           ├── admin.tsx   Página administrativa de postagens
 │           └── posts/[id]/edit.tsx  Provisória (item 4)
 ├── auth/session-context.tsx  Estado da sessão (Context API) e o hook useSession
 ├── components/             Componentes reutilizáveis
-├── hooks/                  Estado de telas (use-posts-feed, use-admin-posts, use-debounced-value)
+├── hooks/                  Estado de telas (use-posts-feed, use-post, use-admin-posts, use-debounced-value)
 ├── lib/
 │   ├── api.ts              Cliente HTTP (apiFetch) e mensagens de erro
 │   ├── format.ts           Formatação de datas
@@ -97,6 +98,14 @@ Os guards usam `Stack.Protected` e controlam apenas a navegação. Quem garante 
 A busca é feita 500 ms depois que o usuário para de digitar, como no frontend web. Como a API não pagina a busca, todos os resultados chegam de uma vez. Apagar o termo volta para a lista paginada.
 
 O botão **Sair** fica no cabeçalho, e o botão **Administrar postagens** aparece apenas para professores e administradores.
+
+## Leitura de postagem
+
+Tocar em um item da lista abre `/posts/:id`, que busca a postagem em `GET /posts/:id` e mostra título, autor, data de publicação, data da última atualização (quando houver) e o conteúdo completo, que pode ser selecionado e copiado.
+
+A tela recarrega ao voltar para ela, para refletir uma edição. Se a postagem não existir mais (`404`), a tela oferece **Voltar para a lista**; em outras falhas, **Tentar novamente**.
+
+A API não tem endpoints de comentários, então o item opcional de comentários não foi implementado.
 
 ## Página administrativa
 

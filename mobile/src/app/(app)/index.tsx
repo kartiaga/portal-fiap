@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -104,7 +104,9 @@ export default function HomeScreen() {
             <ActivityIndicator color={colors.red600} accessibilityLabel="Carregando mais postagens" />
           ) : undefined
         }
-        renderItem={({ item }) => <PostCard post={item} />}
+        renderItem={({ item }) => (
+          <PostCard post={item} onPress={() => router.push(`/posts/${item.id}` as Href)} />
+        )}
       />
     </View>
   );
