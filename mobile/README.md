@@ -52,15 +52,16 @@ src/
 │   ├── login.tsx           Pública, disponível apenas sem sessão
 │   └── (app)/              Exige usuário autenticado
 │       ├── _layout.tsx     Guard de perfil
-│       ├── index.tsx       Tela inicial
+│       ├── index.tsx       Tela inicial: lista de postagens com busca
 │       └── (teacher)/      Exige professor ou administrador
 │           ├── admin.tsx   Página administrativa de postagens
 │           └── posts/[id]/edit.tsx  Provisória (item 4)
 ├── auth/session-context.tsx  Estado da sessão (Context API) e o hook useSession
 ├── components/             Componentes reutilizáveis
-├── hooks/                  Estado de telas (use-admin-posts)
+├── hooks/                  Estado de telas (use-posts-feed, use-admin-posts, use-debounced-value)
 ├── lib/
-│   ├── api.ts              Cliente HTTP (apiFetch)
+│   ├── api.ts              Cliente HTTP (apiFetch) e mensagens de erro
+│   ├── format.ts           Formatação de datas
 │   ├── jwt.ts              Leitura dos dados do token
 │   ├── posts.ts            Chamadas à API de postagens
 │   └── permissions.ts      Regras de permissão por perfil
@@ -82,6 +83,20 @@ O guia de uso da tela de login, as mensagens de erro e o fluxo completo estão n
 | `(app)/(teacher)`     | Professores e administradores  |
 
 Os guards usam `Stack.Protected` e controlam apenas a navegação. Quem garante a permissão é a API, que valida o token e o perfil em cada endpoint protegido.
+
+## Lista de postagens
+
+É a tela inicial para todos os perfis. Cada item mostra título, autor, data de publicação e um trecho do conteúdo.
+
+| Funcionalidade | Endpoint |
+| ------------------------------------------------------- | --------------------------- |
+| Lista de todas as postagens, com próxima página ao rolar | `GET /posts?cursor=&limit=` |
+| Busca por palavra-chave no título, no conteúdo ou no autor | `GET /posts/search?term=` |
+| Atualizar ao puxar a lista e ao voltar para a tela       | `GET /posts` ou a busca ativa |
+
+A busca é feita 500 ms depois que o usuário para de digitar, como no frontend web. Como a API não pagina a busca, todos os resultados chegam de uma vez. Apagar o termo volta para a lista paginada.
+
+O botão **Sair** fica no cabeçalho, e o botão **Administrar postagens** aparece apenas para professores e administradores.
 
 ## Página administrativa
 

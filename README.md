@@ -280,15 +280,16 @@ mobile/src/
 │   ├── login.tsx            # Tela de login
 │   └── (app)/               # Exige usuário autenticado
 │       ├── _layout.tsx      # Guard de perfil
-│       ├── index.tsx        # Tela inicial
+│       ├── index.tsx        # Tela inicial: lista de postagens com busca
 │       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
 │           ├── admin.tsx    # Página administrativa de postagens
 │           └── posts/[id]/edit.tsx # Edição de postagem (provisória)
 ├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
 ├── components/              # Componentes reutilizáveis
-├── hooks/                   # Estado de telas (use-admin-posts)
+├── hooks/                   # Estado de telas (use-posts-feed, use-admin-posts, use-debounced-value)
 ├── lib/
-│   ├── api.ts               # Cliente HTTP (apiFetch)
+│   ├── api.ts               # Cliente HTTP (apiFetch) e mensagens de erro
+│   ├── format.ts            # Formatação de datas
 │   ├── jwt.ts               # Leitura dos dados do token
 │   ├── posts.ts             # Chamadas à API de postagens
 │   └── permissions.ts       # Regras de permissão por perfil
@@ -383,6 +384,47 @@ Toda tela criada em `(app)/(teacher)` herda essa proteção, e opções indispon
 - **Validação do token:** o app apenas lê os dados do JWT para decidir o que exibir. A assinatura e as permissões são verificadas pela API em cada endpoint protegido, então os guards do app não substituem essa validação.
 - **Transporte:** builds de produção devem usar uma API com HTTPS, porque a senha e o token trafegam nas requisições.
 
+### Lista de postagens do aplicativo
+
+É a tela inicial depois do login, para os três perfis.
+
+#### Como usar
+
+1. Role a lista para ver mais postagens. Cada item mostra título, autor, data de publicação e um trecho do conteúdo.
+2. Digite uma palavra-chave em **Buscar postagens** para filtrar por título, conteúdo ou nome do autor. A busca começa sozinha meio segundo depois que você para de digitar.
+3. Apague o termo para voltar à lista completa.
+4. Puxe a lista para baixo para atualizá-la.
+5. Toque em **Sair**, no cabeçalho, para encerrar a sessão.
+
+Professores e administradores também veem o botão **Administrar postagens**.
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Lista de todas as postagens (20 por vez, com a próxima página carregada ao rolar) | `GET /posts?cursor=&limit=` |
+| Busca por palavra-chave | `GET /posts/search?term=` |
+| Atualização ao puxar a lista e ao voltar para a tela | `GET /posts` ou a busca ativa |
+
+Detalhes de comportamento:
+
+- **Busca com espera:** a chamada só acontece 500 ms depois da última tecla, como no frontend web, para não disparar uma requisição a cada letra.
+- **Busca sem paginação:** a API devolve todos os resultados da busca de uma vez, então a lista não pede próxima página enquanto há um termo.
+- **Respostas atrasadas:** só a requisição mais recente altera a lista, então o resultado de uma busca antiga não substitui o da busca atual.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida |
+|---|---|
+| Nenhuma postagem cadastrada | Nenhuma postagem publicada. |
+| Busca sem resultados | Nenhuma postagem encontrada para esta busca. |
+| Falha ao carregar a lista | Não foi possível carregar as postagens. |
+| Falha na busca | Não foi possível buscar as postagens. |
+| Falha ao carregar a próxima página | Não foi possível carregar mais postagens. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+
+Se a primeira carga falhar, a tela exibe o botão **Tentar novamente**. Se a lista já estiver na tela, ela é mantida e o erro aparece acima dela.
+
 ### Página administrativa do aplicativo
 
 Disponível para `TEACHER` e `ADMIN` pelo botão **Administrar postagens** da tela inicial. Estudantes não veem o botão e não acessam a rota, mesmo por link direto.
@@ -460,7 +502,7 @@ npm run typecheck  # Verificação de tipos
 npm run lint       # ESLint
 ```
 
-Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
 
 ### Solução de problemas do aplicativo
 

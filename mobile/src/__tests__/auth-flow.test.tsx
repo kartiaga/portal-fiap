@@ -81,7 +81,12 @@ describe('login', () => {
 
   it('salva o token e entra no app', async () => {
     const token = makeToken('TEACHER');
-    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ token }) });
+    const emptyPage = { items: [], nextCursor: null, hasMore: false };
+    fetchMock.mockImplementation(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => (url.endsWith('/login') ? { token } : emptyPage),
+    }));
     await renderApp();
     await fillLogin(' ana@fiap.com.br ', '12345678');
 
