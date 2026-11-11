@@ -44,6 +44,13 @@ export function createPost(input: PostInput): Promise<Post> {
   return apiFetch<Post>('/posts', { method: 'POST', body: JSON.stringify(input) });
 }
 
+export function updatePost(id: string, input: PostInput): Promise<Post> {
+  return apiFetch<Post>(`/posts/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
 export async function deletePost(id: string): Promise<void> {
   await apiFetch(`/posts/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }

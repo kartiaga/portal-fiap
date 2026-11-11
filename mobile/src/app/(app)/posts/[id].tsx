@@ -1,21 +1,28 @@
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useSession } from '@/auth/session-context';
 import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
 import { usePost } from '@/hooks/use-post';
 import { formatDate } from '@/lib/format';
+import { takeFlashNotice, type Notice } from '@/lib/notice';
+import { canModifyPost } from '@/lib/permissions';
 import { colors } from '@/theme';
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useSession();
   const { post, loaded, notFound, loadError, reload } = usePost(id);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
-  // Também recarrega ao voltar para a tela, para refletir uma edição recente.
+  // Também recarrega ao voltar para a tela, para refletir uma edição recente,
+  // e exibe o aviso deixado pela tela de edição.
   useFocusEffect(
     useCallback(() => {
+      setNotice(takeFlashNotice());
       void reload();
     }, [reload]),
   );
@@ -60,6 +67,7 @@ export default function PostScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* A postagem já está na tela, então uma falha ao atualizar não a esconde. */}
         {loadError ? <Banner text={loadError} /> : null}
+        {!loadError && notice ? <Banner kind={notice.kind} text={notice.text} /> : null}
 
         <Text style={styles.title} accessibilityRole="header" selectable>
           {post.title}
@@ -71,6 +79,15 @@ export default function PostScreen() {
             <Text style={styles.metaText}>Atualizada em {updatedAt}</Text>
           ) : null}
         </View>
+
+        {canModifyPost(user, post) ? (
+          <Button
+            label="Editar"
+            accessibilityLabel={`Editar ${post.title}`}
+            variant="secondary"
+            onPress={() => router.push(`/posts/${post.id}/edit` as Href)}
+          />
+        ) : null}
 
         <View style={styles.divider} />
 

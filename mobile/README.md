@@ -57,7 +57,7 @@ src/
 │       └── (teacher)/      Exige professor ou administrador
 │           ├── admin.tsx   Página administrativa de postagens
 │           ├── posts/new.tsx        Criação de postagem
-│           └── posts/[id]/edit.tsx  Provisória (item 4)
+│           └── posts/[id]/edit.tsx  Edição de postagem
 ├── auth/session-context.tsx  Estado da sessão (Context API) e o hook useSession
 ├── components/             Componentes reutilizáveis
 ├── hooks/                  Estado de telas (use-posts-feed, use-post, use-admin-posts, use-debounced-value)
@@ -119,6 +119,14 @@ Professores e administradores abrem `/posts/new` pelo botão **Nova postagem** d
 
 As regras são as mesmas da API e são verificadas antes do envio, ignorando espaços nas pontas. Ao publicar (`POST /posts`), o app volta para a lista, que recarrega e mostra *Postagem publicada.* Em caso de erro, o formulário continua preenchido.
 
+## Edição de postagem
+
+`/posts/:id/edit` é aberta pelo botão **Editar** da leitura da postagem ou da página administrativa. Ela carrega os dados atuais com `GET /posts/:id`, preenche o mesmo `PostForm` da criação e salva com `PUT /posts/:id`. O autor aparece apenas para leitura.
+
+O botão **Editar** só aparece para quem pode alterar a postagem (`canModifyPost`): administradores, em qualquer postagem, e professores, nas próprias. Um professor que abra a edição de uma postagem alheia por link direto vê *Você não tem permissão para editar esta postagem.*, sem o formulário. A API faz a mesma verificação e responde `403`.
+
+Ao salvar, o app volta para a tela que abriu a edição, que recarrega e mostra *Postagem atualizada.* Sem histórico (link direto), vai para a leitura da postagem. Os dados são carregados só ao abrir a tela, para não apagar o que já foi digitado ao voltar do segundo plano.
+
 O aviso de sucesso passa de uma tela para outra por `lib/notice.ts`: a tela que fecha chama `setFlashNotice`, e a que volta a aparecer chama `takeFlashNotice` ao receber foco.
 
 ## Página administrativa
@@ -130,7 +138,7 @@ Disponível para professores e administradores pelo botão **Administrar postage
 | Lista de todas as postagens, com próxima página ao rolar | `GET /posts?cursor=&limit=` |
 | Atualizar ao puxar a lista e ao voltar para a tela       | `GET /posts`                |
 | Excluir, com confirmação                                 | `DELETE /posts/:id`         |
-| Editar, que abre `/posts/:id/edit`                       | definido pelo item 4        |
+| Editar, que abre `/posts/:id/edit`                       | `GET /posts/:id` e `PUT /posts/:id` |
 
 Os botões seguem a regra da API: administradores alteram qualquer postagem, e professores, apenas as próprias. As postagens de outros autores continuam na lista, sem os botões.
 

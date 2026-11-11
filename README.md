@@ -285,7 +285,7 @@ mobile/src/
 │       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
 │           ├── admin.tsx    # Página administrativa de postagens
 │           ├── posts/new.tsx       # Criação de postagem
-│           └── posts/[id]/edit.tsx # Edição de postagem (provisória)
+│           └── posts/[id]/edit.tsx # Edição de postagem
 ├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
 ├── components/              # Componentes reutilizáveis
 ├── hooks/                   # Estado de telas (use-posts-feed, use-post, use-admin-posts, use-debounced-value)
@@ -495,6 +495,75 @@ As regras são as mesmas da API e do frontend web, verificadas antes do envio e 
 
 O campo de título também limita a digitação a 255 caracteres. Em caso de erro, o formulário continua preenchido para uma nova tentativa.
 
+### Edição de postagem no aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Editar**, que aparece na leitura da postagem e na página administrativa.
+
+#### Como usar
+
+1. Abra uma postagem pela lista, ou acesse a página administrativa, e toque em **Editar**.
+2. O formulário abre preenchido com o título e o conteúdo atuais. O campo **Autor** mostra o autor original e não pode ser alterado.
+3. Altere os campos e toque em **Salvar alterações**.
+4. Para desistir, toque em **Cancelar** ou no botão de voltar do cabeçalho.
+
+Ao salvar, o app volta para a tela de onde a edição foi aberta, que é recarregada e exibe *Postagem atualizada.*
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Carregamento dos dados atuais da postagem | `GET /posts/:id` |
+| Envio das alterações | `PUT /posts/:id` |
+| Tela anterior atualizada, com o aviso de sucesso | `GET /posts/:id` ou `GET /posts` |
+
+Detalhes de comportamento:
+
+- **Permissões por postagem:** seguindo a regra da API, o `ADMIN` edita qualquer postagem, e o `TEACHER`, apenas as próprias. O botão **Editar** só aparece para quem pode usá-lo, e um professor que abra a edição de uma postagem alheia por link direto vê o aviso de permissão no lugar do formulário.
+- **Formulário compartilhado:** a edição usa o mesmo formulário e as mesmas validações da criação.
+- **Dados preservados:** a postagem é carregada só ao abrir a tela, para que voltar ao app depois de trocar de aplicativo não apague o que foi digitado.
+- **Link direto:** sem tela anterior para onde voltar, o app abre a leitura da postagem depois de salvar.
+
+#### Validações e mensagens
+
+As validações de título e conteúdo são as mesmas da [criação de postagem](#criação-de-postagem-no-aplicativo).
+
+| Situação | Mensagem exibida |
+|---|---|
+| A postagem não existe ao abrir (`404`) | Postagem não encontrada. Ela pode ter sido excluída. |
+| Falha ao carregar a postagem | Não foi possível carregar a postagem. |
+| Postagem de outro autor (professor) ou `403` ao salvar | Você não tem permissão para editar esta postagem. |
+| A postagem foi excluída antes de salvar (`404`) | Esta postagem não existe mais. Ela pode ter sido excluída. |
+| Falha ao salvar | Não foi possível salvar as alterações. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Alterações salvas | Postagem atualizada. |
+
+#### Fluxo de edição
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant E as Tela de edição
+    participant A as API
+    participant T as Tela anterior
+
+    U->>E: Toca em Editar
+    E->>A: GET /posts/:id
+    A-->>E: Postagem atual
+    E-->>U: Formulário preenchido
+    U->>E: Altera e toca em Salvar alterações
+    E->>E: Valida os campos
+    E->>A: PUT /posts/:id
+    alt Alteração autorizada
+        A-->>E: 200
+        E->>T: Volta e deixa o aviso de sucesso
+        T->>A: Recarrega a postagem ou a lista
+        T-->>U: Exibe Postagem atualizada.
+    else Recusada ou com falha
+        A-->>E: 403, 404 ou erro
+        E-->>U: Exibe a mensagem e mantém o que foi digitado
+    end
+```
+
 ### Página administrativa do aplicativo
 
 Disponível para `TEACHER` e `ADMIN` pelo botão **Administrar postagens** da tela inicial. Estudantes não veem o botão e não acessam a rota, mesmo por link direto.
@@ -504,7 +573,7 @@ Disponível para `TEACHER` e `ADMIN` pelo botão **Administrar postagens** da te
 1. Na tela inicial, toque em **Administrar postagens**.
 2. Role a lista para carregar mais postagens ou puxe para baixo para atualizá-la.
 3. Toque em **Excluir** e confirme para apagar uma postagem. A exclusão não pode ser desfeita.
-4. Toque em **Editar** para abrir a tela de edição da postagem. O formulário faz parte da entrega de edição de postagens e, até lá, essa rota exibe uma tela provisória.
+4. Toque em **Editar** para abrir o formulário de edição da postagem. Ao salvar, o app volta para esta página, que é recarregada e exibe *Postagem atualizada.*
 
 #### Funcionalidades
 
@@ -572,7 +641,7 @@ npm run typecheck  # Verificação de tipos
 npm run lint       # ESLint
 ```
 
-Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca, a leitura e a criação de postagem e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca, a leitura, a criação e a edição de postagem e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
 
 ### Solução de problemas do aplicativo
 

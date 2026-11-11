@@ -7,7 +7,7 @@ import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
 import { PostAdminCard } from '@/components/post-admin-card';
 import { useAdminPosts } from '@/hooks/use-admin-posts';
-import type { Notice } from '@/lib/notice';
+import { takeFlashNotice, type Notice } from '@/lib/notice';
 import { canModifyPost } from '@/lib/permissions';
 import type { Post } from '@/lib/posts';
 import { colors } from '@/theme';
@@ -23,16 +23,20 @@ export default function AdminScreen() {
     deletingId,
     loadError,
     notice,
+    showNotice,
     reload,
     loadMore,
     remove,
   } = useAdminPosts();
 
-  // Também recarrega ao voltar para a tela, para refletir uma postagem recém-editada.
+  // Também recarrega ao voltar para a tela, para refletir uma postagem recém-editada,
+  // e exibe o aviso deixado pela tela de edição.
   useFocusEffect(
     useCallback(() => {
+      const flash = takeFlashNotice();
       void reload();
-    }, [reload]),
+      if (flash) showNotice(flash);
+    }, [reload, showNotice]),
   );
 
   function confirmDelete(post: Post) {
