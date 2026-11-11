@@ -284,6 +284,7 @@ mobile/src/
 │       ├── posts/[id].tsx   # Leitura de uma postagem
 │       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
 │           ├── admin.tsx    # Página administrativa de postagens
+│           ├── posts/new.tsx       # Criação de postagem
 │           └── posts/[id]/edit.tsx # Edição de postagem (provisória)
 ├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
 ├── components/              # Componentes reutilizáveis
@@ -292,6 +293,7 @@ mobile/src/
 │   ├── api.ts               # Cliente HTTP (apiFetch) e mensagens de erro
 │   ├── format.ts            # Formatação de datas
 │   ├── jwt.ts               # Leitura dos dados do token
+│   ├── notice.ts            # Aviso de sucesso entregue à tela para onde o usuário volta
 │   ├── posts.ts             # Chamadas à API de postagens
 │   └── permissions.ts       # Regras de permissão por perfil
 └── theme/                   # Cores e raios, espelhando o frontend web
@@ -397,7 +399,7 @@ Toda tela criada em `(app)/(teacher)` herda essa proteção, e opções indispon
 4. Puxe a lista para baixo para atualizá-la.
 5. Toque em **Sair**, no cabeçalho, para encerrar a sessão.
 
-Professores e administradores também veem o botão **Administrar postagens**.
+Professores e administradores também veem os botões **Nova postagem** e **Administrar postagens**.
 
 #### Funcionalidades
 
@@ -454,6 +456,44 @@ A data de atualização só aparece quando é diferente da data de publicação.
 | API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. | **Tentar novamente** |
 
 Se a postagem já estiver na tela e uma atualização falhar, ela continua visível e o erro aparece acima do título.
+
+### Criação de postagem no aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Nova postagem** da tela inicial. Estudantes não veem o botão e não abrem o formulário, mesmo por link direto.
+
+#### Como usar
+
+1. Na tela inicial, toque em **Nova postagem**.
+2. Preencha o **título** e o **conteúdo**. O campo **Autor** é apenas informativo: a API registra como autor o usuário da sessão.
+3. Toque em **Publicar postagem**. Enquanto a requisição está em andamento, o botão exibe um indicador de carregamento.
+4. Para desistir, toque em **Cancelar** ou no botão de voltar do cabeçalho.
+
+Ao publicar, o app volta para a lista, que é recarregada e exibe *Postagem publicada.*
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Envio da nova postagem, com o autor definido pelo token | `POST /posts` |
+| Lista atualizada ao voltar, com o aviso de sucesso | `GET /posts` |
+
+O formulário é o mesmo usado na edição (`components/post-form.tsx`).
+
+#### Validações e mensagens
+
+As regras são as mesmas da API e do frontend web, verificadas antes do envio e ignorando espaços no início e no fim dos campos.
+
+| Situação | Mensagem exibida |
+|---|---|
+| Título com menos de 3 caracteres | O título deve ter pelo menos 3 caracteres. |
+| Título com mais de 255 caracteres | O título deve ter no máximo 255 caracteres. |
+| Conteúdo com menos de 10 caracteres | O conteúdo deve ter pelo menos 10 caracteres. |
+| Usuário sem permissão (`403`) | Você não tem permissão para publicar postagens. |
+| Falha ao publicar | Não foi possível publicar a postagem. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Postagem publicada | Postagem publicada. |
+
+O campo de título também limita a digitação a 255 caracteres. Em caso de erro, o formulário continua preenchido para uma nova tentativa.
 
 ### Página administrativa do aplicativo
 
@@ -532,7 +572,7 @@ npm run typecheck  # Verificação de tipos
 npm run lint       # ESLint
 ```
 
-Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca, a leitura de postagem e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca, a leitura e a criação de postagem e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
 
 ### Solução de problemas do aplicativo
 
