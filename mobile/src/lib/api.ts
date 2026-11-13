@@ -14,6 +14,11 @@ export class ApiError extends Error {
   }
 }
 
+/** Mostra a mensagem de falha de conexão, que orienta o usuário; nos demais casos, o texto da tela. */
+export function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof ApiError && error.status === 0 ? error.message : fallback;
+}
+
 // "localhost" no celular é o próprio celular, então por padrão usamos o IP da
 // máquina que está servindo o Metro, que é onde a API roda em desenvolvimento.
 export function getApiUrl(): string {
