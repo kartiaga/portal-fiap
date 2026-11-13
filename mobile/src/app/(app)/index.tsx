@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useSession } from '@/auth/session-context';
 import { Button } from '@/components/button';
+import { canManagePeople } from '@/features/people/permissions';
 import { canManagePosts } from '@/lib/permissions';
 import { colors } from '@/theme';
 
@@ -18,6 +19,12 @@ export default function HomeScreen() {
       <Text style={styles.text}>{user ? `Perfil: ${ROLE_LABELS[user.role]}` : ''}</Text>
       {canManagePosts(user?.role) ? (
         <Button label="Administrar postagens" onPress={() => router.push('/admin')} />
+      ) : null}
+      {canManagePeople(user?.role) ? (
+        <>
+          <Button label="Professores" variant="secondary" onPress={() => router.push('/teachers')} />
+          <Button label="Estudantes" variant="secondary" onPress={() => router.push('/students')} />
+        </>
       ) : null}
       <Button label="Sair" variant="secondary" onPress={signOut} />
     </View>

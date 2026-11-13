@@ -2,6 +2,7 @@ import type { ProfileRepository } from '@/modules/profiles/repositories/profile.
 import { UserRole } from '@/modules/users/entities/user'
 import type { UserRepository } from '@/modules/users/repositories/user.repository'
 import { CreateUserUseCase } from '@/modules/users/use-cases/create-user.use-case'
+import { comparePassword } from '@/lib/password'
 
 describe('CreateUserUseCase', () => {
   it('hashes a password and creates both user and profile', async () => {
@@ -20,14 +21,21 @@ describe('CreateUserUseCase', () => {
 
     const useCase = new CreateUserUseCase(userRepository, profileRepository)
 
-    const result = await useCase.handler({
-      email: 'user@example.com',
-      password: 'secret123',
-      role: UserRole.STUDENT,
-      name: 'Jane Doe',
-    })
+    const result = await useCase.handler(
+      {
+        email: 'user@example.com',
+        password: 'secret123',
+        role: UserRole.STUDENT,
+        name: 'Jane Doe',
+      },
+      { id: 'admin-1', role: UserRole.ADMIN },
+    )
 
     expect(userRepository.create).toHaveBeenCalled()
+    const savedPassword = jest.mocked(userRepository.create).mock.calls[0]?.[0]
+      .password
+    expect(savedPassword).not.toBe('secret123')
+    expect(await comparePassword('secret123', savedPassword ?? '')).toBe(true)
     expect(profileRepository.create).toHaveBeenCalledWith({
       userId: 'user-1',
       name: 'Jane Doe',
@@ -50,12 +58,15 @@ describe('CreateUserUseCase', () => {
     const useCase = new CreateUserUseCase(userRepository, profileRepository)
 
     await expect(
-      useCase.handler({
-        email: 'user@example.com',
-        password: 'secret123',
-        role: UserRole.STUDENT,
-        name: 'Jane Doe',
-      }),
+      useCase.handler(
+        {
+          email: 'user@example.com',
+          password: 'secret123',
+          role: UserRole.STUDENT,
+          name: 'Jane Doe',
+        },
+        { id: 'admin-1', role: UserRole.ADMIN },
+      ),
     ).rejects.toThrow('Failed to create user')
   })
 })
