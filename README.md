@@ -280,13 +280,21 @@ mobile/src/
 │   ├── login.tsx            # Tela de login
 │   └── (app)/               # Exige usuário autenticado
 │       ├── _layout.tsx      # Guard de perfil
-│       ├── index.tsx        # Tela inicial
+│       ├── index.tsx        # Tela inicial: lista de postagens com busca
+│       ├── posts/[id].tsx   # Leitura de uma postagem
 │       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
+│           ├── admin.tsx    # Página administrativa de postagens
+│           ├── posts/new.tsx       # Criação de postagem
+│           └── posts/[id]/edit.tsx # Edição de postagem
 ├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
-├── components/              # Botão e campo de texto reutilizáveis
+├── components/              # Componentes reutilizáveis
+├── hooks/                   # Estado de telas (use-posts-feed, use-post, use-admin-posts, use-debounced-value)
 ├── lib/
-│   ├── api.ts               # Cliente HTTP (apiFetch)
+│   ├── api.ts               # Cliente HTTP (apiFetch) e mensagens de erro
+│   ├── format.ts            # Formatação de datas
 │   ├── jwt.ts               # Leitura dos dados do token
+│   ├── notice.ts            # Aviso de sucesso entregue à tela para onde o usuário volta
+│   ├── posts.ts             # Chamadas à API de postagens
 │   └── permissions.ts       # Regras de permissão por perfil
 └── theme/                   # Cores e raios, espelhando o frontend web
 ```
@@ -379,6 +387,251 @@ Toda tela criada em `(app)/(teacher)` herda essa proteção, e opções indispon
 - **Validação do token:** o app apenas lê os dados do JWT para decidir o que exibir. A assinatura e as permissões são verificadas pela API em cada endpoint protegido, então os guards do app não substituem essa validação.
 - **Transporte:** builds de produção devem usar uma API com HTTPS, porque a senha e o token trafegam nas requisições.
 
+### Lista de postagens do aplicativo
+
+É a tela inicial depois do login, para os três perfis.
+
+#### Como usar
+
+1. Role a lista para ver mais postagens. Cada item mostra título, autor, data de publicação e um trecho do conteúdo. Toque em um item para lê-lo por completo.
+2. Digite uma palavra-chave em **Buscar postagens** para filtrar por título, conteúdo ou nome do autor. A busca começa sozinha meio segundo depois que você para de digitar.
+3. Apague o termo para voltar à lista completa.
+4. Puxe a lista para baixo para atualizá-la.
+5. Toque em **Sair**, no cabeçalho, para encerrar a sessão.
+
+Professores e administradores também veem os botões **Nova postagem** e **Administrar postagens**.
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Lista de todas as postagens (20 por vez, com a próxima página carregada ao rolar) | `GET /posts?cursor=&limit=` |
+| Busca por palavra-chave | `GET /posts/search?term=` |
+| Atualização ao puxar a lista e ao voltar para a tela | `GET /posts` ou a busca ativa |
+
+Detalhes de comportamento:
+
+- **Busca com espera:** a chamada só acontece 500 ms depois da última tecla, como no frontend web, para não disparar uma requisição a cada letra.
+- **Busca sem paginação:** a API devolve todos os resultados da busca de uma vez, então a lista não pede próxima página enquanto há um termo.
+- **Respostas atrasadas:** só a requisição mais recente altera a lista, então o resultado de uma busca antiga não substitui o da busca atual.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida |
+|---|---|
+| Nenhuma postagem cadastrada | Nenhuma postagem publicada. |
+| Busca sem resultados | Nenhuma postagem encontrada para esta busca. |
+| Falha ao carregar a lista | Não foi possível carregar as postagens. |
+| Falha na busca | Não foi possível buscar as postagens. |
+| Falha ao carregar a próxima página | Não foi possível carregar mais postagens. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+
+Se a primeira carga falhar, a tela exibe o botão **Tentar novamente**. Se a lista já estiver na tela, ela é mantida e o erro aparece acima dela.
+
+### Leitura de postagem no aplicativo
+
+Disponível para os três perfis, ao tocar em uma postagem da lista.
+
+#### Como usar
+
+1. Na tela inicial, toque em uma postagem.
+2. Leia o conteúdo completo. O texto pode ser selecionado e copiado.
+3. Use o botão de voltar do cabeçalho para retornar à lista.
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Título, autor, data de publicação, data da última atualização e conteúdo completo | `GET /posts/:id` |
+| Atualização ao voltar para a tela, para refletir uma edição | `GET /posts/:id` |
+
+A data de atualização só aparece quando é diferente da data de publicação. A API não tem endpoints de comentários, então o item opcional de comentários do desafio não foi implementado.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida | Ação oferecida |
+|---|---|---|
+| A postagem não existe (`404`) | Postagem não encontrada. Ela pode ter sido excluída. | **Voltar para a lista** |
+| Falha ao carregar | Não foi possível carregar a postagem. | **Tentar novamente** |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. | **Tentar novamente** |
+
+Se a postagem já estiver na tela e uma atualização falhar, ela continua visível e o erro aparece acima do título.
+
+### Criação de postagem no aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Nova postagem** da tela inicial. Estudantes não veem o botão e não abrem o formulário, mesmo por link direto.
+
+#### Como usar
+
+1. Na tela inicial, toque em **Nova postagem**.
+2. Preencha o **título** e o **conteúdo**. O campo **Autor** é apenas informativo: a API registra como autor o usuário da sessão.
+3. Toque em **Publicar postagem**. Enquanto a requisição está em andamento, o botão exibe um indicador de carregamento.
+4. Para desistir, toque em **Cancelar** ou no botão de voltar do cabeçalho.
+
+Ao publicar, o app volta para a lista, que é recarregada e exibe *Postagem publicada.*
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Envio da nova postagem, com o autor definido pelo token | `POST /posts` |
+| Lista atualizada ao voltar, com o aviso de sucesso | `GET /posts` |
+
+O formulário é o mesmo usado na edição (`components/post-form.tsx`).
+
+#### Validações e mensagens
+
+As regras são as mesmas da API e do frontend web, verificadas antes do envio e ignorando espaços no início e no fim dos campos.
+
+| Situação | Mensagem exibida |
+|---|---|
+| Título com menos de 3 caracteres | O título deve ter pelo menos 3 caracteres. |
+| Título com mais de 255 caracteres | O título deve ter no máximo 255 caracteres. |
+| Conteúdo com menos de 10 caracteres | O conteúdo deve ter pelo menos 10 caracteres. |
+| Usuário sem permissão (`403`) | Você não tem permissão para publicar postagens. |
+| Falha ao publicar | Não foi possível publicar a postagem. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Postagem publicada | Postagem publicada. |
+
+O campo de título também limita a digitação a 255 caracteres. Em caso de erro, o formulário continua preenchido para uma nova tentativa.
+
+### Edição de postagem no aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Editar**, que aparece na leitura da postagem e na página administrativa.
+
+#### Como usar
+
+1. Abra uma postagem pela lista, ou acesse a página administrativa, e toque em **Editar**.
+2. O formulário abre preenchido com o título e o conteúdo atuais. O campo **Autor** mostra o autor original e não pode ser alterado.
+3. Altere os campos e toque em **Salvar alterações**.
+4. Para desistir, toque em **Cancelar** ou no botão de voltar do cabeçalho.
+
+Ao salvar, o app volta para a tela de onde a edição foi aberta, que é recarregada e exibe *Postagem atualizada.*
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Carregamento dos dados atuais da postagem | `GET /posts/:id` |
+| Envio das alterações | `PUT /posts/:id` |
+| Tela anterior atualizada, com o aviso de sucesso | `GET /posts/:id` ou `GET /posts` |
+
+Detalhes de comportamento:
+
+- **Permissões por postagem:** seguindo a regra da API, o `ADMIN` edita qualquer postagem, e o `TEACHER`, apenas as próprias. O botão **Editar** só aparece para quem pode usá-lo, e um professor que abra a edição de uma postagem alheia por link direto vê o aviso de permissão no lugar do formulário.
+- **Formulário compartilhado:** a edição usa o mesmo formulário e as mesmas validações da criação.
+- **Dados preservados:** a postagem é carregada só ao abrir a tela, para que voltar ao app depois de trocar de aplicativo não apague o que foi digitado.
+- **Link direto:** sem tela anterior para onde voltar, o app abre a leitura da postagem depois de salvar.
+
+#### Validações e mensagens
+
+As validações de título e conteúdo são as mesmas da [criação de postagem](#criação-de-postagem-no-aplicativo).
+
+| Situação | Mensagem exibida |
+|---|---|
+| A postagem não existe ao abrir (`404`) | Postagem não encontrada. Ela pode ter sido excluída. |
+| Falha ao carregar a postagem | Não foi possível carregar a postagem. |
+| Postagem de outro autor (professor) ou `403` ao salvar | Você não tem permissão para editar esta postagem. |
+| A postagem foi excluída antes de salvar (`404`) | Esta postagem não existe mais. Ela pode ter sido excluída. |
+| Falha ao salvar | Não foi possível salvar as alterações. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Alterações salvas | Postagem atualizada. |
+
+#### Fluxo de edição
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant E as Tela de edição
+    participant A as API
+    participant T as Tela anterior
+
+    U->>E: Toca em Editar
+    E->>A: GET /posts/:id
+    A-->>E: Postagem atual
+    E-->>U: Formulário preenchido
+    U->>E: Altera e toca em Salvar alterações
+    E->>E: Valida os campos
+    E->>A: PUT /posts/:id
+    alt Alteração autorizada
+        A-->>E: 200
+        E->>T: Volta e deixa o aviso de sucesso
+        T->>A: Recarrega a postagem ou a lista
+        T-->>U: Exibe Postagem atualizada.
+    else Recusada ou com falha
+        A-->>E: 403, 404 ou erro
+        E-->>U: Exibe a mensagem e mantém o que foi digitado
+    end
+```
+
+### Página administrativa do aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Administrar postagens** da tela inicial. Estudantes não veem o botão e não acessam a rota, mesmo por link direto.
+
+#### Como usar
+
+1. Na tela inicial, toque em **Administrar postagens**.
+2. Role a lista para carregar mais postagens ou puxe para baixo para atualizá-la.
+3. Toque em **Excluir** e confirme para apagar uma postagem. A exclusão não pode ser desfeita.
+4. Toque em **Editar** para abrir o formulário de edição da postagem. Ao salvar, o app volta para esta página, que é recarregada e exibe *Postagem atualizada.*
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Lista de todas as postagens, com título, autor, data de atualização e trecho do conteúdo | `GET /posts` |
+| Próxima página, carregada ao rolar a lista (20 postagens por vez) | `GET /posts?cursor=&limit=` |
+| Atualização ao puxar a lista e ao voltar para a tela | `GET /posts` |
+| Exclusão com confirmação | `DELETE /posts/:id` |
+
+Detalhes de comportamento:
+
+- **Permissões por postagem:** seguindo a regra da API, o `ADMIN` altera qualquer postagem, e o `TEACHER`, apenas as próprias. As postagens de outros autores continuam na lista, sem os botões.
+- **Autoria:** postagens do usuário da sessão recebem a marcação *Sua postagem*. Se a API não informar o nome do autor, a lista mostra *Autor não informado*.
+- **Paginação preservada na exclusão:** a postagem é removida localmente, sem recarregar a lista, para não descartar as páginas já carregadas.
+- **Respostas atrasadas:** só a requisição mais recente altera a lista, então uma resposta antiga não traz de volta uma postagem já excluída.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida |
+|---|---|
+| Postagem excluída | Postagem excluída. |
+| A postagem já não existe (`404`) | Esta postagem já havia sido excluída. |
+| Sem permissão para excluir (`403`) | Você não tem permissão para excluir esta postagem. |
+| Falha ao excluir | Não foi possível excluir a postagem. |
+| Falha ao carregar a lista | Não foi possível carregar as postagens. |
+| Falha ao carregar a próxima página | Não foi possível carregar mais postagens. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Nenhuma postagem cadastrada | Nenhuma postagem cadastrada. |
+
+Se a primeira carga falhar, a tela exibe o botão **Tentar novamente**.
+
+#### Fluxo de exclusão
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant T as Página administrativa
+    participant A as API
+
+    U->>T: Toca em Excluir
+    T-->>U: Pede confirmação
+    alt Usuário confirma
+        U->>T: Confirma
+        T->>A: DELETE /posts/:id
+        alt Exclusão autorizada
+            A-->>T: 200
+            T-->>U: Remove da lista e exibe o aviso
+        else Recusada ou com falha
+            A-->>T: 403, 404 ou erro
+            T-->>U: Exibe a mensagem correspondente
+        end
+    else Usuário cancela
+        U->>T: Cancela
+        T-->>U: Mantém a postagem
+    end
+```
+
 ### Testes do aplicativo
 
 ```bash
@@ -388,7 +641,7 @@ npm run typecheck  # Verificação de tipos
 npm run lint       # ESLint
 ```
 
-Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos e o acesso por perfil. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca, a leitura, a criação e a edição de postagem e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
 
 ### Solução de problemas do aplicativo
 

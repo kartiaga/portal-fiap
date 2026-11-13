@@ -23,6 +23,7 @@ export function TextField({ label, secureTextEntry = false, ...inputProps }: Tex
           onBlur={() => setFocused(false)}
           style={[
             styles.input,
+            inputProps.multiline && styles.inputMultiline,
             focused && styles.inputFocused,
             secureTextEntry && styles.inputWithToggle,
           ]}
@@ -62,6 +63,7 @@ const styles = StyleSheet.create({
     borderColor: colors.ink100,
     borderRadius: radius.s,
   },
+  inputMultiline: { minHeight: 180, paddingVertical: 12, textAlignVertical: 'top' },
   inputFocused: { borderColor: colors.red600 },
   inputWithToggle: { paddingRight: TOGGLE_SIZE },
   toggle: {

@@ -10,10 +10,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/auth/session-context';
+import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
 import { TextField, type TextFieldHandle } from '@/components/text-field';
 import { ApiError } from '@/lib/api';
-import { colors, radius } from '@/theme';
+import { colors } from '@/theme';
 
 function getLoginError(error: unknown): string {
   if (error instanceof ApiError) {
@@ -99,11 +100,7 @@ export default function LoginScreen() {
               onSubmitEditing={handleSubmit}
             />
 
-            {error ? (
-              <View style={styles.alert} accessibilityRole="alert" accessibilityLiveRegion="polite">
-                <Text style={styles.alertText}>{error}</Text>
-              </View>
-            ) : null}
+            {error ? <Banner text={error} /> : null}
 
             <Button label="Entrar" onPress={handleSubmit} loading={submitting} />
           </View>
@@ -121,12 +118,4 @@ const styles = StyleSheet.create({
   title: { fontSize: 30, fontWeight: '700', color: colors.ink900 },
   subtitle: { fontSize: 15, color: colors.ink500 },
   form: { gap: 16 },
-  alert: {
-    padding: 12,
-    backgroundColor: colors.errorBg,
-    borderWidth: 1,
-    borderColor: colors.errorBorder,
-    borderRadius: radius.s,
-  },
-  alertText: { fontSize: 14, color: colors.error },
 });
