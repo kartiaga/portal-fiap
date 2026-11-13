@@ -1,6 +1,6 @@
 # Portal FIAP
 
-API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
+Portal FIAP para o **Tech Challenge da FIAP — Fase 4**, com API REST, frontend web e aplicativo mobile.
 
 > **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js com listagem e gestão de publicações, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
 
@@ -29,7 +29,7 @@ Oferecer uma API de blogging onde:
 | `POST /posts` | Criação de postagens (docentes) | Implementado |
 | `PUT /posts/:id` | Edição de postagens | Implementado |
 | `DELETE /posts/:id` | Exclusão de postagens | Implementado |
-| `GET /posts/search` | Busca por palavra-chave no título ou conteúdo | Implementado |
+| `GET /posts/search` | Busca por palavra-chave no título, conteúdo ou nome do autor | Implementado |
 
 ### Requisitos funcionais — Frontend
 
@@ -41,14 +41,18 @@ Oferecer uma API de blogging onde:
 | `/posts/:id/edit` | Edição de postagens (docentes) | Implementado |
 | Controle de acesso | Criação, edição e administração de postagens restritas a usuários autenticados | Implementado |
 
-### Funcionalidades extras (fora do escopo mínimo do desafio)
+### Autenticação e gerenciamento de usuários
 
-Estas rotas foram adicionadas para suportar autenticação e gestão de usuários, necessárias ao controle de acesso entre alunos e docentes:
+Estas rotas suportam autenticação e gestão de usuários, incluindo os requisitos 5 a 8 do aplicativo mobile:
 
 | Endpoint | Descrição | Status |
 |---|---|---|
 | `POST /login` | Autenticação com JWT | Implementado |
-| `POST /users` | Cadastro de usuários (admin) | Implementado |
+| `GET /users` | Listagem paginada de usuários, com filtro opcional por papel | Implementado |
+| `POST /users` | Cadastro de usuários por administradores e professores, conforme o papel | Implementado |
+| `GET /users/:id` | Consulta de usuário | Implementado |
+| `PUT /users/:id` | Edição de usuário sem alteração de papel | Implementado |
+| `DELETE /users/:id` | Exclusão de usuário sem postagens | Implementado |
 
 ### Telas do frontend
 
@@ -254,6 +258,8 @@ Detalhes de comportamento:
 
 O aplicativo do **Tech Challenge da Fase 4** fica em `mobile/`. Ele é feito em **React Native com Expo**, usa componentes funcionais e hooks, e consome os mesmos endpoints REST do frontend web.
 
+Professores e administradores podem cadastrar, editar, listar com paginação e excluir professores e estudantes no aplicativo (RF05 a RF08). A API impede que professores gerenciem administradores ou excluam a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
+
 ### Setup do aplicativo
 
 Pré-requisitos: Node.js 22.13+ ou 24.3+ e o app **Expo Go** no celular, ou um simulador iOS ou emulador Android.
@@ -285,9 +291,12 @@ mobile/src/
 │       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
 │           ├── admin.tsx    # Página administrativa de postagens
 │           ├── posts/new.tsx       # Criação de postagem
-│           └── posts/[id]/edit.tsx # Edição de postagem
+│           ├── posts/[id]/edit.tsx # Edição de postagem
+│           ├── teachers/          # Cadastro, edição e lista de professores
+│           └── students/          # Cadastro, edição e lista de estudantes
 ├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
 ├── components/              # Componentes reutilizáveis
+├── features/people/          # Fluxos e API de professores e estudantes
 ├── hooks/                   # Estado de telas (use-posts-feed, use-post, use-admin-posts, use-debounced-value)
 ├── lib/
 │   ├── api.ts               # Cliente HTTP (apiFetch) e mensagens de erro
@@ -641,7 +650,7 @@ npm run typecheck  # Verificação de tipos
 npm run lint       # ESLint
 ```
 
-Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, a lista de postagens com busca, a leitura, a criação e a edição de postagem e a página administrativa, incluindo paginação, permissões por postagem e exclusão. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, os fluxos de postagens e a integração simulada de professores e estudantes com os endpoints de usuários. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
 
 ### Solução de problemas do aplicativo
 
@@ -748,7 +757,7 @@ npm run migrate:up
 npm run seed
 ```
 
-O script `api/scripts/seed.ts` insere **somente** registros na tabela `users`. Ele não cria perfis nem postagens.
+O script `api/scripts/seed.ts` cria as três contas na tabela `users` e seus nomes na tabela `profiles`. Ele não cria postagens.
 
 | E-mail | Senha | Papel |
 |---|---|---|
@@ -756,7 +765,7 @@ O script `api/scripts/seed.ts` insere **somente** registros na tabela `users`. E
 | `student@fiap.com.br` | `12345678` | `STUDENT` |
 | `teacher@fiap.com.br` | `12345678` | `TEACHER` |
 
-O comando é idempotente: se as contas já existirem, nada é alterado.
+O comando é idempotente: não duplica contas nem perfis e cria o perfil caso esteja ausente.
 
 #### 7. Iniciar a aplicação
 
@@ -904,7 +913,7 @@ curl -X POST http://localhost:3001/posts \
 curl http://localhost:3001/posts \
   -H "Authorization: Bearer <token>"
 
-# Criar um usuário (somente ADMIN)
+# Criar um usuário (ADMIN ou TEACHER; TEACHER não pode criar ADMIN)
 curl -X POST http://localhost:3001/users \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
@@ -939,12 +948,12 @@ O frontend possui uma pipeline separada em `.github/workflows/frontend-ci.yml`. 
 As etapas são:
 
 ```bash
-npm run test --workspace frontend --if-present
+npm run test --workspace frontend
 npm run lint --workspace frontend
 npm run build --workspace frontend
 ```
 
-Atualmente o frontend ainda não possui testes automatizados configurados. Por isso, a etapa de testes é condicional e será executada automaticamente quando um script `test` for adicionado ao workspace `frontend`. O lint e o build são executados sempre.
+O frontend possui testes automatizados com Vitest. O workflow executa testes, lint e build.
 
 ---
 
@@ -1056,7 +1065,7 @@ Autentica um usuário e retorna um token JWT (validade de 15 dias).
 
 ### `POST /users`
 
-Cria um novo usuário e seu perfil. Requer token com papel `ADMIN`.
+Cria um novo usuário e seu perfil. Requer token com papel `ADMIN` ou `TEACHER`. Professores podem criar usuários `TEACHER` ou `STUDENT`, mas não `ADMIN`; estudantes não podem gerenciar usuários.
 
 **Headers:** `Authorization: Bearer <token>`
 
@@ -1072,6 +1081,24 @@ Cria um novo usuário e seu perfil. Requer token com papel `ADMIN`.
 ```
 
 O campo `role` é opcional (`STUDENT`, `TEACHER` ou `ADMIN`; padrão: `STUDENT`).
+
+**Resposta (201):** mensagem de confirmação em texto. E-mail já cadastrado retorna `409`.
+
+### `GET /users`
+
+Lista usuários com paginação por cursor. Requer token `ADMIN` ou `TEACHER`; professores devem informar `role=TEACHER` ou `role=STUDENT`. Aceita `role`, `search` (e-mail), `limit` (1 a 50; padrão 20) e `cursor` opcionais. O filtro é aplicado no banco antes da paginação. A resposta contém `items` (com `id`, `email`, `name`, `role`, `createdAt` e `updatedAt`), `nextCursor` e `hasMore`, sem senhas. `name` pode ser `null` se não houver perfil associado.
+
+### `GET /users/:id`
+
+Consulta um usuário por UUID e retorna os mesmos campos públicos da listagem. `ADMIN` pode consultar qualquer papel; `TEACHER` pode consultar `TEACHER` ou `STUDENT`. Retorna `403` para papel não permitido e `404` para usuário inexistente.
+
+### `PUT /users/:id`
+
+Atualiza `name`, `email` e, opcionalmente, `password` de um usuário acessível ao papel autenticado. A senha é armazenada como hash; omitir `password` preserva a senha atual. O papel não pode ser alterado. Retorna os campos públicos atualizados; e-mail duplicado retorna `409`.
+
+### `DELETE /users/:id`
+
+Exclui um usuário acessível ao papel autenticado. `TEACHER` não pode excluir a própria conta. Usuários com postagens não são excluídos: a API retorna `409` para preservar as postagens. Retorna uma mensagem de confirmação em caso de sucesso.
 
 ---
 
@@ -1121,7 +1148,7 @@ O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve con
 
 ### `GET /posts/search?term=termo`
 
-Busca postagens por palavra-chave no título ou no conteúdo. Requer autenticação.
+Busca postagens por palavra-chave no título, no conteúdo ou no nome do autor. Requer autenticação.
 
 **Headers:**
 
@@ -1299,7 +1326,7 @@ Retorna uma publicação específica utilizando o ID informado na rota.
 
 ### `GET /posts`
 
-Retorna a lista de todas as postagens cadastradas. Requer autenticação.
+Retorna postagens paginadas por cursor. Requer autenticação. Aceita `limit` (1 a 50; padrão 20) e `cursor` opcional.
 
 **Headers:**
 
@@ -1310,23 +1337,24 @@ Authorization: Bearer <token>
 **Resposta (200):**
 
 ```json
-[
-  {
-    "id": "uuid",
-    "title": "Título da publicação",
-    "content": "Conteúdo da publicação",
-    "authorId": "uuid",
-    "createdAt": "2026-07-09T18:00:00.000Z",
-    "updatedAt": "2026-07-09T18:00:00.000Z"
-  }
-]
+{
+  "items": [
+    {
+      "id": "uuid",
+      "title": "Título da publicação",
+      "content": "Conteúdo da publicação",
+      "authorId": "uuid",
+      "authorName": "Nome do autor",
+      "createdAt": "2026-07-09T18:00:00.000Z",
+      "updatedAt": "2026-07-09T18:00:00.000Z"
+    }
+  ],
+  "nextCursor": null,
+  "hasMore": false
+}
 ```
 
-Quando não existem postagens cadastradas, o endpoint retorna:
-
-```json
-[]
-```
+Sem postagens, `items` é `[]`, `nextCursor` é `null` e `hasMore` é `false`.
 
 ## Modelo de dados
 
