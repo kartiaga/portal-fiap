@@ -1,4 +1,4 @@
-export type Notice = { kind: 'success' | 'error'; text: string };
+export type Notice = { kind: 'success' | 'error' | 'info'; text: string };
 
 // Aviso deixado por uma tela que acabou de fechar (por exemplo, "Postagem publicada.")
 // para a tela que volta a aparecer. Faz o papel do ?feedback= do frontend web.

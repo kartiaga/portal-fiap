@@ -1,6 +1,8 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 import { renderRouter } from 'expo-router/testing-library';
+import { Alert } from 'react-native';
 
 import { setAuthToken } from '@/lib/api';
 import type { Post } from '@/lib/posts';
@@ -13,6 +15,13 @@ jest.mock('expo-secure-store', () => ({
 
 const store = jest.mocked(SecureStore);
 const fetchMock = jest.fn();
+const alertSpy = jest.spyOn(Alert, 'alert');
+
+/** Responde ao último `Alert.alert` tocando no botão com este texto. */
+async function answerAlert(text: string) {
+  const buttons = alertSpy.mock.lastCall?.[2] ?? [];
+  await act(async () => buttons.find((button) => button.text === text)?.onPress?.());
+}
 
 const USER_ID = 'user-1';
 
@@ -53,9 +62,16 @@ function requests(method: string) {
  * Simula a API: GET devolve a postagem atual e PUT a substitui, como o servidor faria.
  * `putResponse` permite forçar uma resposta de erro na edição.
  */
-function mockPostApi(initial: Post, putResponse?: { status: number }) {
-  let current = initial;
+function mockPostApi(initial: Post, putResponse?: { status: number }, deleteStatus = 200) {
+  let current: Post | null = initial;
   mockApi((url, init) => {
+    if (init.method === 'DELETE') {
+      if (deleteStatus < 400) current = null;
+      return json(deleteStatus);
+    }
+    if (!current) {
+      return url.includes('/posts?') ? json(200, { items: [], nextCursor: null, hasMore: false }) : json(404);
+    }
     if (init.method === 'PUT') {
       if (putResponse) return json(putResponse.status);
       current = { ...current, ...JSON.parse(init.body as string) };
@@ -95,7 +111,37 @@ describe('carregamento', () => {
 
     expect(await screen.findByDisplayValue('Título original')).toBeOnTheScreen();
     expect(screen.getByDisplayValue('Conteúdo original da postagem.')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Autor: Ana')).toBeOnTheScreen();
+    // A própria postagem: sem aviso de autor.
+    expect(screen.queryByText(/Editando a postagem de/)).toBeNull();
+  });
+
+  it('avisa o admin quando a postagem é de outra pessoa', async () => {
+    mockPostApi(makePost({ authorId: 'outro', authorName: 'Bruno' }));
+    await render('/posts/a/edit', 'ADMIN');
+
+    expect(await screen.findByText('Editando a postagem de Bruno')).toBeOnTheScreen();
+  });
+
+  it('só habilita "Salvar alterações" depois de alguma alteração', async () => {
+    mockPostApi(makePost());
+    await render('/posts/a/edit');
+
+    await screen.findByDisplayValue('Título original');
+    expect(screen.getByRole('button', { name: 'Salvar alterações' })).toBeDisabled();
+
+    await changeTitle('Título revisado');
+    expect(screen.getByRole('button', { name: 'Salvar alterações' })).toBeEnabled();
+  });
+
+  it('mostra o contador do título só perto do limite', async () => {
+    mockPostApi(makePost());
+    await render('/posts/a/edit');
+
+    await changeTitle('a'.repeat(199));
+    expect(screen.queryByText('199/255')).toBeNull();
+
+    await changeTitle('a'.repeat(210));
+    expect(screen.getByText('210/255')).toBeOnTheScreen();
   });
 
   it('avisa quando a postagem não existe', async () => {
@@ -196,7 +242,7 @@ describe('envio', () => {
     expect(screen).toHavePathname('/admin');
   });
 
-  it('sem histórico, volta para a leitura da postagem', async () => {
+  it('sem histórico, volta para as abas que ficam por baixo', async () => {
     mockPostApi(makePost());
     await render('/posts/a/edit');
 
@@ -204,7 +250,7 @@ describe('envio', () => {
     await save();
 
     expect(await screen.findByText('Postagem atualizada.')).toBeOnTheScreen();
-    expect(screen).toHavePathname('/posts/a');
+    expect(screen).toHavePathname('/');
   });
 
   it('valida os campos sem chamar a API', async () => {
@@ -234,16 +280,61 @@ describe('envio', () => {
     expect(screen).toHavePathname('/posts/a/edit');
   });
 
-  it('cancelar volta sem salvar', async () => {
+  it('voltar sem alterações não pergunta nada', async () => {
+    mockPostApi(makePost());
+    await render('/posts/a');
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Editar Título original' }));
+    await screen.findByDisplayValue('Título original');
+    await act(async () => router.back());
+
+    expect(await screen.findByRole('header', { name: 'Título original' })).toBeOnTheScreen();
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it('voltar com alterações pede confirmação; descartar volta sem salvar', async () => {
     mockPostApi(makePost());
     await render('/posts/a');
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Editar Título original' }));
     await changeTitle('Título revisado');
-    await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+    await act(async () => router.back());
+
+    expect(alertSpy).toHaveBeenCalledWith('Descartar alterações?', expect.any(String), expect.any(Array));
+    expect(screen).toHavePathname('/posts/a/edit');
+
+    await answerAlert('Descartar');
 
     expect(await screen.findByRole('header', { name: 'Título original' })).toBeOnTheScreen();
     expect(requests('PUT')).toHaveLength(0);
     expect(screen.queryByText('Postagem atualizada.')).toBeNull();
+  });
+});
+
+describe('exclusão', () => {
+  it('exclui pelo fim da edição, só depois de confirmar, e volta para a lista com aviso', async () => {
+    mockPostApi(makePost());
+    await render('/posts/a');
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Editar Título original' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Excluir Título original' }));
+    expect(requests('DELETE')).toHaveLength(0);
+
+    await answerAlert('Excluir');
+
+    await waitFor(() => expect(requests('DELETE')).toHaveLength(1));
+    expect(await screen.findByText('Postagem excluída.')).toBeOnTheScreen();
+    expect(screen).toHavePathname('/');
+  });
+
+  it('mantém a edição aberta quando a API recusa a exclusão', async () => {
+    mockPostApi(makePost(), undefined, 403);
+    await render('/posts/a/edit');
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Excluir Título original' }));
+    await answerAlert('Excluir');
+
+    expect(await screen.findByText('Você não tem permissão para excluir esta postagem.')).toBeOnTheScreen();
+    expect(screen).toHavePathname('/posts/a/edit');
   });
 });

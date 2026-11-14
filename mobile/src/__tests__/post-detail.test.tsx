@@ -2,6 +2,8 @@ import { fireEvent, screen } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import { renderRouter } from 'expo-router/testing-library';
 
+import { Alert } from 'react-native';
+
 import { setAuthToken } from '@/lib/api';
 import type { Post } from '@/lib/posts';
 
@@ -13,6 +15,7 @@ jest.mock('expo-secure-store', () => ({
 
 const store = jest.mocked(SecureStore);
 const fetchMock = jest.fn();
+const alertSpy = jest.spyOn(Alert, 'alert');
 
 function makeToken(role: string): string {
   const exp = Math.floor(Date.now() / 1000) + 3600;
@@ -60,7 +63,8 @@ describe('leitura', () => {
     store.getItemAsync.mockResolvedValue(makeToken('STUDENT'));
     await renderRouter('src/app', { initialUrl: '/' });
 
-    await fireEvent.press(await screen.findByRole('button', { name: `Ler ${POST.title}` }));
+    // O rótulo do cartão traz título, autor e data; a dica diz a ação.
+    await fireEvent.press(await screen.findByRole('button', { name: `${POST.title}. Carlos, 10/01/2026` }));
 
     expect(await screen.findByText('Publicada em 10/01/2026')).toBeOnTheScreen();
     expect(screen).toHavePathname('/posts/a');
@@ -106,7 +110,7 @@ describe('erros', () => {
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Voltar para a lista' }));
 
-    expect(await screen.findByText('Nenhuma postagem publicada.')).toBeOnTheScreen();
+    expect(await screen.findByText('Quando houver avisos, eles aparecem aqui.')).toBeOnTheScreen();
     expect(screen).toHavePathname('/');
   });
 
@@ -121,5 +125,35 @@ describe('erros', () => {
     await fireEvent.press(retry);
 
     expect(await screen.findByText(POST.content)).toBeOnTheScreen();
+  });
+});
+
+describe('ações do autor', () => {
+  function mockWithDelete() {
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'DELETE') return json(200, {});
+      if (url.endsWith('/posts/a')) return json(200, POST);
+      return json(200, { items: [], nextCursor: null, hasMore: false });
+    });
+  }
+
+  it('estudante não vê editar nem excluir', async () => {
+    mockWithDelete();
+    await renderPost('STUDENT');
+
+    await screen.findByText(POST.content);
+    expect(screen.queryByRole('button', { name: `Editar ${POST.title}` })).toBeNull();
+    expect(screen.queryByRole('button', { name: `Excluir ${POST.title}` })).toBeNull();
+  });
+
+  it('administrador vê só "Editar" no cabeçalho: excluir fica no fim da edição', async () => {
+    mockWithDelete();
+    await renderPost('ADMIN');
+
+    await fireEvent.press(await screen.findByRole('button', { name: `Editar ${POST.title}` }));
+
+    expect(await screen.findByRole('button', { name: `Excluir ${POST.title}` })).toBeOnTheScreen();
+    expect(screen).toHavePathname('/posts/a/edit');
+    expect(alertSpy).not.toHaveBeenCalled();
   });
 });

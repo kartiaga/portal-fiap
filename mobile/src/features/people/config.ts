@@ -1,21 +1,25 @@
 import type { PersonRole } from './api';
 
-export const peopleConfig: Record<PersonRole, {
-  plural: string;
-  singular: string;
-  listPath: '/teachers' | '/students';
-  createPath: '/teachers/create' | '/students/create';
-}> = {
+export const peopleConfig: Record<
+  PersonRole,
+  {
+    plural: string;
+    singular: string;
+    /** Rótulo do botão de cadastro. */
+    newLabel: string;
+    createPath: '/teachers/create' | '/students/create';
+  }
+> = {
   TEACHER: {
     plural: 'Professores',
     singular: 'professor',
-    listPath: '/teachers',
+    newLabel: 'Novo professor',
     createPath: '/teachers/create',
   },
   STUDENT: {
     plural: 'Estudantes',
     singular: 'estudante',
-    listPath: '/students',
+    newLabel: 'Novo estudante',
     createPath: '/students/create',
   },
 };

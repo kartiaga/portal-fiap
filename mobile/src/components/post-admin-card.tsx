@@ -1,9 +1,12 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { memo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { PostMeta } from '@/components/post-meta';
+import { useTheme } from '@/hooks/use-theme';
 import { formatDate } from '@/lib/format';
 import type { Post } from '@/lib/posts';
-import { colors, radius } from '@/theme';
+import { BorderWidth, Radius, Spacing, Typography } from '@/theme';
 
 type PostAdminCardProps = {
   post: Post;
@@ -11,11 +14,18 @@ type PostAdminCardProps = {
   canModify: boolean;
   deleting: boolean;
   actionsDisabled: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (post: Post) => void;
+  onDelete: (post: Post) => void;
+  /** Tocar no conteúdo do cartão abre a leitura. Sem ele, o cartão não é tocável. */
+  onOpen?: (post: Post) => void;
 };
 
-export function PostAdminCard({
+/**
+ * Cartão da aba Gerenciar: o mesmo cabeçalho do feed (com o selo "Você" e a data da última
+ * alteração), título, resumo e as ações. A área de conteúdo e as ações são irmãs, não aninhadas,
+ * para o leitor de tela alcançar os botões separadamente.
+ */
+export const PostAdminCard = memo(function PostAdminCard({
   post,
   isOwn,
   canModify,
@@ -23,59 +33,99 @@ export function PostAdminCard({
   actionsDisabled,
   onEdit,
   onDelete,
+  onOpen,
 }: PostAdminCardProps) {
-  const author = isOwn ? 'Sua postagem' : post.authorName || 'Autor não informado';
+  const theme = useTheme();
+  const author = post.authorName || 'Autor não informado';
   const date = formatDate(post.updatedAt);
+  const label = [`${post.title}. ${author}`, isOwn ? 'sua postagem' : null, date ? `editada em ${date}` : null]
+    .filter(Boolean)
+    .join(', ');
 
-  return (
-    <View style={styles.card}>
-      <Text style={styles.title} numberOfLines={2} accessibilityRole="header">
+  const content = (
+    <>
+      <PostMeta
+        authorName={post.authorName}
+        date={date}
+        datePrefix="Editada"
+        isSelf={isOwn}
+      />
+      <Text
+        numberOfLines={2}
+        accessibilityRole="header"
+        style={[Typography.headline, styles.title, { color: theme.text }]}>
         {post.title}
       </Text>
-      <Text style={styles.meta}>{date ? `${author} · Atualizada em ${date}` : author}</Text>
-      <Text style={styles.excerpt} numberOfLines={2}>
+      <Text numberOfLines={2} style={[Typography.callout, { color: theme.textSecondary }]}>
         {post.content}
       </Text>
+    </>
+  );
+
+  return (
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      {onOpen ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityHint="Abre a postagem"
+          onPress={() => onOpen(post)}
+          style={({ pressed }) => [
+            styles.body,
+            pressed && { backgroundColor: theme.backgroundSelected },
+          ]}>
+          {content}
+        </Pressable>
+      ) : (
+        <View style={styles.body}>{content}</View>
+      )}
 
       {canModify ? (
-        <View style={styles.actions}>
-          <View style={styles.action}>
-            <Button
-              label="Editar"
-              accessibilityLabel={`Editar ${post.title}`}
-              variant="secondary"
-              disabled={actionsDisabled}
-              onPress={onEdit}
-            />
-          </View>
-          <View style={styles.action}>
-            <Button
-              label="Excluir"
-              accessibilityLabel={`Excluir ${post.title}`}
-              variant="danger"
-              loading={deleting}
-              disabled={actionsDisabled}
-              onPress={onDelete}
-            />
-          </View>
+        <View style={[styles.actions, { borderTopColor: theme.border }]}>
+          <Button
+            label="Editar"
+            icon="create-outline"
+            size="small"
+            variant="secondary"
+            accessibilityLabel={`Editar ${post.title}`}
+            disabled={actionsDisabled}
+            onPress={() => onEdit(post)}
+          />
+          <Button
+            label="Excluir"
+            icon="trash-outline"
+            size="small"
+            variant="dangerGhost"
+            accessibilityLabel={`Excluir ${post.title}`}
+            loading={deleting}
+            disabled={actionsDisabled}
+            onPress={() => onDelete(post)}
+          />
         </View>
       ) : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
-    gap: 6,
-    padding: 16,
-    backgroundColor: colors.paper000,
-    borderWidth: 1,
-    borderColor: colors.ink100,
-    borderRadius: radius.m,
+    borderWidth: BorderWidth.thin,
+    borderRadius: Radius.medium,
+    overflow: 'hidden',
   },
-  title: { fontSize: 17, fontWeight: '700', color: colors.ink900 },
-  meta: { fontSize: 13, color: colors.ink500 },
-  excerpt: { fontSize: 14, lineHeight: 20, color: colors.ink700 },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  action: { flex: 1 },
+  body: {
+    gap: Spacing.two,
+    padding: Spacing.three,
+  },
+  title: {
+    marginTop: Spacing.one,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.two,
+    marginHorizontal: Spacing.three,
+    paddingVertical: Spacing.two + Spacing.one,
+    borderTopWidth: BorderWidth.hairline,
+  },
 });

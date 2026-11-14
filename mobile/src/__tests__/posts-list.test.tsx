@@ -77,20 +77,21 @@ describe('listagem', () => {
 
     expect(await screen.findByText('Título a')).toBeOnTheScreen();
     expect(screen.getByText('Conteúdo a')).toBeOnTheScreen();
-    expect(screen.getByText(/^Por Carlos · /)).toBeOnTheScreen();
+    expect(screen.getByText('Carlos')).toBeOnTheScreen();
     expect(screen.getByText('Título b')).toBeOnTheScreen();
   });
 
   it('funciona quando a API não informa o nome do autor', async () => {
     mockApi(() => page([makePost('a', null)]));
     await renderHome();
-    expect(await screen.findByText(/^Por Autor não informado/)).toBeOnTheScreen();
+    expect(await screen.findByText('Autor não informado')).toBeOnTheScreen();
   });
 
   it('mostra aviso quando não há postagens', async () => {
     mockApi(() => page([]));
     await renderHome();
-    expect(await screen.findByText('Nenhuma postagem publicada.')).toBeOnTheScreen();
+    expect(await screen.findByText('Nenhuma postagem ainda')).toBeOnTheScreen();
+    expect(screen.getByText('Quando houver avisos, eles aparecem aqui.')).toBeOnTheScreen();
   });
 
   it('permite tentar de novo depois de uma falha', async () => {
@@ -117,6 +118,28 @@ describe('listagem', () => {
 
     expect(await screen.findByText('Título b')).toBeOnTheScreen();
     expect(screen.getAllByText('Título a')).toHaveLength(1);
+  });
+
+  it('mostra a falha da próxima página no rodapé, com tentar de novo', async () => {
+    let failNext = true;
+    mockApi((url) => {
+      if (!url.includes('cursor=c1')) return page([makePost('a')], 'c1');
+      if (failNext) return json(500);
+      return page([makePost('b')]);
+    });
+    await renderHome();
+    await screen.findByText('Título a');
+
+    await fireEvent(screen.getByTestId('posts-list'), 'endReached');
+
+    expect(await screen.findByText('Não foi possível carregar mais postagens.')).toBeOnTheScreen();
+    expect(screen.getByText('Título a')).toBeOnTheScreen();
+
+    failNext = false;
+    await fireEvent.press(screen.getByRole('button', { name: 'Tentar novamente' }));
+
+    expect(await screen.findByText('Título b')).toBeOnTheScreen();
+    expect(screen.queryByText('Não foi possível carregar mais postagens.')).toBeNull();
   });
 });
 
@@ -181,18 +204,28 @@ describe('busca', () => {
 });
 
 describe('perfis', () => {
-  it('estudante vê a lista, sem o acesso à administração', async () => {
+  it('estudante vê a lista, sem o botão de nova postagem', async () => {
     mockApi(() => page([makePost('a')]));
     await renderHome('STUDENT');
 
     expect(await screen.findByText('Título a')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Administrar postagens' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Nova postagem' })).toBeNull();
   });
 
-  it('professor vê o acesso à administração', async () => {
+  it('professor vê o botão de nova postagem', async () => {
     mockApi(() => page([makePost('a')]));
     await renderHome('TEACHER');
 
-    expect(await screen.findByRole('button', { name: 'Administrar postagens' })).toBeOnTheScreen();
+    // As abas nativas montam Posts e Gerenciar, e as duas têm a ação no cabeçalho.
+    expect((await screen.findAllByRole('button', { name: 'Nova postagem' }))[0]).toBeOnTheScreen();
+  });
+
+  it('o cartão anuncia título, autor e data no rótulo e a ação na dica', async () => {
+    mockApi(() => page([makePost('a', 'Carlos')]));
+    await renderHome();
+
+    const card = await screen.findByRole('button', { name: /^Título a\. Carlos, / });
+    expect(card).toHaveAccessibleName(/^Título a\. Carlos, (\d{2}\/\d{2}\/\d{4}|Hoje|Ontem|Há \d+ dias)$/);
+    expect(card.props.accessibilityHint).toBe('Abre a postagem');
   });
 });

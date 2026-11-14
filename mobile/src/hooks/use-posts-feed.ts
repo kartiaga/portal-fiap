@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 
+import { useNotice } from '@/hooks/use-notice';
 import { getErrorMessage } from '@/lib/api';
-import type { Notice } from '@/lib/notice';
 import { getPosts, searchPosts, type Post } from '@/lib/posts';
 
 /**
- * Estado da lista de postagens da tela inicial. Sem termo, usa a listagem paginada;
- * com termo, usa a busca da API, que devolve todos os resultados de uma vez.
+ * Estado de uma lista de postagens (aba Posts e aba Gerenciar). Sem termo, usa a listagem
+ * paginada; com termo, usa a busca da API, que devolve todos os resultados de uma vez.
  */
 export function usePostsFeed(term: string) {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -16,18 +16,22 @@ export function usePostsFeed(term: string) {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<Notice | null>(null);
+  /** Falha ao buscar a próxima página: aparece no rodapé da lista, com "Tentar novamente". */
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const { notice, showNotice, clearNotice } = useNotice();
 
   // Só a requisição mais recente pode alterar a lista. Assim, o resultado de uma busca
-  // antiga não substitui o da busca que o usuário acabou de digitar.
+  // antiga não substitui o da busca que o usuário acabou de digitar, e uma resposta atrasada
+  // não traz de volta uma postagem já excluída.
   const latestRequest = useRef(0);
 
   const reload = useCallback(
     async ({ showRefreshing = false } = {}) => {
       const request = ++latestRequest.current;
       setLoadingMore(false);
+      setLoadMoreError(null);
       setRefreshing(showRefreshing);
-      setNotice(null);
+      clearNotice();
 
       try {
         if (term) {
@@ -56,7 +60,7 @@ export function usePostsFeed(term: string) {
       setLoaded(true);
       setRefreshing(false);
     },
-    [term],
+    [term, clearNotice],
   );
 
   const loadMore = useCallback(async () => {
@@ -64,6 +68,7 @@ export function usePostsFeed(term: string) {
 
     const request = ++latestRequest.current;
     setLoadingMore(true);
+    setLoadMoreError(null);
 
     try {
       const page = await getPosts(nextCursor);
@@ -75,14 +80,19 @@ export function usePostsFeed(term: string) {
       setNextCursor(page.hasMore ? page.nextCursor : null);
     } catch (error) {
       if (request !== latestRequest.current) return;
-      setNotice({
-        kind: 'error',
-        text: getErrorMessage(error, 'Não foi possível carregar mais postagens.'),
-      });
+      setLoadMoreError(getErrorMessage(error, 'Não foi possível carregar mais postagens.'));
     }
 
     setLoadingMore(false);
   }, [nextCursor, loadingMore, refreshing]);
+
+  /** Tira uma postagem da lista na hora (depois de excluí-la) e descarta respostas em andamento. */
+  const dropPost = useCallback((postId: string) => {
+    latestRequest.current += 1;
+    setRefreshing(false);
+    setLoadingMore(false);
+    setPosts((current) => current.filter((item) => item.id !== postId));
+  }, []);
 
   return {
     posts,
@@ -91,9 +101,12 @@ export function usePostsFeed(term: string) {
     refreshing,
     loadingMore,
     loadError,
+    loadMoreError,
     notice,
-    showNotice: setNotice,
+    showNotice,
+    clearNotice,
     reload,
     loadMore,
+    dropPost,
   };
 }
