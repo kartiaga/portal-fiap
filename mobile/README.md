@@ -47,43 +47,48 @@ Builds de produção precisam de uma API com HTTPS.
 
 ```
 src/
-├── app/                    Rotas (Expo Router): cada arquivo é uma tela
-│   ├── _layout.tsx         Provider da sessão e guard de autenticação
-│   ├── login.tsx           Pública, disponível apenas sem sessão
-│   └── (app)/              Exige usuário autenticado
-│       ├── _layout.tsx     Guard de perfil
-│       ├── index.tsx       Tela inicial: lista de postagens com busca
-│       ├── posts/[id].tsx  Leitura de uma postagem
-│       └── (teacher)/      Exige professor ou administrador
-│           ├── admin.tsx   Página administrativa de postagens
-│           ├── posts/new.tsx        Criação de postagem
-│           └── posts/[id]/edit.tsx  Edição de postagem
-├── auth/session-context.tsx  Estado da sessão (Context API) e o hook useSession
-├── components/             Componentes reutilizáveis
-├── hooks/                  Estado de telas (use-posts-feed, use-post, use-admin-posts, use-debounced-value)
-├── lib/
-│   ├── api.ts              Cliente HTTP (apiFetch) e mensagens de erro
-│   ├── format.ts           Formatação de datas
-│   ├── jwt.ts              Leitura dos dados do token
-│   ├── notice.ts           Aviso de sucesso entregue à tela para onde o usuário volta
-│   ├── posts.ts            Chamadas à API de postagens
-│   └── permissions.ts      Regras de permissão por perfil
-└── theme/                  Cores e raios, espelhando o frontend web
+├── app/                        Rotas (Expo Router): cada arquivo é uma tela
+│   ├── _layout.tsx             Provider da sessão, tema da navegação e guard de autenticação
+│   ├── +not-found.tsx          Link inexistente: "Página não encontrada"
+│   ├── welcome.tsx             Abertura, só sem sessão
+│   ├── login.tsx               Login, só sem sessão
+│   └── (app)/                  Exige usuário autenticado (Stack)
+│       ├── (tabs)/             Abas nativas
+│       │   ├── index.tsx       Posts: lista com busca
+│       │   ├── admin.tsx       Gerenciar: buscar, criar, editar e excluir postagens (professor e admin)
+│       │   ├── people.tsx      Pessoas: professores e estudantes (professor e admin)
+│       │   └── account.tsx     Conta: perfil, "Editar meus dados" e sair
+│       ├── posts/[id].tsx      Leitura de uma postagem
+│       └── (teacher)/          Exige professor ou administrador
+│           ├── posts/new.tsx, posts/[id]/edit.tsx
+│           ├── teachers/…, students/…   Cadastro e edição de pessoas
+│           └── account/edit.tsx         "Meus dados": a própria conta
+├── auth/session-context.tsx    Estado da sessão (Context API) e o hook useSession
+├── components/                 Componentes do design system (Button, TextField, cartões, estados)
+├── features/people/            API, hook de lista, formulários e permissões de pessoas
+├── hooks/                      Estado de telas e useTheme
+├── lib/                        Cliente HTTP, JWT, datas, avisos, posts, permissões, rótulos de perfil
+└── theme/                      Tokens: cores claro/escuro, tipografia, espaçamento e raio
 ```
+
+A interface segue [`docs/design-system.md`](docs/design-system.md). Leia antes de criar ou alterar uma tela.
 
 ## Autenticação e autorização
 
 O guia de uso da tela de login, as mensagens de erro e o fluxo completo estão no [README principal](../README.md#tela-de-login).
 
 1. O login envia e-mail e senha para `POST /login`. O token retornado fica no `expo-secure-store` (Keychain/Keystore).
-2. Ao abrir o app, o token salvo é lido. Se estiver expirado ou malformado, ele é apagado e o usuário volta ao login.
-3. O `apiFetch` envia o token em toda chamada. Se a API responder `401` para o token atual, a sessão é encerrada e o usuário volta ao login.
+2. Ao abrir o app, o token salvo é lido. Se estiver expirado ou malformado, ele é apagado e o app abre na tela de boas-vindas.
+3. O `apiFetch` envia o token em toda chamada. Se a API responder `401` para o token atual, ou se a validade do token vencer com o app aberto (conferida também ao voltar do segundo plano), a sessão é encerrada e o login mostra *Sua sessão expirou. Entre novamente para continuar.*
+4. **Sair** (aba Conta) pede confirmação, apaga o token e leva direto ao login.
 
 | Área                  | Quem acessa                    |
 | --------------------- | ------------------------------ |
-| `login`               | Apenas quem não tem sessão     |
+| `welcome`, `login`    | Apenas quem não tem sessão     |
 | `(app)`               | Qualquer usuário autenticado   |
 | `(app)/(teacher)`     | Professores e administradores  |
+
+Sem sessão, qualquer rota protegida leva à abertura na primeira vez; depois de sair ou de a sessão expirar na mesma execução, leva direto ao login (`endReason` em `session-context.tsx`). Com sessão, a abertura e o login levam aos posts. Um link inexistente mostra *Página não encontrada* com **Voltar para Posts**. As abas Gerenciar e Pessoas ficam ocultas para estudantes, e as telas redirecionam para os posts se abertas por link direto.
 
 Os guards usam `Stack.Protected` e controlam apenas a navegação. Quem garante a permissão é a API, que valida o token e o perfil em cada endpoint protegido.
 
@@ -97,55 +102,73 @@ Os guards usam `Stack.Protected` e controlam apenas a navegação. Quem garante 
 | Busca por palavra-chave no título, no conteúdo ou no autor | `GET /posts/search?term=` |
 | Atualizar ao puxar a lista e ao voltar para a tela       | `GET /posts` ou a busca ativa |
 
-A busca é feita 500 ms depois que o usuário para de digitar, como no frontend web. Como a API não pagina a busca, todos os resultados chegam de uma vez. Apagar o termo volta para a lista paginada.
+A busca é feita 500 ms depois que o usuário para de digitar, como no frontend web. Como a API não pagina a busca, todos os resultados chegam de uma vez. Apagar o termo volta para a lista paginada. Se a próxima página falhar, o erro aparece no rodapé da lista com **Tentar novamente**.
 
-O botão **Sair** fica no cabeçalho, e o botão **Administrar postagens** aparece apenas para professores e administradores.
+O botão **Nova postagem** aparece no título da aba apenas para professores e administradores. Avisos de sucesso (*Postagem publicada.*) somem sozinhos depois de 4 segundos. **Sair** fica na aba Conta.
 
 ## Leitura de postagem
 
 Tocar em um item da lista abre `/posts/:id`, que busca a postagem em `GET /posts/:id` e mostra título, autor, data de publicação, data da última atualização (quando houver) e o conteúdo completo, que pode ser selecionado e copiado.
 
-A tela recarrega ao voltar para ela, para refletir uma edição. Se a postagem não existir mais (`404`), a tela oferece **Voltar para a lista**; em outras falhas, **Tentar novamente**.
+Para quem pode alterar a postagem, o cabeçalho tem **Editar**; excluir fica no fim da edição. A tela recarrega ao voltar para ela, para refletir uma edição. Se a postagem não existir mais (`404`), a tela oferece **Voltar para a lista**; em outras falhas, **Tentar novamente**.
 
 A API não tem endpoints de comentários, então o item opcional de comentários não foi implementado.
 
 ## Criação de postagem
 
-Professores e administradores abrem `/posts/new` pelo botão **Nova postagem** da tela inicial. O formulário (`components/post-form.tsx`) é compartilhado com a edição e tem:
+Professores e administradores abrem `/posts/new` (em modal) pelo botão **Nova postagem** da aba Posts ou da aba Gerenciar. O formulário (`components/post-form.tsx`) é compartilhado com a edição e tem:
 
-- **Autor**, apenas para leitura: a API define o autor pelo token, então o campo mostra *Você*;
-- **Título**, de 3 a 255 caracteres;
+- **Título**, de 3 a 255 caracteres, em até 3 linhas; o contador *n/255* aparece a partir de 200 caracteres;
 - **Conteúdo**, com pelo menos 10 caracteres.
 
-As regras são as mesmas da API e são verificadas antes do envio, ignorando espaços nas pontas. Ao publicar (`POST /posts`), o app volta para a lista, que recarrega e mostra *Postagem publicada.* Em caso de erro, o formulário continua preenchido.
+A API define o autor pelo token, então o formulário não mostra autor na criação. As regras são as mesmas da API e são verificadas antes do envio, ignorando espaços nas pontas; cada erro aparece abaixo do seu campo. Ao publicar (`POST /posts`), o app volta para a lista, que recarrega e mostra *Postagem publicada.* Em caso de erro, o formulário continua preenchido.
+
+Sair é pelo **Cancelar** do cabeçalho (iOS) ou pelo voltar (Android). Com algo digitado, o app pergunta *Descartar alterações?* antes de fechar, e o arrasto do modal fica desligado (`hooks/use-discard-guard.ts`, com `usePreventRemove`). O mesmo vale para a edição de postagem e para o cadastro e a edição de pessoas.
 
 ## Edição de postagem
 
-`/posts/:id/edit` é aberta pelo botão **Editar** da leitura da postagem ou da página administrativa. Ela carrega os dados atuais com `GET /posts/:id`, preenche o mesmo `PostForm` da criação e salva com `PUT /posts/:id`. O autor aparece apenas para leitura.
+`/posts/:id/edit` é aberta pelo botão **Editar** da leitura da postagem ou da aba Gerenciar. Ela carrega os dados atuais com `GET /posts/:id`, preenche o mesmo `PostForm` da criação e salva com `PUT /posts/:id`. **Salvar alterações** só fica ativo depois de alguma alteração. Quando o administrador edita a postagem de outra pessoa, o topo mostra *Editando a postagem de Fulano*.
+
+No fim da tela fica a zona **Excluir postagem** (`DELETE /posts/:id`, com confirmação). Depois de excluir, o app volta para a lista de onde a leitura ou a edição foi aberta e mostra *Postagem excluída.*
 
 O botão **Editar** só aparece para quem pode alterar a postagem (`canModifyPost`): administradores, em qualquer postagem, e professores, nas próprias. Um professor que abra a edição de uma postagem alheia por link direto vê *Você não tem permissão para editar esta postagem.*, sem o formulário. A API faz a mesma verificação e responde `403`.
 
-Ao salvar, o app volta para a tela que abriu a edição, que recarrega e mostra *Postagem atualizada.* Sem histórico (link direto), vai para a leitura da postagem. Os dados são carregados só ao abrir a tela, para não apagar o que já foi digitado ao voltar do segundo plano.
+Ao salvar, o app volta para a tela que abriu a edição, que recarrega e mostra *Postagem atualizada.* Sem histórico (link direto), vai para as abas, que ficam por baixo de toda tela interna (`unstable_settings.anchor`). Os dados são carregados só ao abrir a tela, para não apagar o que já foi digitado ao voltar do segundo plano.
 
 O aviso de sucesso passa de uma tela para outra por `lib/notice.ts`: a tela que fecha chama `setFlashNotice`, e a que volta a aparecer chama `takeFlashNotice` ao receber foco.
 
-## Página administrativa
+## Aba Gerenciar
 
-Disponível para professores e administradores pelo botão **Administrar postagens** da tela inicial.
+Disponível para professores e administradores.
 
 | Funcionalidade | Endpoint |
 | ------------------------------------------------------- | --------------------------- |
 | Lista de todas as postagens, com próxima página ao rolar | `GET /posts?cursor=&limit=` |
+| Busca, a mesma da aba Posts                              | `GET /posts/search?term=`   |
 | Atualizar ao puxar a lista e ao voltar para a tela       | `GET /posts`                |
+| Nova postagem, no cabeçalho                              | `POST /posts`               |
+| Ler, tocando no cartão                                   | `GET /posts/:id`            |
 | Excluir, com confirmação                                 | `DELETE /posts/:id`         |
 | Editar, que abre `/posts/:id/edit`                       | `GET /posts/:id` e `PUT /posts/:id` |
 
-Os botões seguem a regra da API: administradores alteram qualquer postagem, e professores, apenas as próprias. As postagens de outros autores continuam na lista, sem os botões.
+Os botões seguem a regra da API: administradores alteram qualquer postagem, e professores, apenas as próprias, marcadas com o selo *Você*. As postagens de outros autores continuam na lista, sem os botões, e o subtítulo diz isso ao professor.
+
+**Pendência:** mostrar só as postagens do professor ("Minhas | Todas") exige um filtro por autor em `GET /posts`, que a API ainda não tem. Filtrar no aparelho com a lista paginada traria páginas vazias, então ficou de fora.
+
+## Aba Conta
+
+Mostra nome, e-mail e perfil (para estudante, *Conta de estudante* e o perfil, porque `GET /users/:id` não é liberado para estudante) e a validade da sessão. Professores e administradores têm **Editar meus dados** (`/account/edit`, `GET` e `PUT /users/:id` na própria conta, sem exclusão). **Sair** pede confirmação.
+
+## Pendências
+
+- Filtro "Minhas postagens" em Gerenciar: depende de um filtro por autor na API.
+- Tela de abertura nativa (splash): depende do plugin `expo-splash-screen`, que não está instalado (ver `docs/design-system.md`).
 
 ## Como adicionar telas
 
-- **Exclusiva de professores** (criar ou editar post, gerenciar usuários): crie o arquivo em `src/app/(app)/(teacher)/`, por exemplo `posts/new.tsx`. O guard já se aplica.
-- **Para qualquer usuário logado** (lista ou leitura de posts): crie o arquivo em `src/app/(app)/`.
+- **Exclusiva de professores** (criar ou editar post, gerenciar usuários): crie o arquivo em `src/app/(app)/(teacher)/` e declare a tela dentro do `Stack.Protected` de `src/app/(app)/_layout.tsx`.
+- **Para qualquer usuário logado** (leitura de posts): crie o arquivo em `src/app/(app)/`.
+- **Nova aba**: crie o arquivo em `src/app/(app)/(tabs)/` e o `NativeTabs.Trigger` em `(tabs)/_layout.tsx`.
 
 ```tsx
 import { useSession } from '@/auth/session-context';
@@ -175,11 +198,12 @@ As funcionalidades incluem:
 - Formulários reutilizáveis para professores e estudantes.
 - Validação de nome, e-mail e senha (mínimo de 8 caracteres no cadastro; opcional na edição).
 - Cadastro por `POST /users` e edição por `PUT /users/:id`, sem alterar o perfil.
-- Listagem por `GET /users?role=TEACHER` ou `GET /users?role=STUDENT`, com `limit=20` e `cursor` opcional; filtro e paginação são feitos no backend, sem filtrar páginas no app.
+- Aba **Pessoas** com seletor Professores | Estudantes e busca por e-mail. Listagem por `GET /users?role=TEACHER` ou `GET /users?role=STUDENT`, com `limit=20`, `cursor` e `search` opcionais; filtro, busca e paginação são feitos no backend.
 - Consulta de usuários para edição com `GET /users/:id`.
 - Atualização da listagem após operações.
-- Confirmação antes de excluir um cadastro por `DELETE /users/:id`.
+- Exclusão na tela de edição, com confirmação (`Alert` nativo), por `DELETE /users/:id`.
 - Cancelamento da exclusão sem modificar os dados.
+- Pessoa inexistente ou de outra lista: a edição oferece **Voltar** em vez de tentar de novo.
 - Bloqueio da exclusão da própria conta para `TEACHER`.
 - Mensagens de sucesso e erro após as operações, incluindo conflito `409` na exclusão de usuário com postagens.
 
@@ -190,9 +214,9 @@ Os componentes compartilhados estão em `src/features/people/`:
 | Arquivo | Responsabilidade |
 |---|---|
 | `api.ts` | Comunicação com a API |
-| `person-list.tsx` | Listagem e gerenciamento |
+| `use-people.ts` | Estado da lista (paginação, busca, atualização) usada pela aba Pessoas |
 | `person-form.tsx` | Cadastro |
-| `person-edit.tsx` | Edição |
+| `person-edit.tsx` | Edição e exclusão |
 | `form-fields.tsx` | Campos reutilizáveis |
 | `form-validation.ts` | Validação dos formulários |
 | `permissions.ts` | Controle de permissões |
@@ -203,7 +227,7 @@ As telas de gerenciamento são disponibilizadas aos perfis `ADMIN` e `TEACHER`; 
 
 Verificações automatizadas realizadas:
 
-- 89 testes mobile aprovados em 11 suítes, incluindo chamadas HTTP simuladas e fluxos de professores.
+- 154 testes mobile aprovados em 14 suítes, incluindo chamadas HTTP simuladas e fluxos de professores.
 - Typecheck aprovado.
 - ESLint aprovado.
 
