@@ -1,46 +1,56 @@
+import { memo } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { formatDate } from '@/lib/format';
+import { PostMeta } from '@/components/post-meta';
+import { useTheme } from '@/hooks/use-theme';
+import { formatRelativeDate } from '@/lib/format';
 import type { Post } from '@/lib/posts';
-import { colors, radius } from '@/theme';
+import { BorderWidth, Radius, Spacing, Typography } from '@/theme';
 
 type PostCardProps = {
   post: Post;
-  onPress: () => void;
+  onPress: (post: Post) => void;
 };
 
-export function PostCard({ post, onPress }: PostCardProps) {
-  const author = `Por ${post.authorName || 'Autor não informado'}`;
-  const date = formatDate(post.createdAt);
+/** Cartão do feed: autor e data no cabeçalho, depois título e resumo. Tocar abre a postagem. */
+export const PostCard = memo(function PostCard({ post, onPress }: PostCardProps) {
+  const theme = useTheme();
+  const author = post.authorName || 'Autor não informado';
+  const date = formatRelativeDate(post.createdAt);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Ler ${post.title}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <Text style={styles.title} numberOfLines={2}>
+      // O essencial vai no rótulo (dicas podem estar desligadas no leitor de tela); a ação, na dica.
+      accessibilityLabel={date ? `${post.title}. ${author}, ${date}` : `${post.title}. ${author}`}
+      accessibilityHint="Abre a postagem"
+      onPress={() => onPress(post)}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: pressed ? theme.backgroundSelected : theme.surface,
+          borderColor: theme.border,
+        },
+      ]}>
+      <PostMeta authorName={post.authorName} date={date} />
+      <Text numberOfLines={2} style={[Typography.headline, styles.title, { color: theme.text }]}>
         {post.title}
       </Text>
-      <Text style={styles.meta}>{date ? `${author} · ${date}` : author}</Text>
-      <Text style={styles.excerpt} numberOfLines={3}>
+      <Text numberOfLines={2} style={[Typography.callout, { color: theme.textSecondary }]}>
         {post.content}
       </Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
-    gap: 6,
-    padding: 16,
-    backgroundColor: colors.paper000,
-    borderWidth: 1,
-    borderColor: colors.ink100,
-    borderRadius: radius.m,
+    padding: Spacing.three,
+    gap: Spacing.two,
+    borderWidth: BorderWidth.thin,
+    borderRadius: Radius.medium,
   },
-  pressed: { borderColor: colors.ink300 },
-  title: { fontSize: 17, fontWeight: '700', color: colors.ink900 },
-  meta: { fontSize: 13, color: colors.ink500 },
-  excerpt: { fontSize: 14, lineHeight: 20, color: colors.ink700 },
+  title: {
+    marginTop: Spacing.one,
+  },
 });
