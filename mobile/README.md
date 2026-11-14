@@ -56,13 +56,14 @@ src/
 │       ├── (tabs)/             Abas nativas
 │       │   ├── index.tsx       Posts: lista com busca
 │       │   ├── admin.tsx       Gerenciar: buscar, criar, editar e excluir postagens (professor e admin)
-│       │   ├── people.tsx      Pessoas: professores e estudantes (professor e admin)
+│       │   ├── people.tsx      Pessoas: lista de professores e estudantes (professor e admin veem; só admin cadastra, edita e exclui)
 │       │   └── account.tsx     Conta: perfil, "Editar meus dados" e sair
 │       ├── posts/[id].tsx      Leitura de uma postagem
 │       └── (teacher)/          Exige professor ou administrador
 │           ├── posts/new.tsx, posts/[id]/edit.tsx
-│           ├── teachers/…, students/…   Cadastro e edição de pessoas
-│           └── account/edit.tsx         "Meus dados": a própria conta
+│           ├── people/create.tsx, people/[id]/edit.tsx   Cadastro e edição de pessoas
+│           ├── account/edit.tsx    "Meus dados": a própria conta
+│           └── filters/people.tsx, filters/posts.tsx     Folhas de filtro (formSheet nativo)
 ├── auth/session-context.tsx    Estado da sessão (Context API) e o hook useSession
 ├── components/                 Componentes do design system (Button, TextField, cartões, estados)
 ├── features/people/            API, hook de lista, formulários e permissões de pessoas
@@ -143,7 +144,7 @@ Disponível para professores e administradores.
 
 | Funcionalidade | Endpoint |
 | ------------------------------------------------------- | --------------------------- |
-| Lista de todas as postagens, com próxima página ao rolar | `GET /posts?cursor=&limit=` |
+| Lista de postagens, com próxima página ao rolar          | `GET /posts?cursor=&limit=&authorId=` |
 | Busca, a mesma da aba Posts                              | `GET /posts/search?term=`   |
 | Atualizar ao puxar a lista e ao voltar para a tela       | `GET /posts`                |
 | Nova postagem, no cabeçalho                              | `POST /posts`               |
@@ -151,17 +152,23 @@ Disponível para professores e administradores.
 | Excluir, com confirmação                                 | `DELETE /posts/:id`         |
 | Editar, que abre `/posts/:id/edit`                       | `GET /posts/:id` e `PUT /posts/:id` |
 
-Os botões seguem a regra da API: administradores alteram qualquer postagem, e professores, apenas as próprias, marcadas com o selo *Você*. As postagens de outros autores continuam na lista, sem os botões, e o subtítulo diz isso ao professor.
+Os botões seguem a regra da API: administradores alteram qualquer postagem, e professores, apenas as próprias. Por isso:
 
-**Pendência:** mostrar só as postagens do professor ("Minhas | Todas") exige um filtro por autor em `GET /posts`, que a API ainda não tem. Filtrar no aparelho com a lista paginada traria páginas vazias, então ficou de fora.
+- **Professor:** vê só as postagens que publicou (`GET /posts?authorId=<id>`, filtrado e paginado pela API). Não há filtro nem selo *Você*, porque a lista inteira é dele. A busca da API (`/posts/search`) procura em todas as postagens, então o app mostra só os resultados dele.
+- **Administrador:** vê todas. O ícone de filtro ao lado da busca abre a folha **Autor** (*Todas as postagens* ou *Só as minhas*). Com o filtro ligado, aparece a etiqueta *Autor: só as minhas ×* abaixo da busca e um ponto no ícone; o selo *Você* marca as postagens dele na lista completa.
+
+O filtro vive no parâmetro da rota (`/admin?author=me`), então a folha só escolhe e volta com `router.dismissTo`.
 
 ## Aba Conta
 
 Mostra nome, e-mail e perfil (para estudante, *Conta de estudante* e o perfil, porque `GET /users/:id` não é liberado para estudante) e a validade da sessão. Professores e administradores têm **Editar meus dados** (`/account/edit`, `GET` e `PUT /users/:id` na própria conta, sem exclusão). **Sair** pede confirmação.
 
+## Filtros (folha nativa)
+
+O ícone de filtro ao lado da busca (`FilterButton`) abre uma folha nativa (`presentation: 'formSheet'`, do tamanho do conteúdo, sem biblioteca de bottom sheet). A folha (`FilterSheet`) lista uma escolha por grupo e tem **Limpar** e **Aplicar**; as escolhas só valem ao aplicar. Elas voltam para a aba como parâmetro da rota (`/people?role=STUDENT`), e a aba mostra a etiqueta do filtro ativo (`FilterTag`, com × para remover) e um ponto no ícone. Hoje há dois filtros: perfil em Pessoas e autor em Gerenciar (só administrador).
+
 ## Pendências
 
-- Filtro "Minhas postagens" em Gerenciar: depende de um filtro por autor na API.
 - Tela de abertura nativa (splash): depende do plugin `expo-splash-screen`, que não está instalado (ver `docs/design-system.md`).
 
 ## Como adicionar telas
@@ -198,13 +205,14 @@ As funcionalidades incluem:
 - Formulários reutilizáveis para professores e estudantes.
 - Validação de nome, e-mail e senha (mínimo de 8 caracteres no cadastro; opcional na edição).
 - Cadastro por `POST /users` e edição por `PUT /users/:id`, sem alterar o perfil.
-- Aba **Pessoas** com seletor Professores | Estudantes e busca por e-mail. Listagem por `GET /users?role=TEACHER` ou `GET /users?role=STUDENT`, com `limit=20`, `cursor` e `search` opcionais; filtro, busca e paginação são feitos no backend.
+- Aba **Pessoas** com uma lista única, cada cartão com o selo do perfil, busca por e-mail e filtro por perfil na folha (*Todos*, *Professores*, *Estudantes* e, só para o administrador, *Administradores*). Listagem por `GET /users`, com `role`, `limit=20`, `cursor` e `search` opcionais; sem `role`, o professor recebe professores e estudantes e o administrador, todos. Filtro, busca e paginação são feitos no backend.
+- **Nova pessoa** abre o cadastro em modal com a escolha do perfil (já vem o do filtro ativo).
 - Consulta de usuários para edição com `GET /users/:id`.
 - Atualização da listagem após operações.
 - Exclusão na tela de edição, com confirmação (`Alert` nativo), por `DELETE /users/:id`.
 - Cancelamento da exclusão sem modificar os dados.
-- Pessoa inexistente ou de outra lista: a edição oferece **Voltar** em vez de tentar de novo.
-- Bloqueio da exclusão da própria conta para `TEACHER`.
+- Pessoa inexistente: a edição oferece **Voltar** em vez de tentar de novo. Nenhum perfil exclui a própria conta.
+- Bloqueio da exclusão da própria conta, para qualquer perfil.
 - Mensagens de sucesso e erro após as operações, incluindo conflito `409` na exclusão de usuário com postagens.
 
 ### Arquitetura
@@ -221,13 +229,13 @@ Os componentes compartilhados estão em `src/features/people/`:
 | `form-validation.ts` | Validação dos formulários |
 | `permissions.ts` | Controle de permissões |
 
-As telas de gerenciamento são disponibilizadas aos perfis `ADMIN` e `TEACHER`; `STUDENT` não pode acessá-las. A API valida as permissões em cada operação.
+**Permissões:** `ADMIN` e `TEACHER` veem a lista de professores e estudantes (a aba **Pessoas**); só o `ADMIN` cadastra, edita e exclui contas. Para o professor, a aba não tem **Nova pessoa**, os cartões não abrem a edição e as rotas `/people/create` e `/people/:id/edit` o levam de volta aos posts. O professor edita apenas a própria conta, em **Editar meus dados** (aba Conta). `STUDENT` não acessa nada disso. A API valida as permissões em cada operação (`POST` e `DELETE /users` só para `ADMIN`; `PUT /users/:id` para `ADMIN` ou a própria conta).
 
 ### Testes e validação
 
 Verificações automatizadas realizadas:
 
-- 154 testes mobile aprovados em 14 suítes, incluindo chamadas HTTP simuladas e fluxos de professores.
+- 176 testes mobile aprovados em 14 suítes, incluindo chamadas HTTP simuladas e fluxos de professores.
 - Typecheck aprovado.
 - ESLint aprovado.
 
