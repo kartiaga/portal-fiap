@@ -2,6 +2,7 @@ import { listUsersQuerySchema } from '@/modules/users/dto/list-users.dto'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { GetUsersUseCase } from '../../use-cases/get-users.use-case'
 import { UserRepository } from '../../repositories/user.repository'
+import { getActor, sendUserError } from './shared'
 
 export async function list(
   request: FastifyRequest,
@@ -19,10 +20,11 @@ export async function list(
     const userRepository = new UserRepository()
     const getUsersUseCase = new GetUsersUseCase(userRepository)
 
-    const result = await getUsersUseCase.handler(parsed.data)
+    const result = await getUsersUseCase.handler(getActor(request), parsed.data)
 
     return reply.status(200).send(result)
   } catch (error) {
+    if (sendUserError(reply, error)) return
     if (error instanceof Error && error.message === 'Invalid cursor') {
       return reply.status(400).send({ message: 'Invalid cursor' })
     }

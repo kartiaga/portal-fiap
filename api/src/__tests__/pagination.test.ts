@@ -29,13 +29,13 @@ describe('pagination helpers', () => {
 
   it('builds paginated result with hasMore and nextCursor', () => {
     const rows = [
-      { id: '1', createdAt: '2026-01-03T00:00:00.000Z' },
-      { id: '2', createdAt: '2026-01-02T00:00:00.000Z' },
-      { id: '3', createdAt: '2026-01-01T00:00:00.000Z' },
+      { id: '1', cursor_created_at: '2026-01-03T00:00:00.000Z' },
+      { id: '2', cursor_created_at: '2026-01-02T00:00:00.000Z' },
+      { id: '3', cursor_created_at: '2026-01-01T00:00:00.000Z' },
     ]
 
     const result = buildPaginatedResult(rows, 2, (item) => ({
-      createdAt: item.createdAt,
+      createdAt: item.cursor_created_at,
       id: item.id,
     }))
 
@@ -46,10 +46,10 @@ describe('pagination helpers', () => {
 
   it('returns empty paginated result when there are no rows', () => {
     const result = buildPaginatedResult(
-      [] as Array<{ id: string; createdAt: Date }>,
+      [] as Array<{ id: string; cursor_created_at: string }>,
       20,
       (item) => ({
-        createdAt: item.createdAt,
+        createdAt: item.cursor_created_at,
         id: item.id,
       }),
     )

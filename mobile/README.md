@@ -156,3 +156,85 @@ const { user, signOut } = useSession();
 const posts = await apiFetch('/posts'); // o token é enviado automaticamente
 const showEditButton = canManagePosts(user?.role);
 ```
+
+## Gerenciamento de professores e estudantes — Requisitos 5 a 8
+
+Implementação das funcionalidades de gerenciamento de professores e estudantes no aplicativo mobile, com componentes reutilizáveis em React Native, Expo e TypeScript, integrados à API REST do Portal FIAP.
+
+### Funcionalidades
+
+| Requisito | Descrição |
+|---|---|
+| 5 | Cadastro de professores |
+| 6 | Edição de professores |
+| 7 | Listagem paginada e exclusão de professores |
+| 8 | Cadastro, edição, listagem paginada e exclusão de estudantes |
+
+As funcionalidades incluem:
+
+- Formulários reutilizáveis para professores e estudantes.
+- Validação de nome, e-mail e senha (mínimo de 8 caracteres no cadastro; opcional na edição).
+- Cadastro por `POST /users` e edição por `PUT /users/:id`, sem alterar o perfil.
+- Listagem por `GET /users?role=TEACHER` ou `GET /users?role=STUDENT`, com `limit=20` e `cursor` opcional; filtro e paginação são feitos no backend, sem filtrar páginas no app.
+- Consulta de usuários para edição com `GET /users/:id`.
+- Atualização da listagem após operações.
+- Confirmação antes de excluir um cadastro por `DELETE /users/:id`.
+- Cancelamento da exclusão sem modificar os dados.
+- Bloqueio da exclusão da própria conta para `TEACHER`.
+- Mensagens de sucesso e erro após as operações, incluindo conflito `409` na exclusão de usuário com postagens.
+
+### Arquitetura
+
+Os componentes compartilhados estão em `src/features/people/`:
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `api.ts` | Comunicação com a API |
+| `person-list.tsx` | Listagem e gerenciamento |
+| `person-form.tsx` | Cadastro |
+| `person-edit.tsx` | Edição |
+| `form-fields.tsx` | Campos reutilizáveis |
+| `form-validation.ts` | Validação dos formulários |
+| `permissions.ts` | Controle de permissões |
+
+As telas de gerenciamento são disponibilizadas aos perfis `ADMIN` e `TEACHER`; `STUDENT` não pode acessá-las. A API valida as permissões em cada operação.
+
+### Testes e validação
+
+Verificações automatizadas realizadas:
+
+- 89 testes mobile aprovados em 11 suítes, incluindo chamadas HTTP simuladas e fluxos de professores.
+- Typecheck aprovado.
+- ESLint aprovado.
+
+Testes manuais registrados anteriormente no emulador Android Pixel 6, com API e PostgreSQL ativos (a execução completa não foi repetida nesta validação):
+
+- Login com perfil `TEACHER`.
+- Listagem de professores e estudantes.
+- Cadastro de professores e estudantes.
+- Edição de dados e confirmação da atualização na lista.
+- Exclusão com confirmação.
+- Cancelamento de exclusão sem remover o cadastro.
+- Exibição de mensagem de sucesso após exclusão.
+
+Nesta validação, com sessão `TEACHER` já ativa no emulador, foram conferidas as listas reais de professores e estudantes, a navegação para cadastro e edição, o carregamento dos dados na edição, a validação de formulário vazio, o bloqueio da exclusão da própria conta e o cancelamento da confirmação de exclusão. Nenhum cadastro foi criado, editado ou excluído nesta validação.
+
+Testes adicionais pendentes:
+
+- Paginação com múltiplas páginas de dados reais.
+- Resposta HTTP `409` ao excluir usuário com postagens.
+- Validação completa com os demais perfis de acesso.
+
+### Testes automatizados específicos
+
+- `src/__tests__/people-api.test.ts`
+- `src/__tests__/people-flow.test.tsx`
+
+Para executar as verificações:
+
+```bash
+cd mobile
+npm test
+npm run typecheck
+npm run lint
+```
