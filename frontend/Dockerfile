@@ -4,7 +4,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package.json ./
-RUN npm install
+# --legacy-peer-deps contorna bug do npm 10 (edgesOut) ao resolver peers do vitest 5
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
