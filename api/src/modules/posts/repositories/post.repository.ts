@@ -2,13 +2,18 @@ import { database } from '@/lib/db'
 
 import {
   buildPaginatedResult,
-  decodeCursor,
   resolveLimit,
   type PaginatedResult,
   type PaginationParams,
 } from '@/lib/pagination'
 
 import type { Post } from '../entities/post'
+import { buildPostListQuery } from './post-list-query'
+
+export type PostListParams = PaginationParams & {
+  /** Só as postagens deste autor. */
+  authorId?: string | undefined
+}
 
 interface PostRow {
   id: string
@@ -114,47 +119,12 @@ export class PostRepository {
   }
 
   public async findPaginated(
-    params: PaginationParams = {},
+    params: PostListParams = {},
   ): Promise<PaginatedResult<Post>> {
     const limit = resolveLimit(params.limit)
-    const fetchLimit = limit + 1
+    const { sql, values } = buildPostListQuery({ ...params, limit })
 
-    const SELECT_COLUMNS = `
-      posts.id, posts.title, posts.content, posts.author_id,
-      profiles.name AS author_name, posts.created_at,
-      to_char(posts.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
-      posts.updated_at
-    `
-
-    let result
-
-    if (params.cursor) {
-      const { createdAt, id } = decodeCursor(params.cursor)
-
-      result = await database.clienteInstance?.query(
-        `
-        SELECT ${SELECT_COLUMNS}
-        FROM posts
-        LEFT JOIN profiles ON profiles.user_id = posts.author_id
-        WHERE (posts.created_at, posts.id) < ($1::timestamptz, $2::uuid)
-        ORDER BY posts.created_at DESC, posts.id DESC
-        LIMIT $3
-        `,
-        [createdAt, id, fetchLimit],
-      )
-    } else {
-      result = await database.clienteInstance?.query(
-        `
-        SELECT ${SELECT_COLUMNS}
-        FROM posts
-        LEFT JOIN profiles ON profiles.user_id = posts.author_id
-        ORDER BY posts.created_at DESC, posts.id DESC
-        LIMIT $1
-        `,
-        [fetchLimit],
-      )
-    }
-
+    const result = await database.clienteInstance?.query(sql, values)
     const rows = (result?.rows ?? []) as PostRow[]
 
     return buildPaginatedResult(rows, limit, (row) => this.mapRow(row))
