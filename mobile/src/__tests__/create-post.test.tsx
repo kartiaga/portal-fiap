@@ -1,6 +1,7 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import { renderRouter } from 'expo-router/testing-library';
+import { Alert } from 'react-native';
 
 import { validatePost } from '@/components/post-form';
 import { setAuthToken } from '@/lib/api';
@@ -14,6 +15,8 @@ jest.mock('expo-secure-store', () => ({
 
 const store = jest.mocked(SecureStore);
 const fetchMock = jest.fn();
+const alertSpy = jest.spyOn(Alert, 'alert');
+const EMPTY_FEED = 'Quando houver avisos, eles aparecem aqui.';
 
 function makeToken(role: string): string {
   const exp = Math.floor(Date.now() / 1000) + 3600;
@@ -47,12 +50,22 @@ function requests(method: string) {
   return fetchMock.mock.calls.filter(([, init]) => (init.method ?? 'GET') === method);
 }
 
-/** Abre a criação pela tela inicial, para que exista uma tela para onde voltar. */
+/**
+ * Abre a criação pela aba Posts, para que exista uma tela para onde voltar. As abas nativas
+ * montam todas as telas, e Gerenciar também tem "Nova postagem": a primeira é a da aba Posts.
+ */
 async function openForm(role = 'TEACHER') {
   store.getItemAsync.mockResolvedValue(makeToken(role));
   await renderRouter('src/app', { initialUrl: '/' });
-  await fireEvent.press(await screen.findByRole('button', { name: 'Nova postagem' }));
+  const [button] = await screen.findAllByRole('button', { name: 'Nova postagem' });
+  await fireEvent.press(button);
   await screen.findByLabelText('Título');
+}
+
+/** Responde ao último `Alert.alert` tocando no botão com este texto. */
+async function answerAlert(text: string) {
+  const buttons = alertSpy.mock.lastCall?.[2] ?? [];
+  await act(async () => buttons.find((button) => button.text === text)?.onPress?.());
 }
 
 async function fillForm(title: string, content: string) {
@@ -75,12 +88,16 @@ beforeEach(() => {
 
 describe('validação', () => {
   it.each([
-    [{ title: 'ab', content: 'Conteúdo válido.' }, 'O título deve ter pelo menos 3 caracteres.'],
-    [{ title: 'a'.repeat(256), content: 'Conteúdo válido.' }, 'O título deve ter no máximo 255 caracteres.'],
-    [{ title: 'Título', content: 'curto' }, 'O conteúdo deve ter pelo menos 10 caracteres.'],
-    [{ title: 'Título', content: 'Conteúdo válido.' }, null],
-  ])('aplica as regras da API a %j', (values, message) => {
-    expect(validatePost(values)).toBe(message);
+    [{ title: 'ab', content: 'Conteúdo válido.' }, { title: 'O título deve ter pelo menos 3 caracteres.' }],
+    [{ title: 'a'.repeat(256), content: 'Conteúdo válido.' }, { title: 'O título deve ter no máximo 255 caracteres.' }],
+    [{ title: 'Título', content: 'curto' }, { content: 'O conteúdo deve ter pelo menos 10 caracteres.' }],
+    [{ title: 'ab', content: 'curto' }, {
+      title: 'O título deve ter pelo menos 3 caracteres.',
+      content: 'O conteúdo deve ter pelo menos 10 caracteres.',
+    }],
+    [{ title: 'Título', content: 'Conteúdo válido.' }, {}],
+  ])('aplica as regras da API a %j', (values, errors) => {
+    expect(validatePost(values)).toEqual(errors);
   });
 
   it('mostra o erro sem chamar a API e ignora espaços nas pontas', async () => {
@@ -101,8 +118,9 @@ describe('acesso', () => {
     store.getItemAsync.mockResolvedValue(makeToken('STUDENT'));
     await renderRouter('src/app', { initialUrl: '/' });
 
-    expect(await screen.findByText('Nenhuma postagem publicada.')).toBeOnTheScreen();
+    expect(await screen.findByText(EMPTY_FEED)).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Nova postagem' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Criar a primeira' })).toBeNull();
   });
 
   it('estudante não abre o formulário por link direto', async () => {
@@ -115,11 +133,13 @@ describe('acesso', () => {
     expect(screen.queryByRole('button', { name: 'Publicar postagem' })).toBeNull();
   });
 
-  it('mostra o autor como a própria sessão, sem permitir edição', async () => {
+  it('não mostra bloco de autor nem botão Cancelar no rodapé', async () => {
     mockApi(() => emptyPage);
     await openForm();
 
-    expect(screen.getByLabelText('Autor: Você')).toBeOnTheScreen();
+    expect(screen.queryByText(/Editando a postagem de/)).toBeNull();
+    // O único "Cancelar" é o do cabeçalho do modal.
+    expect(screen.getAllByRole('button', { name: 'Cancelar' })).toHaveLength(1);
   });
 });
 
@@ -167,15 +187,58 @@ describe('envio', () => {
     expect(screen).toHavePathname('/posts/new');
   });
 
-  it('cancelar volta para a lista sem chamar a API', async () => {
+  it('Cancelar no cabeçalho fecha direto quando nada foi digitado', async () => {
+    mockApi(() => emptyPage);
+    await openForm();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(await screen.findByText(EMPTY_FEED)).toBeOnTheScreen();
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(screen).toHavePathname('/');
+  });
+});
+
+describe('proteção contra descarte', () => {
+  it('pede confirmação ao cancelar com algo digitado e continua editando', async () => {
+    mockApi(() => emptyPage);
+    await openForm();
+    await fillForm('Aula de hoje', '');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Descartar alterações?',
+      'O que você escreveu será perdido.',
+      expect.any(Array),
+    );
+    await answerAlert('Continuar editando');
+    expect(screen).toHavePathname('/posts/new');
+    expect(screen.getByLabelText('Título')).toHaveDisplayValue('Aula de hoje');
+  });
+
+  it('descarta e volta para a lista sem chamar a API', async () => {
     mockApi(() => emptyPage);
     await openForm();
     await fillForm('Aula de hoje', 'Conteúdo da aula de hoje.');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+    await answerAlert('Descartar');
 
-    expect(await screen.findByText('Nenhuma postagem publicada.')).toBeOnTheScreen();
+    expect(await screen.findByText(EMPTY_FEED)).toBeOnTheScreen();
+    expect(screen).toHavePathname('/');
     expect(requests('POST')).toHaveLength(0);
     expect(screen.queryByText('Postagem publicada.')).toBeNull();
+  });
+
+  it('não pergunta nada depois de publicar com sucesso', async () => {
+    mockApi((_url, init) => (init.method === 'POST' ? json(201, CREATED) : emptyPage));
+    await openForm();
+    await fillForm('Aula de hoje', 'Conteúdo da aula de hoje.');
+
+    await submit();
+
+    expect(await screen.findByText('Postagem publicada.')).toBeOnTheScreen();
+    expect(alertSpy).not.toHaveBeenCalled();
   });
 });

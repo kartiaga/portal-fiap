@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import { renderRouter } from 'expo-router/testing-library';
 import { Alert } from 'react-native';
@@ -81,7 +81,8 @@ describe('listagem', () => {
 
     expect(await screen.findByText('Título a')).toBeOnTheScreen();
     expect(screen.getByText('Conteúdo a')).toBeOnTheScreen();
-    expect(screen.getByText(/^Carlos · Atualizada em/)).toBeOnTheScreen();
+    expect(screen.getByText('Carlos')).toBeOnTheScreen();
+    expect(screen.getByText(/^Editada \d{2}\/\d{2}\/\d{4}$/)).toBeOnTheScreen();
   });
 
   it('funciona quando a API não informa o nome do autor', async () => {
@@ -136,6 +137,56 @@ describe('listagem', () => {
   });
 });
 
+describe('cabeçalho e busca', () => {
+  it.each([
+    ['TEACHER', 'Todas as postagens. Você pode editar as suas.'],
+    ['ADMIN', 'Edite ou exclua qualquer postagem'],
+  ])('explica o alcance da permissão (%s) e oferece "Nova postagem"', async (role, subtitle) => {
+    mockApi(() => page([makePost('a')]));
+    await renderAdmin(role);
+
+    expect(await screen.findByText(subtitle)).toBeOnTheScreen();
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Nova postagem' }).at(-1)!);
+    expect(await screen.findByLabelText('Título')).toBeOnTheScreen();
+    expect(screen).toHavePathname('/posts/new');
+  });
+
+  it('busca postagens pelo termo, como no feed', async () => {
+    mockApi((url) =>
+      url.includes('/posts/search') ? json(200, [makePost('node')]) : page([makePost('a')]),
+    );
+    await renderAdmin();
+    await screen.findByText('Título a');
+
+    await fireEvent.changeText(screen.getByTestId('admin-search'), ' node ');
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+
+    expect(await screen.findByText('Título node')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('admin-posts-list')).queryByText('Título a')).toBeNull();
+    const searches = fetchMock.mock.calls.map(([url]) => String(url)).filter((url) => url.includes('/posts/search'));
+    expect(searches.at(-1)).toMatch(/term=node$/);
+  });
+
+  it('avisa quando a busca não encontra nada', async () => {
+    mockApi((url) => (url.includes('/posts/search') ? json(200, []) : page([makePost('a')])));
+    await renderAdmin();
+    await screen.findByText('Título a');
+
+    await fireEvent.changeText(screen.getByTestId('admin-search'), 'inexistente');
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+
+    expect(
+      await within(screen.getByTestId('admin-posts-list')).findByText(
+        'Nenhuma postagem encontrada para esta busca.',
+      ),
+    ).toBeOnTheScreen();
+  });
+});
+
 describe('permissões', () => {
   it('professor só vê as ações das próprias postagens', async () => {
     mockApi(() => page([makePost('minha'), makePost('alheia', 'outro')]));
@@ -155,6 +206,27 @@ describe('permissões', () => {
 
     expect(screen.getByRole('button', { name: 'Excluir Título alheia' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Editar Título alheia' })).toBeOnTheScreen();
+  });
+});
+
+describe('cartão', () => {
+  it('marca as postagens do usuário com o selo "Você"', async () => {
+    mockApi(() => page([makePost('minha'), makePost('alheia', 'outro', 'Bruno')]));
+    await renderAdmin();
+    await screen.findByText('Título minha');
+
+    expect(within(screen.getByTestId('admin-posts-list')).getAllByText('Você')).toHaveLength(1);
+  });
+
+  it('tocar no cartão abre a leitura da postagem', async () => {
+    mockApi((url) => (url.endsWith('/posts/a') ? json(200, makePost('a')) : page([makePost('a')])));
+    await renderAdmin();
+
+    await fireEvent.press(
+      await screen.findByRole('button', { name: 'Título a. Ana, sua postagem, editada em 15/01/2026' }),
+    );
+
+    expect(screen).toHavePathname('/posts/a');
   });
 });
 
