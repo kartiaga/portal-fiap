@@ -1,19 +1,20 @@
-import { Redirect, useFocusEffect, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/auth/session-context';
 import { Banner } from '@/components/banner';
+import { FilterButton } from '@/components/filter-button';
+import { FilterTag } from '@/components/filter-tag';
 import { ListFooter } from '@/components/list-footer';
 import { PersonCard } from '@/components/person-card';
 import { ScreenHeader } from '@/components/screen-header';
-import { SegmentedControl } from '@/components/segmented-control';
 import { LoadingState, StateMessage } from '@/components/state-message';
 import { TextField } from '@/components/text-field';
-import type { Person, PersonRole } from '@/features/people/api';
-import { peopleConfig } from '@/features/people/config';
-import { canManagePeople } from '@/features/people/permissions';
+import type { ListedRole, Person } from '@/features/people/api';
+import { parseListedRole, peopleConfig } from '@/features/people/config';
+import { canManagePeople, canViewPeople } from '@/features/people/permissions';
 import { usePeople } from '@/features/people/use-people';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useNotice } from '@/hooks/use-notice';
@@ -23,16 +24,16 @@ import { MaxContentWidth, Spacing } from '@/theme';
 
 const SEARCH_DEBOUNCE_MS = 400;
 
-const ROLE_OPTIONS = [
-  { value: 'TEACHER', label: peopleConfig.TEACHER.plural },
-  { value: 'STUDENT', label: peopleConfig.STUDENT.plural },
-] as const;
-
-/** Aba Pessoas: professores e estudantes, com busca por e-mail. Tocar numa pessoa abre a edição. */
+/**
+ * Aba Pessoas: todos os perfis numa lista só, com busca por e-mail e filtro por perfil (folha
+ * aberta pelo ícone ao lado da busca). O perfil escolhido fica no parâmetro `role` da rota.
+ * Professor e administrador veem a lista; só o administrador cadastra (botão "Nova pessoa") e
+ * edita (tocar numa pessoa abre a edição).
+ */
 export default function PeopleScreen() {
   const { user } = useSession();
 
-  if (!canManagePeople(user?.role)) return <Redirect href="/" />;
+  if (!canViewPeople(user?.role)) return <Redirect href="/" />;
 
   return <People />;
 }
@@ -40,11 +41,13 @@ export default function PeopleScreen() {
 function People() {
   const theme = useTheme();
   const router = useRouter();
-  const [role, setRole] = useState<PersonRole>('TEACHER');
+  const { user } = useSession();
+  const canManage = canManagePeople(user?.role);
+  const params = useLocalSearchParams<{ role?: string }>();
+  const role = parseListedRole(params.role);
   const [search, setSearch] = useState('');
   const { notice, showNotice, clearNotice } = useNotice();
   const term = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
-  const config = peopleConfig[role];
 
   useFocusEffect(
     useCallback(() => {
@@ -57,34 +60,49 @@ function People() {
       <View style={styles.header}>
         <ScreenHeader
           title="Pessoas"
-          action={{
-            label: config.newLabel,
-            icon: 'person-add-outline',
-            onPress: () => router.push(config.createPath),
-          }}
+          action={
+            canManage
+              ? {
+                  label: 'Nova pessoa',
+                  icon: 'person-add-outline',
+                  onPress: () =>
+                    router.push({
+                      pathname: '/people/create',
+                      params: role && role !== 'ADMIN' ? { role } : {},
+                    }),
+                }
+              : undefined
+          }
         />
-        <SegmentedControl
-          accessibilityLabel="Perfil"
-          options={ROLE_OPTIONS}
-          value={role}
-          onChange={(value) => {
-            clearNotice();
-            setRole(value);
-          }}
-        />
-        <TextField
-          variant="search"
-          label="Buscar por e-mail"
-          icon="search"
-          value={search}
-          onChangeText={setSearch}
-          placeholder="nome@fiap.com.br"
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-        />
+        <View style={styles.searchRow}>
+          <View style={styles.search}>
+            <TextField
+              testID="people-search"
+              variant="search"
+              label="Buscar por e-mail"
+              icon="search"
+              value={search}
+              onChangeText={setSearch}
+              placeholder="nome@fiap.com.br"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+          </View>
+          <FilterButton
+            testID="people-filter"
+            activeCount={role ? 1 : 0}
+            onPress={() => router.push({ pathname: '/filters/people', params: { role: role ?? '' } })}
+          />
+        </View>
+        {role ? (
+          <FilterTag
+            label={`Perfil: ${peopleConfig[role].plural}`}
+            onRemove={() => router.setParams({ role: '' })}
+          />
+        ) : null}
         {notice ? (
           <Banner
             kind={notice.kind}
@@ -94,21 +112,22 @@ function People() {
         ) : null}
       </View>
 
-      {/* A chave recria a lista ao trocar de perfil: a lista anterior não aparece sob o rótulo novo. */}
-      <PeopleResults key={role} role={role} search={term} />
+      {/* A chave recria a lista ao trocar de filtro: a lista anterior não aparece sob a etiqueta nova. */}
+      <PeopleResults key={role ?? 'all'} role={role} search={term} />
     </SafeAreaView>
   );
 }
 
-function PeopleResults({ role, search }: { role: PersonRole; search: string }) {
+function PeopleResults({ role, search }: { role: ListedRole | undefined; search: string }) {
   const theme = useTheme();
   const router = useRouter();
   const { user } = useSession();
-  const config = peopleConfig[role];
+  const canManage = canManagePeople(user?.role);
   const { items, loaded, stale, refreshing, loadingMore, error, loadMoreError, reload, loadMore } = usePeople(
     role,
     search,
   );
+  const noun = role ? peopleConfig[role].singular : 'pessoa';
 
   // Recarrega ao voltar para a aba (cadastro, edição ou exclusão) e quando a busca muda.
   useFocusEffect(
@@ -118,15 +137,11 @@ function PeopleResults({ role, search }: { role: PersonRole; search: string }) {
   );
 
   const openPerson = useCallback(
-    (person: Person) =>
-      router.push({
-        pathname: role === 'TEACHER' ? '/teachers/[id]/edit' : '/students/[id]/edit',
-        params: { id: person.id },
-      }),
-    [role, router],
+    (person: Person) => router.push({ pathname: '/people/[id]/edit', params: { id: person.id } }),
+    [router],
   );
 
-  if (!loaded) return <LoadingState label={`Carregando ${config.plural.toLowerCase()}`} />;
+  if (!loaded) return <LoadingState label="Carregando pessoas" />;
 
   if (items.length === 0 && error) {
     return (
@@ -145,7 +160,11 @@ function PeopleResults({ role, search }: { role: PersonRole; search: string }) {
       data={items}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <PersonCard person={item} isSelf={item.id === user?.id} onPress={openPerson} />
+        <PersonCard
+          person={item}
+          isSelf={item.id === user?.id}
+          onPress={canManage ? openPerson : undefined}
+        />
       )}
       ListHeaderComponent={
         stale ? (
@@ -159,15 +178,19 @@ function PeopleResults({ role, search }: { role: PersonRole; search: string }) {
           <StateMessage
             icon="search"
             title="Ninguém encontrado"
-            message={`Nenhum ${config.singular} com e-mail parecido com "${search}".`}
+            message={`Nenhum ${noun} com e-mail parecido com "${search}".`}
           />
         ) : (
           <StateMessage
             icon="people-outline"
-            title={`Nenhum ${config.singular} cadastrado`}
-            message="Cadastre o primeiro para que ele possa entrar no app."
-            actionLabel={config.newLabel}
-            onAction={() => router.push(config.createPath)}
+            title={role ? `Nenhum ${noun} cadastrado` : 'Ninguém cadastrado'}
+            message={
+              canManage
+                ? 'Cadastre a primeira pessoa para que ela possa entrar no app.'
+                : 'Quando o administrador cadastrar alguém, a pessoa aparece aqui.'
+            }
+            actionLabel={canManage ? 'Nova pessoa' : undefined}
+            onAction={canManage ? () => router.push('/people/create') : undefined}
           />
         )
       }
@@ -176,7 +199,7 @@ function PeopleResults({ role, search }: { role: PersonRole; search: string }) {
           loading={loadingMore}
           error={loadMoreError}
           onRetry={() => void loadMore()}
-          loadingLabel={`Carregando mais ${config.plural.toLowerCase()}`}
+          loadingLabel="Carregando mais pessoas"
         />
       }
       refreshControl={
@@ -208,6 +231,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.four,
     gap: Spacing.three,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  search: {
+    flex: 1,
   },
   list: {
     alignSelf: 'center',

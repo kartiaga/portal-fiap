@@ -1,25 +1,17 @@
-import type { PersonRole } from './api';
+import type { ListedRole, PersonRole } from './api';
 
-export const peopleConfig: Record<
-  PersonRole,
-  {
-    plural: string;
-    singular: string;
-    /** Rótulo do botão de cadastro. */
-    newLabel: string;
-    createPath: '/teachers/create' | '/students/create';
-  }
-> = {
-  TEACHER: {
-    plural: 'Professores',
-    singular: 'professor',
-    newLabel: 'Novo professor',
-    createPath: '/teachers/create',
-  },
-  STUDENT: {
-    plural: 'Estudantes',
-    singular: 'estudante',
-    newLabel: 'Novo estudante',
-    createPath: '/students/create',
-  },
+/** Nomes de cada perfil nas listas, mensagens e botões. */
+export const peopleConfig: Record<ListedRole, { plural: string; singular: string }> = {
+  TEACHER: { plural: 'Professores', singular: 'professor' },
+  STUDENT: { plural: 'Estudantes', singular: 'estudante' },
+  ADMIN: { plural: 'Administradores', singular: 'administrador' },
 };
+
+/** Perfis que o app cadastra, na ordem em que aparecem no formulário. */
+export const CREATABLE_ROLES: readonly PersonRole[] = ['TEACHER', 'STUDENT'];
+
+/** Lê o perfil de um parâmetro de rota; qualquer outro valor (ou ausência) é "todos". */
+export function parseListedRole(value: string | string[] | undefined): ListedRole | undefined {
+  const role = Array.isArray(value) ? value[0] : value;
+  return role === 'TEACHER' || role === 'STUDENT' || role === 'ADMIN' ? role : undefined;
+}

@@ -7,8 +7,10 @@ import { getPosts, searchPosts, type Post } from '@/lib/posts';
 /**
  * Estado de uma lista de postagens (aba Posts e aba Gerenciar). Sem termo, usa a listagem
  * paginada; com termo, usa a busca da API, que devolve todos os resultados de uma vez.
+ * Com `authorId`, a lista traz só as postagens desse autor: a listagem filtra na API e a busca
+ * (que a API não filtra por autor) é filtrada aqui, já que devolve tudo de uma vez.
  */
-export function usePostsFeed(term: string) {
+export function usePostsFeed(term: string, authorId?: string) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [appliedTerm, setAppliedTerm] = useState('');
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -37,10 +39,10 @@ export function usePostsFeed(term: string) {
         if (term) {
           const found = await searchPosts(term);
           if (request !== latestRequest.current) return;
-          setPosts(found);
+          setPosts(authorId ? found.filter((post) => post.authorId === authorId) : found);
           setNextCursor(null);
         } else {
-          const page = await getPosts();
+          const page = await getPosts(null, authorId);
           if (request !== latestRequest.current) return;
           setPosts(page.items);
           setNextCursor(page.hasMore ? page.nextCursor : null);
@@ -60,7 +62,7 @@ export function usePostsFeed(term: string) {
       setLoaded(true);
       setRefreshing(false);
     },
-    [term, clearNotice],
+    [term, authorId, clearNotice],
   );
 
   const loadMore = useCallback(async () => {
@@ -71,7 +73,7 @@ export function usePostsFeed(term: string) {
     setLoadMoreError(null);
 
     try {
-      const page = await getPosts(nextCursor);
+      const page = await getPosts(nextCursor, authorId);
       if (request !== latestRequest.current) return;
       setPosts((current) => {
         const knownIds = new Set(current.map((post) => post.id));
@@ -84,7 +86,7 @@ export function usePostsFeed(term: string) {
     }
 
     setLoadingMore(false);
-  }, [nextCursor, loadingMore, refreshing]);
+  }, [nextCursor, loadingMore, refreshing, authorId]);
 
   /** Tira uma postagem da lista na hora (depois de excluí-la) e descarta respostas em andamento. */
   const dropPost = useCallback((postId: string) => {

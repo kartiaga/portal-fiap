@@ -1,5 +1,5 @@
 import { hashPassword } from '@/lib/password'
-import { assertCanManage, type UserActor } from '../access'
+import { assertCanEdit, type UserActor } from '../access'
 import { UserError } from '../errors'
 import type {
   PublicUser,
@@ -14,9 +14,10 @@ export class UpdateUserUseCase {
     data: { email: string; name: string; password?: string | undefined },
     actor: UserActor,
   ): Promise<PublicUser> {
+    // A permissão vem antes da consulta: quem não pode editar não descobre se o id existe.
+    assertCanEdit(actor, id)
     const existing = await this.userRepository.findById(id)
     if (!existing) throw new UserError('User not found', 404)
-    assertCanManage(actor, existing.role)
     const password = data.password
       ? await hashPassword(data.password)
       : undefined

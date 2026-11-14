@@ -913,7 +913,7 @@ curl -X POST http://localhost:3001/posts \
 curl http://localhost:3001/posts \
   -H "Authorization: Bearer <token>"
 
-# Criar um usuário (ADMIN ou TEACHER; TEACHER não pode criar ADMIN)
+# Criar um usuário (somente ADMIN)
 curl -X POST http://localhost:3001/users \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
@@ -1065,7 +1065,7 @@ Autentica um usuário e retorna um token JWT (validade de 15 dias).
 
 ### `POST /users`
 
-Cria um novo usuário e seu perfil. Requer token com papel `ADMIN` ou `TEACHER`. Professores podem criar usuários `TEACHER` ou `STUDENT`, mas não `ADMIN`; estudantes não podem gerenciar usuários.
+Cria um novo usuário e seu perfil. Requer token com papel `ADMIN`, que pode criar usuários de qualquer papel; professores e estudantes recebem `403`.
 
 **Headers:** `Authorization: Bearer <token>`
 
@@ -1086,19 +1086,19 @@ O campo `role` é opcional (`STUDENT`, `TEACHER` ou `ADMIN`; padrão: `STUDENT`)
 
 ### `GET /users`
 
-Lista usuários com paginação por cursor. Requer token `ADMIN` ou `TEACHER`; professores devem informar `role=TEACHER` ou `role=STUDENT`. Aceita `role`, `search` (e-mail), `limit` (1 a 50; padrão 20) e `cursor` opcionais. O filtro é aplicado no banco antes da paginação. A resposta contém `items` (com `id`, `email`, `name`, `role`, `createdAt` e `updatedAt`), `nextCursor` e `hasMore`, sem senhas. `name` pode ser `null` se não houver perfil associado.
+Lista usuários com paginação por cursor. Requer token `ADMIN` ou `TEACHER`. Sem `role`, o administrador recebe todos os perfis e o professor recebe só `TEACHER` e `STUDENT`; o professor que pede `role=ADMIN` recebe `403`. Aceita `role`, `search` (e-mail), `limit` (1 a 50; padrão 20) e `cursor` opcionais. O filtro é aplicado no banco antes da paginação. A resposta contém `items` (com `id`, `email`, `name`, `role`, `createdAt` e `updatedAt`), `nextCursor` e `hasMore`, sem senhas. `name` pode ser `null` se não houver perfil associado.
 
 ### `GET /users/:id`
 
-Consulta um usuário por UUID e retorna os mesmos campos públicos da listagem. `ADMIN` pode consultar qualquer papel; `TEACHER` pode consultar `TEACHER` ou `STUDENT`. Retorna `403` para papel não permitido e `404` para usuário inexistente.
+Consulta um usuário por UUID e retorna os mesmos campos públicos da listagem. `ADMIN` pode consultar qualquer papel; `TEACHER` pode consultar `TEACHER` ou `STUDENT` (consulta, nunca edição). Retorna `403` para papel não permitido e `404` para usuário inexistente.
 
 ### `PUT /users/:id`
 
-Atualiza `name`, `email` e, opcionalmente, `password` de um usuário acessível ao papel autenticado. A senha é armazenada como hash; omitir `password` preserva a senha atual. O papel não pode ser alterado. Retorna os campos públicos atualizados; e-mail duplicado retorna `409`.
+Atualiza `name`, `email` e, opcionalmente, `password` de um usuário. `ADMIN` edita qualquer conta; `TEACHER` edita apenas a própria, e editar a conta de outra pessoa retorna `403`. A senha é armazenada como hash; omitir `password` preserva a senha atual. O papel não pode ser alterado. Retorna os campos públicos atualizados; e-mail duplicado retorna `409`.
 
 ### `DELETE /users/:id`
 
-Exclui um usuário acessível ao papel autenticado. `TEACHER` não pode excluir a própria conta. Usuários com postagens não são excluídos: a API retorna `409` para preservar as postagens. Retorna uma mensagem de confirmação em caso de sucesso.
+Exclui um usuário. Requer token `ADMIN`; professores e estudantes recebem `403`. Ninguém exclui a própria conta. Usuários com postagens não são excluídos: a API retorna `409` para preservar as postagens. Retorna uma mensagem de confirmação em caso de sucesso.
 
 ---
 
@@ -1326,7 +1326,7 @@ Retorna uma publicação específica utilizando o ID informado na rota.
 
 ### `GET /posts`
 
-Retorna postagens paginadas por cursor. Requer autenticação. Aceita `limit` (1 a 50; padrão 20) e `cursor` opcional.
+Retorna postagens paginadas por cursor. Requer autenticação. Aceita `limit` (1 a 50; padrão 20), `cursor` e `authorId` (UUID) opcionais; com `authorId`, devolve só as postagens desse autor, com a mesma paginação (um `authorId` que não seja UUID retorna `400`).
 
 **Headers:**
 

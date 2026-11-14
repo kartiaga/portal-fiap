@@ -10,7 +10,7 @@ import { Icon, type IconName } from '@/components/icon';
 import { RoleBadge } from '@/components/role-badge';
 import { ScreenHeader } from '@/components/screen-header';
 import { getPerson, type Person } from '@/features/people/api';
-import { canManagePeople } from '@/features/people/permissions';
+import { canViewPeople } from '@/features/people/permissions';
 import { useNotice } from '@/hooks/use-notice';
 import { useTheme } from '@/hooks/use-theme';
 import { takeFlashNotice } from '@/lib/notice';
@@ -36,13 +36,14 @@ export default function AccountScreen() {
   const { user, signOut } = useSession();
   const [profile, setProfile] = useState<Person | null>(null);
   const { notice, showNotice } = useNotice();
-  const managesAccount = canManagePeople(user?.role);
+  // Professor e administrador editam a própria conta; a API não libera isso para estudante.
+  const managesAccount = canViewPeople(user?.role);
 
   useFocusEffect(
     useCallback(() => {
       // Aviso deixado por "Meus dados" ao salvar.
       showNotice(takeFlashNotice());
-      if (!user || !canManagePeople(user.role)) return;
+      if (!user || !canViewPeople(user.role)) return;
       let active = true;
       getPerson(user.id)
         .then((person) => {

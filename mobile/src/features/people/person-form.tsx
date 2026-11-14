@@ -7,6 +7,7 @@ import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
 import { FormScreen } from '@/components/form-screen';
 import { ModalCancel } from '@/components/modal-cancel';
+import { SegmentedControl } from '@/components/segmented-control';
 import { useDiscardGuard } from '@/hooks/use-discard-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { capitalize } from '@/lib/format';
@@ -14,26 +15,33 @@ import { setFlashNotice } from '@/lib/notice';
 import { Spacing, Typography } from '@/theme';
 
 import { createPerson, personError, type PersonRole } from './api';
-import { peopleConfig } from './config';
+import { CREATABLE_ROLES, peopleConfig } from './config';
 import { PersonFormFields } from './form-fields';
 import { hasErrors, validatePersonForm, type PersonFieldErrors } from './form-validation';
 import { canManagePeople } from './permissions';
 
+const ROLE_OPTIONS = CREATABLE_ROLES.map((role) => ({
+  value: role,
+  label: capitalize(peopleConfig[role].singular),
+}));
+
 /**
- * Cadastro de professor ou estudante, aberto em modal. Dando certo, volta para a aba Pessoas com o
- * aviso. Sair pelo "Cancelar" do cabeçalho com algo digitado pede confirmação.
+ * Cadastro de professor ou estudante, aberto em modal: o perfil é escolhido no topo (já vem o do
+ * filtro da lista, quando há). Dando certo, volta para a aba Pessoas com o aviso. Sair pelo
+ * "Cancelar" do cabeçalho com algo digitado pede confirmação.
  */
-export function PersonForm({ role }: { role: PersonRole }) {
+export function PersonForm({ initialRole = 'TEACHER' }: { initialRole?: PersonRole }) {
   const theme = useTheme();
   const { user } = useSession();
   const router = useRouter();
-  const config = peopleConfig[role];
+  const [role, setRole] = useState<PersonRole>(initialRole);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<PersonFieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const config = peopleConfig[role];
   const dirty = name !== '' || email !== '' || password !== '';
   const { guarding, allowLeave } = useDiscardGuard(dirty && !submitting);
 
@@ -70,6 +78,12 @@ export function PersonForm({ role }: { role: PersonRole }) {
         <Text style={[Typography.callout, { color: theme.textSecondary }]}>
           A pessoa entra no app com o e-mail e a senha definidos aqui.
         </Text>
+        <SegmentedControl
+          accessibilityLabel="Perfil"
+          options={ROLE_OPTIONS}
+          value={role}
+          onChange={setRole}
+        />
         <PersonFormFields
           name={name}
           email={email}

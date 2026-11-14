@@ -91,10 +91,17 @@ describe('listagem', () => {
     expect(await screen.findByText(/^Autor não informado/)).toBeOnTheScreen();
   });
 
-  it('mostra aviso quando não há postagens', async () => {
+  it('administrador sem postagens vê o aviso de lista vazia', async () => {
     mockApi(() => page([]));
-    await renderAdmin();
+    await renderAdmin('ADMIN');
     expect(await screen.findByText('Nenhuma postagem cadastrada.')).toBeOnTheScreen();
+  });
+
+  it('professor sem postagens é convidado a criar a primeira', async () => {
+    mockApi(() => page([]));
+    await renderAdmin('TEACHER');
+    expect(await screen.findByText('Você ainda não publicou nada')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Criar a primeira' })).toBeOnTheScreen();
   });
 
   it('permite tentar de novo depois de uma falha', async () => {
@@ -139,7 +146,7 @@ describe('listagem', () => {
 
 describe('cabeçalho e busca', () => {
   it.each([
-    ['TEACHER', 'Todas as postagens. Você pode editar as suas.'],
+    ['TEACHER', 'As postagens que você publicou'],
     ['ADMIN', 'Edite ou exclua qualquer postagem'],
   ])('explica o alcance da permissão (%s) e oferece "Nova postagem"', async (role, subtitle) => {
     mockApi(() => page([makePost('a')]));
@@ -187,6 +194,82 @@ describe('cabeçalho e busca', () => {
   });
 });
 
+/** Parâmetros dos pedidos de listagem de postagens (`GET /posts`, sem a busca). */
+function listRequests() {
+  return fetchMock.mock.calls
+    .map(([url]) => new URL(String(url)))
+    .filter((request) => request.pathname === '/posts');
+}
+
+describe('filtro por autor', () => {
+  it('o professor pede só as próprias postagens à API e não tem filtro', async () => {
+    mockApi(() => page([makePost('minha')]));
+    await renderAdmin('TEACHER');
+    await screen.findByText('Título minha');
+
+    expect(listRequests()[0]?.searchParams.get('authorId')).toBe(USER_ID);
+    expect(screen.queryByTestId('admin-filter')).toBeNull();
+  });
+
+  it('a busca do professor mostra só as dele (a API busca em todas)', async () => {
+    mockApi((url) =>
+      url.includes('/posts/search')
+        ? json(200, [makePost('minha'), makePost('alheia', 'outro', 'Bruno')])
+        : page([makePost('a')]),
+    );
+    await renderAdmin('TEACHER');
+    await screen.findByText('Título a');
+
+    await fireEvent.changeText(screen.getByTestId('admin-search'), 'titulo');
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+
+    expect(await screen.findByText('Título minha')).toBeOnTheScreen();
+    expect(screen.queryByText('Título alheia')).toBeNull();
+  });
+
+  it('o administrador começa vendo todas e filtra "Só as minhas" pela folha', async () => {
+    mockApi(() => page([makePost('minha'), makePost('alheia', 'outro', 'Bruno')]));
+    await renderAdmin('ADMIN');
+    await screen.findByText('Título alheia');
+    expect(listRequests()[0]?.searchParams.has('authorId')).toBe(false);
+
+    await fireEvent.press(screen.getByTestId('admin-filter'));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Só as minhas' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Aplicar' }));
+
+    expect(await screen.findByText('Autor: só as minhas')).toBeOnTheScreen();
+    expect(screen).toHavePathname('/admin');
+    expect(listRequests().at(-1)?.searchParams.get('authorId')).toBe(USER_ID);
+    expect(screen.getByRole('button', { name: 'Filtros, 1 ativo' })).toBeOnTheScreen();
+  });
+
+  it('remover a etiqueta volta a listar todas', async () => {
+    mockApi(() => page([makePost('minha')]));
+    await renderAdmin('ADMIN');
+    await screen.findByText('Título minha');
+    await fireEvent.press(screen.getByTestId('admin-filter'));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Só as minhas' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Aplicar' }));
+    await screen.findByText('Autor: só as minhas');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Remover filtro Autor: só as minhas' }));
+
+    await waitFor(() => expect(screen.queryByText('Autor: só as minhas')).toBeNull());
+    await waitFor(() => expect(listRequests().at(-1)?.searchParams.has('authorId')).toBe(false));
+  });
+
+  it('o professor que abre a folha de filtros de postagens por link volta para os posts', async () => {
+    mockApi(() => page([makePost('a')]));
+    store.getItemAsync.mockResolvedValue(makeToken('TEACHER'));
+    await renderRouter('src/app', { initialUrl: '/filters/posts' });
+
+    expect(await screen.findByRole('header', { name: 'Posts' })).toBeOnTheScreen();
+    expect(screen).toHavePathname('/');
+  });
+});
+
 describe('permissões', () => {
   it('professor só vê as ações das próprias postagens', async () => {
     mockApi(() => page([makePost('minha'), makePost('alheia', 'outro')]));
@@ -210,17 +293,25 @@ describe('permissões', () => {
 });
 
 describe('cartão', () => {
-  it('marca as postagens do usuário com o selo "Você"', async () => {
+  it('o administrador vê o selo "Você" só nas próprias postagens', async () => {
     mockApi(() => page([makePost('minha'), makePost('alheia', 'outro', 'Bruno')]));
-    await renderAdmin();
+    await renderAdmin('ADMIN');
     await screen.findByText('Título minha');
 
     expect(within(screen.getByTestId('admin-posts-list')).getAllByText('Você')).toHaveLength(1);
   });
 
+  it('o professor não vê o selo, porque a lista inteira é dele', async () => {
+    mockApi(() => page([makePost('minha')]));
+    await renderAdmin('TEACHER');
+    await screen.findByText('Título minha');
+
+    expect(within(screen.getByTestId('admin-posts-list')).queryByText('Você')).toBeNull();
+  });
+
   it('tocar no cartão abre a leitura da postagem', async () => {
     mockApi((url) => (url.endsWith('/posts/a') ? json(200, makePost('a')) : page([makePost('a')])));
-    await renderAdmin();
+    await renderAdmin('ADMIN');
 
     await fireEvent.press(
       await screen.findByRole('button', { name: 'Título a. Ana, sua postagem, editada em 15/01/2026' }),

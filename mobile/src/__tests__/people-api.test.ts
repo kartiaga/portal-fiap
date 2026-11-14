@@ -30,6 +30,19 @@ it('envia o perfil e o cursor ao backend para paginar sem filtrar localmente', a
   expect(lastRequest().path).toBe('/users?role=STUDENT&limit=20&cursor=cursor%2B1');
 });
 
+it('sem perfil, pede a listagem de todos os perfis que o usuário pode ver', async () => {
+  fetchMock.mockResolvedValue(respond({ items: [], nextCursor: null, hasMore: false }));
+
+  await listPeoplePage();
+  expect(lastRequest().path).toBe('/users?limit=20');
+
+  await listPeoplePage(undefined, 'c1', 'ana');
+  expect(lastRequest().path).toBe('/users?limit=20&cursor=c1&search=ana');
+
+  await listPeoplePage('ADMIN');
+  expect(lastRequest().path).toBe('/users?role=ADMIN&limit=20');
+});
+
 it('usa os endpoints reais de cadastro, consulta, edição e exclusão', async () => {
   fetchMock.mockResolvedValue(respond({}));
 

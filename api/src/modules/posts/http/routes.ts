@@ -283,6 +283,11 @@ export async function postsRoutes(app: FastifyInstance) {
               default: 20,
               description: 'Quantidade de itens por página',
             },
+            authorId: {
+              type: 'string',
+              format: 'uuid',
+              description: 'Retorna só as postagens deste autor',
+            },
           },
         },
         response: {

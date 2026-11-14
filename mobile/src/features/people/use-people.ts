@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 
-import { listPeoplePage, personError, type Person, type PersonRole } from './api';
+import { listPeoplePage, personError, type ListedRole, type Person } from './api';
 
 /**
- * Lista paginada de pessoas de um perfil, com busca por e-mail. Só a requisição mais recente
+ * Lista paginada de pessoas (de um perfil ou de todos), com busca por e-mail. Só a requisição mais recente
  * altera a lista: trocar de aba ou digitar rápido não deixa uma resposta velha por cima.
  */
-export function usePeople(role: PersonRole, search: string) {
+export function usePeople(role: ListedRole | undefined, search: string) {
   const [items, setItems] = useState<Person[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [appliedKey, setAppliedKey] = useState<string | null>(null);

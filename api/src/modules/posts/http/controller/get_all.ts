@@ -1,4 +1,4 @@
-import { paginationQuerySchema } from '@/lib/pagination'
+import { listPostsQuerySchema } from '@/modules/posts/dto/list-posts.dto'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { GetPostsUseCase } from '../../use-cases/get-posts.use-case'
 import { PostRepository } from '../../repositories/post.repository'
@@ -7,7 +7,7 @@ export async function get(
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<void> {
-  const parsed = paginationQuerySchema.safeParse(request.query)
+  const parsed = listPostsQuerySchema.safeParse(request.query)
 
   if (!parsed.success) {
     return reply.status(400).send({

@@ -12,7 +12,8 @@ jest.mock('expo-secure-store', () => ({
 }));
 
 const store = jest.mocked(SecureStore);
-const ADMIN_EMPTY = 'Nenhuma postagem cadastrada.';
+/** Lista vazia da aba Gerenciar do professor: só aparece para quem pode gerenciar. */
+const ADMIN_EMPTY = 'Você ainda não publicou nada';
 /** Com espaço inquebrável entre "Portal" e "FIAP" (ver welcome.tsx). */
 const WELCOME_TITLE = 'Boas-vindas ao Portal\u00A0FIAP';
 const fetchMock = jest.fn();

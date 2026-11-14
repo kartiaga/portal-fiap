@@ -35,6 +35,18 @@ describe('user list SQL', () => {
     expect(values).toEqual([21])
   })
 
+  it('restricts the list to the allowed roles, cast to the enum type', () => {
+    const { sql, values } = buildUserListQuery({
+      roles: [UserRole.TEACHER, UserRole.STUDENT],
+      search: 'ana',
+    })
+
+    expect(sql).toMatch(
+      /WHERE users\.role = ANY\(\$1::user_role\[\]\) AND users\.email ILIKE \$2/,
+    )
+    expect(values).toEqual([[UserRole.TEACHER, UserRole.STUDENT], '%ana%', 21])
+  })
+
   it('rejects a cursor with a non-UUID id before querying the database', () => {
     const cursor = encodeCursor('2026-01-01T00:00:00.000Z', 'invalid-id')
     expect(() => buildUserListQuery({ cursor })).toThrow('Invalid cursor')

@@ -25,7 +25,7 @@ const target = {
 }
 
 describe('user management authorization and data', () => {
-  it('allows teacher to create teacher/student, but not admin; denies student', async () => {
+  it('lets only the admin create users, of any role', async () => {
     const users = {
       create: jest.fn().mockResolvedValue({ ...target, id: 'new-1' }),
     } as unknown as UserRepository
@@ -33,38 +33,29 @@ describe('user management authorization and data', () => {
       create: jest.fn().mockResolvedValue({}),
     } as unknown as ProfileRepository
     const useCase = new CreateUserUseCase(users, profiles)
-    for (const role of [UserRole.TEACHER, UserRole.STUDENT]) {
-      await useCase.handler(
-        { email: 'new@fiap.com.br', password: '12345678', name: 'Novo', role },
-        teacher,
-      )
+    const payload = {
+      email: 'new@fiap.com.br',
+      password: '12345678',
+      name: 'Novo',
     }
-    await expect(
-      useCase.handler(
-        {
-          email: 'new@fiap.com.br',
-          password: '12345678',
-          name: 'Novo',
-          role: UserRole.ADMIN,
-        },
-        teacher,
-      ),
-    ).rejects.toMatchObject({ status: 403 })
-    await expect(
-      useCase.handler(
-        {
-          email: 'new@fiap.com.br',
-          password: '12345678',
-          name: 'Novo',
-          role: UserRole.STUDENT,
-        },
-        student,
-      ),
-    ).rejects.toMatchObject({ status: 403 })
-    expect(users.create).toHaveBeenCalledTimes(2)
+
+    for (const role of [UserRole.TEACHER, UserRole.STUDENT, UserRole.ADMIN]) {
+      await useCase.handler({ ...payload, role }, admin)
+    }
+    expect(users.create).toHaveBeenCalledTimes(3)
+
+    // Professor e estudante não cadastram ninguém, nem estudante nem professor.
+    for (const actor of [teacher, student]) {
+      for (const role of [UserRole.TEACHER, UserRole.STUDENT]) {
+        await expect(
+          useCase.handler({ ...payload, role }, actor),
+        ).rejects.toMatchObject({ status: 403 })
+      }
+    }
+    expect(users.create).toHaveBeenCalledTimes(3)
   })
 
-  it('requires teacher to filter list by manageable role and returns names without passwords', async () => {
+  it('limits the teacher list to teachers and students when no role is requested', async () => {
     const users = {
       findPaginated: jest.fn().mockResolvedValue({
         items: [target],
@@ -73,9 +64,37 @@ describe('user management authorization and data', () => {
       }),
     } as unknown as UserRepository
     const useCase = new GetUsersUseCase(users)
-    await expect(useCase.handler(teacher)).rejects.toMatchObject({
+
+    await useCase.handler(teacher, { search: 'ana' })
+    expect(users.findPaginated).toHaveBeenLastCalledWith({
+      search: 'ana',
+      roles: [UserRole.TEACHER, UserRole.STUDENT],
+    })
+
+    // Admin sem perfil: sem restrição de perfis.
+    await useCase.handler(admin, { search: 'ana' })
+    expect(users.findPaginated).toHaveBeenLastCalledWith({ search: 'ana' })
+
+    // Com perfil escolhido, o filtro é só o perfil pedido.
+    await useCase.handler(teacher, { role: UserRole.STUDENT })
+    expect(users.findPaginated).toHaveBeenLastCalledWith({
+      role: UserRole.STUDENT,
+    })
+
+    await expect(useCase.handler(student)).rejects.toMatchObject({
       status: 403,
     })
+  })
+
+  it('keeps administrators out of the teacher list and returns names without passwords', async () => {
+    const users = {
+      findPaginated: jest.fn().mockResolvedValue({
+        items: [target],
+        nextCursor: null,
+        hasMore: false,
+      }),
+    } as unknown as UserRepository
+    const useCase = new GetUsersUseCase(users)
     await expect(
       useCase.handler(teacher, { role: UserRole.ADMIN }),
     ).rejects.toMatchObject({ status: 403 })
@@ -128,7 +147,7 @@ describe('user management authorization and data', () => {
     const updated = await useCase.handler(
       target.id,
       { email: target.email, name: 'Ana Maria', password: 'newpass123' },
-      teacher,
+      admin,
     )
     expect(updated.name).toBe('Ana Maria')
     expect(updated).not.toHaveProperty('password')
@@ -142,35 +161,69 @@ describe('user management authorization and data', () => {
         role: 'ADMIN',
       }).success,
     ).toBe(false)
-    jest
-      .mocked(users.findById)
-      .mockResolvedValueOnce({ ...target, role: UserRole.ADMIN })
-    await expect(
-      useCase.handler(target.id, { email: target.email, name: 'Ana' }, teacher),
-    ).rejects.toMatchObject({ status: 403 })
-    expect(users.update).toHaveBeenCalledTimes(1)
   })
 
-  it('blocks self-deletion and users with posts; deletes only eligible users', async () => {
+  it('lets the admin edit anyone, but others only their own account', async () => {
+    const users = {
+      findById: jest.fn().mockResolvedValue(target),
+      update: jest.fn().mockResolvedValue({ ...target, name: 'Novo Nome' }),
+    } as unknown as UserRepository
+    const useCase = new UpdateUserUseCase(users)
+    const data = { email: target.email, name: 'Novo Nome' }
+
+    // O administrador edita qualquer conta, inclusive de outro administrador.
+    await useCase.handler(target.id, data, admin)
+    jest
+      .mocked(users.findById)
+      .mockResolvedValueOnce({ ...target, id: 'admin-2', role: UserRole.ADMIN })
+    await useCase.handler('admin-2', data, admin)
+    expect(users.update).toHaveBeenCalledTimes(2)
+
+    // O professor edita só a própria conta.
+    await useCase.handler(teacher.id, data, teacher)
+    expect(users.update).toHaveBeenCalledTimes(3)
+
+    // Conta de outra pessoa: 403, sem nem consultar o usuário nem atualizar.
+    jest.mocked(users.findById).mockClear()
+    await expect(
+      useCase.handler(target.id, data, teacher),
+    ).rejects.toMatchObject({
+      status: 403,
+    })
+    await expect(
+      useCase.handler(target.id, data, student),
+    ).rejects.toMatchObject({
+      status: 403,
+    })
+    expect(users.findById).not.toHaveBeenCalled()
+    expect(users.update).toHaveBeenCalledTimes(3)
+  })
+
+  it('lets only the admin delete, never their own account, nor users with posts', async () => {
     const users = {
       findById: jest.fn().mockResolvedValue(target),
       deleteWithoutPosts: jest.fn().mockResolvedValue('deleted'),
     } as unknown as UserRepository
     const useCase = new DeleteUserUseCase(users)
-    await useCase.handler(target.id, teacher)
+
+    await useCase.handler(target.id, admin)
     expect(users.deleteWithoutPosts).toHaveBeenCalledWith(target.id)
-    await expect(useCase.handler('teacher-1', teacher)).rejects.toMatchObject({
+
+    // Nem o professor nem o estudante excluem alguém.
+    for (const actor of [teacher, student]) {
+      await expect(useCase.handler(target.id, actor)).rejects.toMatchObject({
+        status: 403,
+      })
+    }
+
+    // Ninguém exclui a própria conta, o administrador também não.
+    await expect(useCase.handler('admin-1', admin)).rejects.toMatchObject({
       status: 403,
     })
+
     jest.mocked(users.deleteWithoutPosts).mockResolvedValueOnce('has_posts')
     await expect(useCase.handler(target.id, admin)).rejects.toMatchObject({
       status: 409,
-    })
-    jest
-      .mocked(users.findById)
-      .mockResolvedValueOnce({ ...target, role: UserRole.ADMIN })
-    await expect(useCase.handler(target.id, teacher)).rejects.toMatchObject({
-      status: 403,
     })
     expect(users.deleteWithoutPosts).toHaveBeenCalledTimes(2)
   })

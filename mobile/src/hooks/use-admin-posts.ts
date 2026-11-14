@@ -4,9 +4,12 @@ import { usePostsFeed } from '@/hooks/use-posts-feed';
 import { ApiError, getErrorMessage } from '@/lib/api';
 import { deletePost, type Post } from '@/lib/posts';
 
-/** Lista da aba Gerenciar: a mesma do feed (com busca) mais a exclusão direto do cartão. */
-export function useAdminPosts(term: string) {
-  const feed = usePostsFeed(term);
+/**
+ * Lista da aba Gerenciar: a mesma do feed (com busca) mais a exclusão direto do cartão.
+ * `authorId` limita a lista às postagens de um autor (o professor só vê as próprias).
+ */
+export function useAdminPosts(term: string, authorId?: string) {
+  const feed = usePostsFeed(term, authorId);
   const { showNotice, clearNotice, dropPost } = feed;
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleting = useRef(false);

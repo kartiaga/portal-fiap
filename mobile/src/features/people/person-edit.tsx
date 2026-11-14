@@ -1,4 +1,4 @@
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
@@ -15,28 +15,35 @@ import { capitalize } from '@/lib/format';
 import { setFlashNotice } from '@/lib/notice';
 import { Spacing } from '@/theme';
 
-import { deletePerson, getPerson, personError, updatePerson, type PersonRole } from './api';
+import { deletePerson, getPerson, personError, updatePerson, type ListedRole } from './api';
 import { peopleConfig } from './config';
 import { PersonFormFields } from './form-fields';
 import { hasErrors, validatePersonForm, type PersonFieldErrors } from './form-validation';
-import { canManagePeople } from './permissions';
+import { canManagePeople, canViewPeople } from './permissions';
 
-type PersonEditProps =
-  /** Professor ou estudante aberto pela aba Pessoas, com a exclusão no fim da tela. */
-  | { role: PersonRole; self?: false }
-  /** "Meus dados", aberto pela aba Conta: a própria conta, de qualquer perfil, sem exclusão. */
-  | { self: true; role?: undefined };
+type PersonEditProps = {
+  /**
+   * "Meus dados", aberto pela aba Conta: a própria conta, de qualquer perfil, sem exclusão. Sem
+   * isso, é a conta aberta pela aba Pessoas (o id vem da rota), com a exclusão no fim da tela.
+   */
+  self?: boolean;
+};
 
 type LoadFailure = { message: string; recoverable: boolean };
 
-/** Edição de uma conta: professor, estudante ou a do próprio usuário ("Meus dados"). */
-export function PersonEdit({ role, self = false }: PersonEditProps) {
+/** Edição de uma conta de qualquer perfil, ou a do próprio usuário ("Meus dados"). */
+export function PersonEdit({ self = false }: PersonEditProps) {
   const theme = useTheme();
   const { user } = useSession();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const id = self ? (user?.id ?? '') : params.id;
-  const config = role ? peopleConfig[role] : null;
+  // "Meus dados" é liberado a professor e administrador; editar outra conta, só ao administrador.
+  const allowed = self ? canViewPeople(user?.role) : canManagePeople(user?.role);
+
+  /** Perfil da conta aberta; só se sabe depois de carregar. */
+  const [role, setRole] = useState<ListedRole | null>(null);
+  const config = !self && role ? peopleConfig[role] : null;
 
   const [initial, setInitial] = useState({ name: '', email: '' });
   const [name, setName] = useState('');
@@ -56,16 +63,13 @@ export function PersonEdit({ role, self = false }: PersonEditProps) {
   const { allowLeave } = useDiscardGuard(dirty && !busy);
 
   useEffect(() => {
-    if (!canManagePeople(user?.role)) return;
+    if (!allowed) return;
     let active = true;
     async function load() {
       try {
         const person = await getPerson(id);
         if (!active) return;
-        if (role && person.role !== role) {
-          setLoadFailure({ message: 'Este usuário não pertence a esta lista.', recoverable: false });
-          return;
-        }
+        setRole(person.role);
         setInitial({ name: person.name ?? '', email: person.email });
         setName(person.name ?? '');
         setEmail(person.email);
@@ -84,12 +88,12 @@ export function PersonEdit({ role, self = false }: PersonEditProps) {
     return () => {
       active = false;
     };
-  }, [id, role, reloadKey, user?.role]);
+  }, [id, reloadKey, allowed]);
 
-  if (!canManagePeople(user?.role)) return <Redirect href="/" />;
+  if (!allowed) return <Redirect href="/" />;
 
-  // Professor não exclui a própria conta (a API também recusa).
-  const selfDeleteBlocked = user?.role === 'TEACHER' && user.id === id;
+  // Ninguém exclui a própria conta (a API também recusa).
+  const selfDeleteBlocked = user?.id === id;
 
   function leave() {
     if (router.canGoBack()) router.back();
@@ -174,6 +178,7 @@ export function PersonEdit({ role, self = false }: PersonEditProps) {
 
   return (
     <FormScreen>
+      {config ? <Stack.Screen options={{ title: `Editar ${config.singular}` }} /> : null}
       <View style={styles.form}>
         <PersonFormFields
           editing
