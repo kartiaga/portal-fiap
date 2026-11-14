@@ -3,7 +3,7 @@ import { NativeTabs } from 'expo-router/native-tabs';
 
 import { useSession } from '@/auth/session-context';
 import { useTheme } from '@/hooks/use-theme';
-import { canManagePeople } from '@/features/people/permissions';
+import { canViewPeople } from '@/features/people/permissions';
 import { canManagePosts } from '@/lib/permissions';
 
 /**
@@ -40,7 +40,7 @@ export default function TabsLayout() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="people" hidden={!canManagePeople(user?.role)}>
+      <NativeTabs.Trigger name="people" hidden={!canViewPeople(user?.role)}>
         <NativeTabs.Trigger.Label>Pessoas</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'person.2', selected: 'person.2.fill' }}

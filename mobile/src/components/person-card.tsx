@@ -4,25 +4,62 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '@/components/avatar';
 import { SelfBadge } from '@/components/badge';
 import { Icon } from '@/components/icon';
+import { RoleBadge } from '@/components/role-badge';
 import { useTheme } from '@/hooks/use-theme';
 import type { Person } from '@/features/people/api';
+import { ROLE_LABEL } from '@/lib/roles';
 import { BorderWidth, IconSize, Radius, Spacing, Typography } from '@/theme';
 
 type PersonCardProps = {
   person: Person;
   isSelf: boolean;
-  onPress: (person: Person) => void;
+  /** Sem isto, o cartão é só leitura (o professor vê a lista, mas não edita contas). */
+  onPress?: (person: Person) => void;
 };
 
-/** Linha da lista de pessoas: avatar, nome e e-mail. Tocar abre a edição. */
+/**
+ * Linha da lista de pessoas: avatar, nome, e-mail e o selo do perfil. Com `onPress`, tocar abre a
+ * edição; sem ele, o cartão só informa.
+ */
 export const PersonCard = memo(function PersonCard({ person, isSelf, onPress }: PersonCardProps) {
   const theme = useTheme();
   const name = person.name ?? 'Nome não informado';
+  const label = `${name}, ${ROLE_LABEL[person.role]}, ${person.email}${isSelf ? ', você' : ''}`;
+
+  const content = (
+    <>
+      <Avatar name={person.name} />
+      <View style={styles.info}>
+        <Text numberOfLines={1} style={[Typography.headline, { color: theme.text }]}>
+          {name}
+        </Text>
+        <Text numberOfLines={1} style={[Typography.callout, { color: theme.textSecondary }]}>
+          {person.email}
+        </Text>
+        <View style={styles.badges}>
+          <RoleBadge role={person.role} />
+          {isSelf ? <SelfBadge /> : null}
+        </View>
+      </View>
+      {onPress ? <Icon name="chevron-forward" size={IconSize.medium} color={theme.textTertiary} /> : null}
+    </>
+  );
+
+  if (!onPress) {
+    return (
+      <View
+        accessible
+        accessibilityLabel={label}
+        style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        {content}
+      </View>
+    );
+  }
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${name}, ${person.email}${isSelf ? ', você' : ''}`}
+      accessibilityLabel={label}
       accessibilityHint="Abre a edição"
       onPress={() => onPress(person)}
       style={({ pressed }) => [
@@ -32,19 +69,7 @@ export const PersonCard = memo(function PersonCard({ person, isSelf, onPress }: 
           borderColor: theme.border,
         },
       ]}>
-      <Avatar name={person.name} />
-      <View style={styles.info}>
-        <View style={styles.nameRow}>
-          <Text numberOfLines={1} style={[Typography.headline, styles.name, { color: theme.text }]}>
-            {name}
-          </Text>
-          {isSelf ? <SelfBadge /> : null}
-        </View>
-        <Text numberOfLines={1} style={[Typography.callout, { color: theme.textSecondary }]}>
-          {person.email}
-        </Text>
-      </View>
-      <Icon name="chevron-forward" size={IconSize.medium} color={theme.textTertiary} />
+      {content}
     </Pressable>
   );
 });
@@ -63,12 +88,10 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.half,
   },
-  nameRow: {
+  badges: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: Spacing.two,
-  },
-  name: {
-    flexShrink: 1,
+    marginTop: Spacing.one,
   },
 });

@@ -24,9 +24,11 @@ export type PostInput = {
 
 const PAGE_SIZE = 20;
 
-export function getPosts(cursor?: string | null): Promise<PostsPage> {
+/** `authorId` pede só as postagens desse autor (filtro feito pela API, com paginação normal). */
+export function getPosts(cursor?: string | null, authorId?: string): Promise<PostsPage> {
   const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
   if (cursor) query.set('cursor', cursor);
+  if (authorId) query.set('authorId', authorId);
   return apiFetch<PostsPage>(`/posts?${query.toString()}`);
 }
 

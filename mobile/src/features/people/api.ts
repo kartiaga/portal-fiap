@@ -1,12 +1,16 @@
 import { ApiError, apiFetch } from '@/lib/api';
 
+/** Perfis que o app cadastra. */
 export type PersonRole = 'TEACHER' | 'STUDENT';
+
+/** Perfis que aparecem nas listas e no filtro (o administrador só é listado, não cadastrado). */
+export type ListedRole = PersonRole | 'ADMIN';
 
 export type Person = {
   id: string;
   email: string;
   name: string | null;
-  role: PersonRole | 'ADMIN';
+  role: ListedRole;
   createdAt: string;
   updatedAt: string;
 };
@@ -26,13 +30,18 @@ export async function createPerson(input: {
   await apiFetch<string>('/users', { method: 'POST', body: JSON.stringify(input) });
 }
 
-/** `search` filtra por e-mail (busca parcial na API). */
+/**
+ * Sem `role`, a API devolve todos os perfis que o usuário pode ver (professor: professores e
+ * estudantes; administrador: todos). `search` filtra por e-mail (busca parcial na API).
+ */
 export function listPeoplePage(
-  role: PersonRole,
+  role?: ListedRole,
   cursor?: string | null,
   search?: string,
 ): Promise<PeoplePage> {
-  const params = new URLSearchParams({ role, limit: '20' });
+  const params = new URLSearchParams();
+  if (role) params.set('role', role);
+  params.set('limit', '20');
   if (cursor) params.set('cursor', cursor);
   if (search) params.set('search', search);
   return apiFetch<PeoplePage>(`/users?${params.toString()}`);

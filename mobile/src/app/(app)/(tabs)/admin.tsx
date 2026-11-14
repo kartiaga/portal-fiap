@@ -1,10 +1,12 @@
-import { Redirect, useFocusEffect, useRouter, type Href } from 'expo-router';
+import { Redirect, useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSession } from '@/auth/session-context';
 import { Banner } from '@/components/banner';
+import { FilterButton } from '@/components/filter-button';
+import { FilterTag } from '@/components/filter-tag';
 import { ListFooter } from '@/components/list-footer';
 import { PostAdminCard } from '@/components/post-admin-card';
 import { ScreenHeader } from '@/components/screen-header';
@@ -21,8 +23,10 @@ import { MaxContentWidth, Spacing } from '@/theme';
 const SEARCH_DEBOUNCE_MS = 500;
 
 /**
- * Aba Gerenciar: todas as postagens, com busca, editar e excluir onde o perfil permite. Tocar no
- * cartão abre a leitura. (Filtrar só as do professor exige um filtro por autor na API: pendência.)
+ * Aba Gerenciar, com busca, editar e excluir; tocar no cartão abre a leitura. O professor só vê as
+ * postagens que publicou (a API filtra por autor), já que não pode alterar as dos outros. O
+ * administrador vê todas e pode filtrar "Só as minhas" pela folha ao lado da busca (parâmetro
+ * `author=me` da rota).
  */
 export default function AdminScreen() {
   const { user } = useSession();
@@ -37,6 +41,9 @@ function AdminPosts() {
   const theme = useTheme();
   const router = useRouter();
   const { user } = useSession();
+  const params = useLocalSearchParams<{ author?: string }>();
+  const isAdmin = user?.role === 'ADMIN';
+  const onlyMine = !isAdmin || params.author === 'me';
   const [search, setSearch] = useState('');
   const term = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
   const {
@@ -54,7 +61,7 @@ function AdminPosts() {
     reload,
     loadMore,
     remove,
-  } = useAdminPosts(term);
+  } = useAdminPosts(term, onlyMine ? user?.id : undefined);
 
   // Recarrega ao voltar para a aba (reflete uma edição recente) e mostra o aviso deixado por ela.
   useFocusEffect(
@@ -115,7 +122,8 @@ function AdminPosts() {
         renderItem={({ item }) => (
           <PostAdminCard
             post={item}
-            isOwn={item.authorId === user?.id}
+            // Com a lista só das próprias postagens, o selo "Você" não diz nada.
+            isOwn={item.authorId === user?.id && !onlyMine}
             canModify={canModifyPost(user, item)}
             deleting={deletingId === item.id}
             actionsDisabled={deletingId !== null}
@@ -133,8 +141,8 @@ function AdminPosts() {
             />
           ) : (
             <StateMessage
-              title="Nada para gerenciar"
-              message="Nenhuma postagem cadastrada."
+              title={onlyMine ? 'Você ainda não publicou nada' : 'Nada para gerenciar'}
+              message={onlyMine ? 'Suas postagens aparecem aqui.' : 'Nenhuma postagem cadastrada.'}
               actionLabel="Criar a primeira"
               onAction={() => router.push('/posts/new')}
             />
@@ -172,31 +180,43 @@ function AdminPosts() {
       <View style={styles.header}>
         <ScreenHeader
           title="Gerenciar"
-          subtitle={
-            user?.role === 'ADMIN'
-              ? 'Edite ou exclua qualquer postagem'
-              : 'Todas as postagens. Você pode editar as suas.'
-          }
+          subtitle={isAdmin ? 'Edite ou exclua qualquer postagem' : 'As postagens que você publicou'}
           action={{ label: 'Nova postagem', icon: 'add', onPress: () => router.push('/posts/new') }}
         />
-        <TextField
-          testID="admin-search"
-          variant="search"
-          label="Buscar postagens"
-          icon="search"
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Título, conteúdo ou autor"
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-          trailing={
-            searching ? (
-              <ActivityIndicator color={theme.tint} accessibilityLabel="Buscando postagens" />
-            ) : null
-          }
-        />
+        <View style={styles.searchRow}>
+          <View style={styles.search}>
+            <TextField
+              testID="admin-search"
+              variant="search"
+              label="Buscar postagens"
+              icon="search"
+              value={search}
+              onChangeText={setSearch}
+              placeholder={isAdmin ? 'Título, conteúdo ou autor' : 'Título ou conteúdo'}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+              trailing={
+                searching ? (
+                  <ActivityIndicator color={theme.tint} accessibilityLabel="Buscando postagens" />
+                ) : null
+              }
+            />
+          </View>
+          {isAdmin ? (
+            <FilterButton
+              testID="admin-filter"
+              activeCount={onlyMine ? 1 : 0}
+              onPress={() =>
+                router.push({ pathname: '/filters/posts', params: { author: onlyMine ? 'me' : '' } })
+              }
+            />
+          ) : null}
+        </View>
+        {isAdmin && onlyMine ? (
+          <FilterTag label="Autor: só as minhas" onRemove={() => router.setParams({ author: '' })} />
+        ) : null}
         {refreshError ? (
           <Banner
             text={refreshError}
@@ -226,6 +246,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.four,
     gap: Spacing.three,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  search: {
+    flex: 1,
   },
   list: {
     alignSelf: 'center',

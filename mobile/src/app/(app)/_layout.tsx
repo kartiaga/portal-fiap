@@ -2,7 +2,9 @@ import { Stack } from 'expo-router';
 
 import { useSession } from '@/auth/session-context';
 import { useTheme } from '@/hooks/use-theme';
+import { canManagePeople } from '@/features/people/permissions';
 import { canManagePosts } from '@/lib/permissions';
+import { Radius } from '@/theme';
 
 /** Aberta por link direto, uma tela interna ainda tem as abas por baixo para onde voltar. */
 export const unstable_settings = { anchor: '(tabs)' };
@@ -11,6 +13,15 @@ export const unstable_settings = { anchor: '(tabs)' };
 export default function AppLayout() {
   const { user } = useSession();
   const theme = useTheme();
+
+  const sheetOptions = {
+    presentation: 'formSheet',
+    headerShown: false,
+    sheetAllowedDetents: 'fitToContents',
+    sheetGrabberVisible: true,
+    sheetCornerRadius: Radius.large,
+    contentStyle: { backgroundColor: theme.background },
+  } as const;
 
   return (
     <Stack
@@ -32,17 +43,20 @@ export default function AppLayout() {
           options={{ title: 'Nova postagem', presentation: 'modal' }}
         />
         <Stack.Screen name="(teacher)/posts/[id]/edit" options={{ title: 'Editar postagem' }} />
-        <Stack.Screen
-          name="(teacher)/teachers/create"
-          options={{ title: 'Novo professor', presentation: 'modal' }}
-        />
-        <Stack.Screen name="(teacher)/teachers/[id]/edit" options={{ title: 'Editar professor' }} />
-        <Stack.Screen
-          name="(teacher)/students/create"
-          options={{ title: 'Novo estudante', presentation: 'modal' }}
-        />
-        <Stack.Screen name="(teacher)/students/[id]/edit" options={{ title: 'Editar estudante' }} />
         <Stack.Screen name="(teacher)/account/edit" options={{ title: 'Meus dados' }} />
+
+        {/* Folhas de filtro: nativas (formSheet), do tamanho do conteúdo e sem cabeçalho. */}
+        <Stack.Screen name="(teacher)/filters/people" options={sheetOptions} />
+        <Stack.Screen name="(teacher)/filters/posts" options={sheetOptions} />
+      </Stack.Protected>
+
+      {/* Cadastrar e editar contas é só do administrador; o professor apenas vê a lista. */}
+      <Stack.Protected guard={canManagePeople(user?.role)}>
+        <Stack.Screen
+          name="(teacher)/people/create"
+          options={{ title: 'Nova pessoa', presentation: 'modal' }}
+        />
+        <Stack.Screen name="(teacher)/people/[id]/edit" options={{ title: 'Editar pessoa' }} />
       </Stack.Protected>
     </Stack>
   );
