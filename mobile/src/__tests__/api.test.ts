@@ -1,4 +1,5 @@
 import { ApiError, apiFetch, setAuthToken, setUnauthorizedHandler } from '@/lib/api';
+import { getPosts } from '@/lib/posts';
 
 const fetchMock = jest.fn();
 
@@ -59,4 +60,16 @@ it('ignora o 401 atrasado de um token antigo', async () => {
 it('reporta falha de rede com status 0', async () => {
   fetchMock.mockRejectedValue(new TypeError('Network request failed'));
   await expect(apiFetch('/posts')).rejects.toMatchObject({ status: 0 });
+});
+
+describe('getPosts', () => {
+  it('pede só as postagens de um autor à API, com o cursor da página', async () => {
+    fetchMock.mockResolvedValue(respondWith(200, { items: [], nextCursor: null, hasMore: false }));
+
+    await getPosts();
+    expect(new URL(fetchMock.mock.lastCall?.[0]).search).toBe('?limit=20');
+
+    await getPosts('c1', 'autor-1');
+    expect(new URL(fetchMock.mock.lastCall?.[0]).search).toBe('?limit=20&cursor=c1&authorId=autor-1');
+  });
 });
