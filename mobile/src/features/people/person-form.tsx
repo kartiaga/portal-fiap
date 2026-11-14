@@ -1,71 +1,100 @@
-import { Redirect, Stack, useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { useSession } from '@/auth/session-context';
+import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
-import { colors, radius } from '@/theme';
+import { FormScreen } from '@/components/form-screen';
+import { ModalCancel } from '@/components/modal-cancel';
+import { useDiscardGuard } from '@/hooks/use-discard-guard';
+import { useTheme } from '@/hooks/use-theme';
+import { capitalize } from '@/lib/format';
+import { setFlashNotice } from '@/lib/notice';
+import { Spacing, Typography } from '@/theme';
 
 import { createPerson, personError, type PersonRole } from './api';
 import { peopleConfig } from './config';
 import { PersonFormFields } from './form-fields';
-import { validatePersonForm } from './form-validation';
+import { hasErrors, validatePersonForm, type PersonFieldErrors } from './form-validation';
 import { canManagePeople } from './permissions';
 
+/**
+ * Cadastro de professor ou estudante, aberto em modal. Dando certo, volta para a aba Pessoas com o
+ * aviso. Sair pelo "Cancelar" do cabeçalho com algo digitado pede confirmação.
+ */
 export function PersonForm({ role }: { role: PersonRole }) {
+  const theme = useTheme();
   const { user } = useSession();
   const router = useRouter();
   const config = peopleConfig[role];
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<PersonFieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const dirty = name !== '' || email !== '' || password !== '';
+  const { guarding, allowLeave } = useDiscardGuard(dirty && !submitting);
 
   if (!canManagePeople(user?.role)) return <Redirect href="/" />;
 
+  function leave() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/people');
+  }
+
   async function handleSubmit() {
     if (submitting) return;
-    const validationError = validatePersonForm(name, email, password);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
+    const errors = validatePersonForm(name, email, password);
+    setFieldErrors(errors);
     setError(null);
+    if (hasErrors(errors)) return;
+
     setSubmitting(true);
     try {
       await createPerson({ name: name.trim(), email: email.trim().toLowerCase(), password, role });
-      router.replace({ pathname: config.listPath, params: { notice: `${config.singular} cadastrado com sucesso.` } });
+      setFlashNotice({ kind: 'success', text: `${capitalize(config.singular)} cadastrado com sucesso.` });
+      allowLeave();
+      leave();
     } catch (caught) {
       setError(personError(caught, 'save'));
-    } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ title: `Cadastrar ${config.singular}` }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title} accessibilityRole="header">Cadastrar {config.singular}</Text>
-        <Text style={styles.description}>Preencha os dados de acesso e identificação.</Text>
-        <View style={styles.form}>
-          <PersonFormFields name={name} email={email} password={password} onNameChange={setName} onEmailChange={setEmail} onPasswordChange={setPassword} />
-          {error ? <View style={styles.alert} accessibilityRole="alert"><Text style={styles.alertText}>{error}</Text></View> : null}
-          <Button label={`Cadastrar ${config.singular}`} onPress={handleSubmit} loading={submitting} />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <FormScreen>
+      <ModalCancel guarding={guarding} onCancel={leave} />
+      <View style={styles.form}>
+        <Text style={[Typography.callout, { color: theme.textSecondary }]}>
+          A pessoa entra no app com o e-mail e a senha definidos aqui.
+        </Text>
+        <PersonFormFields
+          name={name}
+          email={email}
+          password={password}
+          errors={fieldErrors}
+          disabled={submitting}
+          onNameChange={setName}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+          onSubmit={() => void handleSubmit()}
+        />
+        {error ? <Banner text={error} /> : null}
+        <Button
+          label={`Cadastrar ${config.singular}`}
+          size="large"
+          onPress={() => void handleSubmit()}
+          loading={submitting}
+        />
+      </View>
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.paper050 },
-  content: { padding: 24, gap: 8 },
-  title: { fontSize: 24, fontWeight: '700', color: colors.ink900 },
-  description: { fontSize: 15, color: colors.ink500, marginBottom: 16 },
-  form: { gap: 16 },
-  alert: { padding: 12, backgroundColor: colors.errorBg, borderColor: colors.errorBorder, borderWidth: 1, borderRadius: radius.s },
-  alertText: { color: colors.error },
+  form: {
+    gap: Spacing.four,
+  },
 });

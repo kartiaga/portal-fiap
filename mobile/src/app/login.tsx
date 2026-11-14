@@ -1,20 +1,41 @@
+import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@/auth/session-context';
+import { AccentRule } from '@/components/accent-rule';
+import { AuthHero } from '@/components/auth-hero';
 import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
+import { Icon } from '@/components/icon';
 import { TextField, type TextFieldHandle } from '@/components/text-field';
+import { useTheme } from '@/hooks/use-theme';
 import { ApiError } from '@/lib/api';
-import { colors } from '@/theme';
+import { IconSize, MaxContentWidth, MinTouchSize, Spacing, Typography } from '@/theme';
+
+const MIN_PASSWORD_LENGTH = 8;
+const HERO_RATIO = 0.3;
+const HERO_MIN_HEIGHT = 200;
+
+type FieldErrors = { email?: string; password?: string };
+
+function validate(email: string, password: string): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Informe um e-mail válido.';
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    errors.password = `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`;
+  }
+  return errors;
+}
 
 function getLoginError(error: unknown): string {
   if (error instanceof ApiError) {
@@ -25,97 +46,152 @@ function getLoginError(error: unknown): string {
 }
 
 export default function LoginScreen() {
-  const { signIn } = useSession();
+  const theme = useTheme();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { signIn, endReason } = useSession();
   const passwordRef = useRef<TextFieldHandle>(null);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Aviso de sessão expirada: some ao tentar entrar de novo, para não competir com o erro.
+  const [showExpired, setShowExpired] = useState(endReason === 'expired');
 
   async function handleSubmit() {
     if (submitting) return;
 
     const normalizedEmail = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setError('Informe um e-mail válido.');
-      return;
-    }
-    if (password.length < 8) {
-      setError('A senha deve ter pelo menos 8 caracteres.');
-      return;
-    }
+    const errors = validate(normalizedEmail, password);
+    setFieldErrors(errors);
+    setFormError(null);
+    setShowExpired(false);
+    if (errors.email || errors.password) return;
 
-    setError(null);
     setSubmitting(true);
     try {
       await signIn(normalizedEmail, password);
       // Com a sessão criada, o guard do layout raiz troca esta tela pela área logada.
     } catch (caught) {
-      setError(getLoginError(caught));
+      setFormError(getLoginError(caught));
       setSubmitting(false);
     }
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={styles.root}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled">
-          <View style={styles.header}>
-            <Text style={styles.title} accessibilityRole="header">
-              Portal FIAP
-            </Text>
-            <Text style={styles.subtitle}>Entre com a sua conta para continuar.</Text>
-          </View>
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          overScrollMode="never">
+          <AuthHero ratio={HERO_RATIO} minHeight={HERO_MIN_HEIGHT} />
 
-          <View style={styles.form}>
-            <TextField
-              label="E-mail"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="voce@fiap.com.br"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              keyboardType="email-address"
-              textContentType="username"
-              returnKeyType="next"
-              submitBehavior="submit"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-            />
-            <TextField
-              ref={passwordRef}
-              label="Senha"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="current-password"
-              textContentType="password"
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-            />
+          {router.canGoBack() ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Voltar"
+              hitSlop={Spacing.two}
+              onPress={() => router.back()}
+              style={[styles.back, { top: insets.top + Spacing.two }]}>
+              <Icon name="chevron-back" size={IconSize.large} color={theme.onTint} />
+            </Pressable>
+          ) : null}
 
-            {error ? <Banner text={error} /> : null}
+          <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.four) }]}>
+            <View style={styles.header}>
+              <Text accessibilityRole="header" style={[Typography.display, { color: theme.text }]}>
+                Entrar
+              </Text>
+              <AccentRule />
+              <Text style={[Typography.body, { color: theme.textSecondary }]}>
+                Use seu e-mail institucional e sua senha.
+              </Text>
+            </View>
 
-            <Button label="Entrar" onPress={handleSubmit} loading={submitting} />
+            {showExpired ? (
+              <Banner kind="info" text="Sua sessão expirou. Entre novamente para continuar." />
+            ) : null}
+
+            <View style={styles.form}>
+              <TextField
+                label="E-mail"
+                icon="mail-outline"
+                value={email}
+                onChangeText={setEmail}
+                error={fieldErrors.email}
+                editable={!submitting}
+                placeholder="voce@fiap.com.br"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                keyboardType="email-address"
+                textContentType="username"
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+              />
+              <TextField
+                ref={passwordRef}
+                label="Senha"
+                icon="lock-closed-outline"
+                value={password}
+                onChangeText={setPassword}
+                error={fieldErrors.password}
+                editable={!submitting}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="current-password"
+                textContentType="password"
+                returnKeyType="go"
+                onSubmitEditing={handleSubmit}
+              />
+
+              {formError ? <Banner text={formError} /> : null}
+            </View>
+
+            <Button label="Entrar" size="large" onPress={handleSubmit} loading={submitting} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.paper050 },
-  flex: { flex: 1 },
-  content: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 24 },
-  header: { gap: 6 },
-  title: { fontSize: 30, fontWeight: '700', color: colors.ink900 },
-  subtitle: { fontSize: 15, color: colors.ink500 },
-  form: { gap: 16 },
+  root: {
+    flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
+  },
+  back: {
+    position: 'absolute',
+    left: Spacing.three,
+    minWidth: MinTouchSize,
+    minHeight: MinTouchSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheet: {
+    flexGrow: 1,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    paddingHorizontal: Spacing.four,
+    gap: Spacing.five,
+  },
+  header: {
+    gap: Spacing.two,
+  },
+  form: {
+    gap: Spacing.four,
+  },
 });

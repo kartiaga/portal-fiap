@@ -26,9 +26,15 @@ export async function createPerson(input: {
   await apiFetch<string>('/users', { method: 'POST', body: JSON.stringify(input) });
 }
 
-export function listPeoplePage(role: PersonRole, cursor?: string): Promise<PeoplePage> {
+/** `search` filtra por e-mail (busca parcial na API). */
+export function listPeoplePage(
+  role: PersonRole,
+  cursor?: string | null,
+  search?: string,
+): Promise<PeoplePage> {
   const params = new URLSearchParams({ role, limit: '20' });
   if (cursor) params.set('cursor', cursor);
+  if (search) params.set('search', search);
   return apiFetch<PeoplePage>(`/users?${params.toString()}`);
 }
 

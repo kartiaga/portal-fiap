@@ -1,30 +1,34 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useSession } from '@/auth/session-context';
+import { Avatar } from '@/components/avatar';
 import { Banner } from '@/components/banner';
-import { Button } from '@/components/button';
+import { HeaderButton } from '@/components/header-button';
+import { LoadingState, StateMessage } from '@/components/state-message';
+import { useNotice } from '@/hooks/use-notice';
 import { usePost } from '@/hooks/use-post';
+import { useTheme } from '@/hooks/use-theme';
 import { formatDate } from '@/lib/format';
-import { takeFlashNotice, type Notice } from '@/lib/notice';
+import { takeFlashNotice } from '@/lib/notice';
 import { canModifyPost } from '@/lib/permissions';
-import { colors } from '@/theme';
+import { MaxContentWidth, Spacing, Typography } from '@/theme';
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const theme = useTheme();
   const router = useRouter();
   const { user } = useSession();
   const { post, loaded, notFound, loadError, reload } = usePost(id);
-  const [notice, setNotice] = useState<Notice | null>(null);
+  const { notice, showNotice, clearNotice } = useNotice();
 
-  // Também recarrega ao voltar para a tela, para refletir uma edição recente,
-  // e exibe o aviso deixado pela tela de edição.
+  // Recarrega ao voltar para a tela (reflete uma edição recente) e mostra o aviso deixado por ela.
   useFocusEffect(
     useCallback(() => {
-      setNotice(takeFlashNotice());
+      showNotice(takeFlashNotice());
       void reload();
-    }, [reload]),
+    }, [reload, showNotice]),
   );
 
   function goToList() {
@@ -32,27 +36,17 @@ export default function PostScreen() {
     else router.replace('/');
   }
 
-  if (!loaded) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Stack.Screen options={{ title: 'Postagem' }} />
-        <ActivityIndicator size="large" color={colors.red600} accessibilityLabel="Carregando" />
-      </View>
-    );
-  }
+  if (!loaded) return <LoadingState label="Carregando postagem" />;
 
   if (!post) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Stack.Screen options={{ title: 'Postagem' }} />
-        <View style={styles.message}>
-          <Text style={styles.messageText}>{loadError}</Text>
-          {notFound ? (
-            <Button label="Voltar para a lista" variant="secondary" onPress={goToList} />
-          ) : (
-            <Button label="Tentar novamente" variant="secondary" onPress={() => void reload()} />
-          )}
-        </View>
+      <View style={[styles.centered, { backgroundColor: theme.background }]}>
+        <StateMessage
+          tone="error"
+          message={loadError ?? ''}
+          actionLabel={notFound ? 'Voltar para a lista' : 'Tentar novamente'}
+          onAction={notFound ? goToList : () => void reload()}
+        />
       </View>
     );
   }
@@ -62,52 +56,98 @@ export default function PostScreen() {
   const updatedAt = formatDate(post.updatedAt);
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Postagem' }} />
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* A postagem já está na tela, então uma falha ao atualizar não a esconde. */}
-        {loadError ? <Banner text={loadError} /> : null}
-        {!loadError && notice ? <Banner kind={notice.kind} text={notice.text} /> : null}
+    <ScrollView
+      style={{ backgroundColor: theme.background }}
+      contentContainerStyle={styles.content}
+      contentInsetAdjustmentBehavior="automatic">
+      {/*
+        Ler é a tarefa desta tela: editar fica no cabeçalho, e excluir, no fim da edição
+        (mesmo modelo da edição de pessoa).
+      */}
+      <Stack.Screen
+        options={{
+          headerRight: canModifyPost(user, post)
+            ? () => (
+                <HeaderButton
+                  label="Editar"
+                  accessibilityLabel={`Editar ${post.title}`}
+                  onPress={() => router.push(`/posts/${post.id}/edit` as Href)}
+                />
+              )
+            : undefined,
+        }}
+      />
 
-        <Text style={styles.title} accessibilityRole="header" selectable>
-          {post.title}
-        </Text>
-        <View style={styles.meta}>
-          <Text style={styles.metaText}>Por {author}</Text>
-          {createdAt ? <Text style={styles.metaText}>Publicada em {createdAt}</Text> : null}
+      {/* A postagem já está na tela, então uma falha ao atualizar não a esconde. */}
+      {loadError ? <Banner text={loadError} /> : null}
+      {!loadError && notice ? (
+        <Banner
+          kind={notice.kind}
+          text={notice.text}
+          onDismiss={notice.kind === 'success' ? undefined : clearNotice}
+        />
+      ) : null}
+
+      <Text
+        accessibilityRole="header"
+        selectable
+        style={[Typography.article, { color: theme.text }]}>
+        {post.title}
+      </Text>
+
+      <View style={styles.author}>
+        <Avatar name={post.authorName} />
+        <View style={styles.authorText}>
+          <Text numberOfLines={1} style={[Typography.label, { color: theme.text }]}>
+            Por {author}
+          </Text>
+          {createdAt ? (
+            <Text style={[Typography.callout, { color: theme.textSecondary }]}>
+              Publicada em {createdAt}
+            </Text>
+          ) : null}
           {updatedAt && updatedAt !== createdAt ? (
-            <Text style={styles.metaText}>Atualizada em {updatedAt}</Text>
+            <Text style={[Typography.callout, { color: theme.textSecondary }]}>
+              Atualizada em {updatedAt}
+            </Text>
           ) : null}
         </View>
+      </View>
 
-        {canModifyPost(user, post) ? (
-          <Button
-            label="Editar"
-            accessibilityLabel={`Editar ${post.title}`}
-            variant="secondary"
-            onPress={() => router.push(`/posts/${post.id}/edit` as Href)}
-          />
-        ) : null}
+      <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-        <View style={styles.divider} />
-
-        <Text style={styles.body} selectable>
-          {post.content}
-        </Text>
-      </ScrollView>
-    </View>
+      <Text selectable style={[Typography.reading, { color: theme.text }]}>
+        {post.content}
+      </Text>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.paper050 },
-  centered: { alignItems: 'center', justifyContent: 'center', padding: 24 },
-  content: { gap: 12, padding: 20, paddingBottom: 40 },
-  message: { alignSelf: 'stretch', gap: 12 },
-  messageText: { fontSize: 15, textAlign: 'center', color: colors.ink500 },
-  title: { fontSize: 24, lineHeight: 30, fontWeight: '700', color: colors.ink900 },
-  meta: { gap: 2 },
-  metaText: { fontSize: 13, color: colors.ink500 },
-  divider: { height: 1, backgroundColor: colors.ink100 },
-  body: { fontSize: 16, lineHeight: 26, color: colors.ink700 },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  content: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.six,
+    gap: Spacing.three,
+  },
+  author: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  authorText: {
+    flex: 1,
+    gap: Spacing.half,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: Spacing.two,
+  },
 });
