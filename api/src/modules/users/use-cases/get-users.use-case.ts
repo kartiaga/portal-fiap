@@ -1,7 +1,7 @@
 import type { PaginatedResult, PaginationParams } from '@/lib/pagination'
 import type { User, UserRole } from '../entities/user'
 import type { UserRepository } from '../repositories/user.repository'
-import { assertCanList, type UserActor } from '../access'
+import { assertCanList, listableRoles, type UserActor } from '../access'
 
 export type UserListItem = {
   id: string
@@ -25,7 +25,11 @@ export class GetUsersUseCase {
     params: GetUsersParams = {},
   ): Promise<PaginatedResult<UserListItem>> {
     assertCanList(actor, params.role)
-    const result = await this.userRepository.findPaginated(params)
+    // Sem perfil escolhido, o professor vê só professores e estudantes.
+    const roles = params.role ? undefined : listableRoles(actor)
+    const result = await this.userRepository.findPaginated(
+      roles ? { ...params, roles } : params,
+    )
 
     return {
       ...result,

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate } from '@/lib/auth'
-import { requireTeacherOrAdmin } from '@/lib/authorization'
+import { requireAdmin, requireTeacherOrAdmin } from '@/lib/authorization'
 import { create } from './controller/create'
 import { list } from './controller/list'
 import { getById } from './controller/get-by-id'
@@ -38,7 +38,7 @@ export async function usersRoutes(app: FastifyInstance) {
         tags: ['Users'],
         summary: 'Lista usuários com paginação por cursor',
         description:
-          'ADMIN pode listar todos; TEACHER deve filtrar por TEACHER ou STUDENT.',
+          'ADMIN lista todos os perfis. TEACHER lista TEACHER e STUDENT (sem role, os dois juntos) e não pode pedir ADMIN.',
         security: [{ bearerAuth: [] }],
         querystring: {
           type: 'object',
@@ -73,12 +73,11 @@ export async function usersRoutes(app: FastifyInstance) {
   app.post(
     '/users',
     {
-      preHandler: [authenticate, requireTeacherOrAdmin],
+      preHandler: [authenticate, requireAdmin],
       schema: {
         tags: ['Users'],
         summary: 'Cria um novo usuário',
-        description:
-          'ADMIN pode criar qualquer papel; TEACHER pode criar TEACHER ou STUDENT.',
+        description: 'Apenas ADMIN cadastra usuários, de qualquer papel.',
         security: [{ bearerAuth: [] }],
         body: {
           type: 'object',
@@ -137,6 +136,8 @@ export async function usersRoutes(app: FastifyInstance) {
       schema: {
         tags: ['Users'],
         summary: 'Atualiza usuário e perfil',
+        description:
+          'ADMIN edita qualquer usuário. TEACHER edita apenas a própria conta (nome, e-mail e senha).',
         security: [{ bearerAuth: [] }],
         params: idParams,
         body: {
@@ -165,10 +166,12 @@ export async function usersRoutes(app: FastifyInstance) {
   app.delete(
     '/users/:id',
     {
-      preHandler: [authenticate, requireTeacherOrAdmin],
+      preHandler: [authenticate, requireAdmin],
       schema: {
         tags: ['Users'],
         summary: 'Exclui usuário sem postagens',
+        description:
+          'Apenas ADMIN exclui usuários, e ninguém exclui a própria conta.',
         security: [{ bearerAuth: [] }],
         params: idParams,
         response: {

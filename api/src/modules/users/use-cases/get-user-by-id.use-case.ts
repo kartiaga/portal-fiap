@@ -1,4 +1,4 @@
-import { assertCanManage, type UserActor } from '../access'
+import { assertCanView, type UserActor } from '../access'
 import { UserError } from '../errors'
 import type {
   PublicUser,
@@ -11,7 +11,7 @@ export class GetUserByIdUseCase {
   async handler(id: string, actor: UserActor): Promise<PublicUser> {
     const user = await this.userRepository.findById(id)
     if (!user) throw new UserError('User not found', 404)
-    assertCanManage(actor, user.role)
+    assertCanView(actor, user.role)
     return user
   }
 }

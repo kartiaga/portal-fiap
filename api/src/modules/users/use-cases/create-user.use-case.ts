@@ -14,7 +14,7 @@ export class CreateUserUseCase {
     user: User & { name: string },
     actor: UserActor,
   ): Promise<User | undefined> {
-    assertCanManage(actor, user.role)
+    assertCanManage(actor)
     const hashedPassword = await hashPassword(user.password)
 
     const createdUser = await this.userRepository.create({

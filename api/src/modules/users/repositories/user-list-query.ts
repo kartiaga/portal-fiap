@@ -9,6 +9,8 @@ import z from 'zod'
 export type UserListParams = PaginationParams & {
   search?: string | undefined
   role?: UserRole | undefined
+  /** Restringe a listagem a estes perfis (usado quando nenhum role é pedido). */
+  roles?: UserRole[] | undefined
 }
 
 export function buildUserListQuery(params: UserListParams) {
@@ -17,6 +19,10 @@ export function buildUserListQuery(params: UserListParams) {
   if (params.role) {
     values.push(params.role)
     conditions.push(`users.role = $${values.length}`)
+  }
+  if (params.roles?.length) {
+    values.push(params.roles)
+    conditions.push(`users.role = ANY($${values.length}::user_role[])`)
   }
   if (params.search) {
     values.push(`%${params.search}%`)
