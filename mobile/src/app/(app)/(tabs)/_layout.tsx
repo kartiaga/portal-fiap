@@ -1,60 +1,54 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { NativeTabs } from 'expo-router/native-tabs';
+import { Tabs } from 'expo-router';
+import type { ColorValue } from 'react-native';
 
 import { useSession } from '@/auth/session-context';
-import { useTheme } from '@/hooks/use-theme';
+import { Icon, type IconName } from '@/components/icon';
+import { TabBar } from '@/components/tab-bar';
 import { canViewPeople } from '@/features/people/permissions';
 import { canManagePosts } from '@/lib/permissions';
+import { IconSize } from '@/theme';
+
+/** A cor chega do `TabBar`, que sempre passa uma string (`ColorValue` é só a tipagem do navegador). */
+function tabIcon(filled: IconName, outline: IconName) {
+  return function TabIcon({ focused, color }: { focused: boolean; color: ColorValue }) {
+    return <Icon name={focused ? filled : outline} size={IconSize.xlarge} color={color as string} />;
+  };
+}
 
 /**
- * Abas nativas da área logada. Gerenciar e Pessoas só existem para professor e administrador;
- * as telas e a API também exigem. No iOS os ícones são SF Symbols; no Android, Ionicons.
- * `disableTransparentOnScrollEdge`: sem ele, no iOS os cartões aparecem por baixo dos ícones.
+ * Abas da área logada, com a barra própria de `TabBar` (ícone cheio na aba ativa, contorno nas
+ * demais). Gerenciar e Pessoas só existem para professor e administrador; as telas e a API
+ * também exigem.
  */
 export default function TabsLayout() {
-  const theme = useTheme();
   const { user } = useSession();
 
   return (
-    <NativeTabs
-      backgroundColor={theme.background}
-      // Ícone não é texto: o vermelho cheio passa o mínimo de 3:1 nos dois temas.
-      iconColor={{ default: theme.textSecondary, selected: theme.tint }}
-      tintColor={theme.tintText}
-      indicatorColor={theme.tintSoft}
-      labelStyle={{ default: { color: theme.textSecondary }, selected: { color: theme.text } }}
-      disableTransparentOnScrollEdge>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Posts</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'newspaper', selected: 'newspaper.fill' }}
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="newspaper" />}
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="admin" hidden={!canManagePosts(user?.role)}>
-        <NativeTabs.Trigger.Label>Gerenciar</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'list.bullet.rectangle', selected: 'list.bullet.rectangle.fill' }}
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="list" />}
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="people" hidden={!canViewPeople(user?.role)}>
-        <NativeTabs.Trigger.Label>Pessoas</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'person.2', selected: 'person.2.fill' }}
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="people" />}
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="account">
-        <NativeTabs.Trigger.Label>Conta</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }}
-          src={<NativeTabs.Trigger.VectorIcon family={Ionicons} name="person-circle" />}
-        />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
+      <Tabs.Screen
+        name="index"
+        options={{ title: 'Posts', tabBarIcon: tabIcon('newspaper', 'newspaper-outline') }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Gerenciar',
+          tabBarIcon: tabIcon('list', 'list-outline'),
+          href: canManagePosts(user?.role) ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
+        name="people"
+        options={{
+          title: 'Pessoas',
+          tabBarIcon: tabIcon('people', 'people-outline'),
+          href: canViewPeople(user?.role) ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{ title: 'Conta', tabBarIcon: tabIcon('person-circle', 'person-circle-outline') }}
+      />
+    </Tabs>
   );
 }
