@@ -21,11 +21,13 @@ type SheetScaffoldProps = {
  * Estrutura das folhas de lista (`formSheet`): a lista ocupa a folha inteira e o título e o rodapé
  * ficam por cima, fixos, com fundo opaco.
  *
- * Por que não empilhar título, lista e rodapé: no iOS, o react-native-screens procura a lista da
- * folha e força o tamanho dela para a folha inteira, a partir do topo
- * (`RNSScreen.applyFrameCorrectionForDescendantScrollView`). Ele só desconta um título quando a
- * folha tem exatamente dois filhos (título e lista); com um rodapé, a lista cobria o título.
- * Ocupando a folha inteira de propósito, o resultado é o mesmo com ou sem essa correção.
+ * O tamanho da lista vem só do layout do React Native. No iOS, o react-native-screens procura a
+ * lista da folha seguindo sempre o primeiro filho de cada view e força o tamanho dela
+ * (`RNSScreen.applyFrameCorrectionForDescendantScrollView`), mas só quando a folha se redimensiona,
+ * durante a animação de abertura. O tamanho que ele aplica depende do momento: já cobriu o título
+ * e já deixou a folha com o meio em branco, de forma intermitente, conforme a resposta da API
+ * chegava antes ou depois da animação. O primeiro filho daqui é uma view vazia, de propósito: a
+ * busca para nela e não chega à lista.
  */
 export function SheetScaffold({ title, banner, footer, children }: SheetScaffoldProps) {
   const theme = useTheme();
@@ -38,6 +40,8 @@ export function SheetScaffold({ title, banner, footer, children }: SheetScaffold
 
   return (
     <View style={[styles.sheet, { backgroundColor: theme.background }]}>
+      {/* Precisa ser o primeiro filho e não pode ser achatada (`collapsable`): ver acima. */}
+      <View collapsable={false} pointerEvents="none" style={styles.scrollViewSearchStop} />
       <View style={StyleSheet.absoluteFill}>{children(insets)}</View>
 
       <View
@@ -60,6 +64,11 @@ export function SheetScaffold({ title, banner, footer, children }: SheetScaffold
 const styles = StyleSheet.create({
   sheet: {
     flex: 1,
+  },
+  scrollViewSearchStop: {
+    position: 'absolute',
+    width: 0,
+    height: 0,
   },
   top: {
     position: 'absolute',
