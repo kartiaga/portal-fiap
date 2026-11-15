@@ -1,3 +1,4 @@
+import { engagementColumns } from './post-engagement-sql'
 import {
   decodeCursor,
   resolveLimit,
@@ -6,9 +7,14 @@ import {
 
 export type PostListQueryParams = PaginationParams & {
   authorId?: string | undefined
+  /** Quem pede a lista: define `liked_by_me` de cada postagem. */
+  viewerId?: string | undefined
 }
 
-/** Monta a consulta da listagem paginada de postagens, com filtro opcional por autor. */
+/**
+ * Monta a consulta da listagem paginada de postagens, com filtro opcional por autor e os
+ * contadores de curtidas e comentários.
+ */
 export function buildPostListQuery(params: PostListQueryParams) {
   const values: unknown[] = []
   const conditions: string[] = []
@@ -24,6 +30,11 @@ export function buildPostListQuery(params: PostListQueryParams) {
       `(posts.created_at, posts.id) < ($${values.length - 1}::timestamptz, $${values.length}::uuid)`,
     )
   }
+  let viewerParam: string | undefined
+  if (params.viewerId) {
+    values.push(params.viewerId)
+    viewerParam = `$${values.length}`
+  }
   values.push(resolveLimit(params.limit) + 1)
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
 
@@ -33,7 +44,8 @@ export function buildPostListQuery(params: PostListQueryParams) {
                  profiles.name AS author_name,
                  profiles.avatar_key AS author_avatar_key, posts.created_at,
                  to_char(posts.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
-                 posts.updated_at
+                 posts.updated_at,
+                 ${engagementColumns(viewerParam)}
           FROM posts
           LEFT JOIN profiles ON profiles.user_id = posts.author_id
           ${where}

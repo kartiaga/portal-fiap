@@ -9,11 +9,14 @@ import {
 } from '@/lib/pagination'
 
 import type { Post } from '../entities/post'
+import { engagementColumns } from './post-engagement-sql'
 import { buildPostListQuery } from './post-list-query'
 
 export type PostListParams = PaginationParams & {
   /** Só as postagens deste autor. */
   authorId?: string | undefined
+  /** Quem pede a lista: define `likedByMe`. */
+  viewerId?: string | undefined
 }
 
 interface PostRow {
@@ -23,6 +26,9 @@ interface PostRow {
   author_id: string
   author_name?: string | null
   author_avatar_key?: string | null
+  like_count?: number
+  comment_count?: number
+  liked_by_me?: boolean
   created_at: Date
   cursor_created_at: string
   updated_at: Date
@@ -37,6 +43,10 @@ export class PostRepository {
       authorId: row.author_id,
       authorName: row.author_name ?? undefined,
       authorAvatarUrl: publicAvatarUrl(row.author_avatar_key),
+      // Ausentes nas respostas de escrita (RETURNING *), que não trazem os contadores.
+      likeCount: row.like_count,
+      commentCount: row.comment_count,
+      likedByMe: row.liked_by_me,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }
@@ -58,23 +68,38 @@ export class PostRepository {
     return this.mapRow(row as PostRow)
   }
 
-  public async findById(id: string): Promise<Post | undefined> {
+  /** `viewerId` define `likedByMe`; sem ele (leitura pública), é sempre falso. */
+  public async findById(
+    id: string,
+    viewerId?: string,
+  ): Promise<Post | undefined> {
     const result = await database.clienteInstance?.query(
       `
       SELECT posts.*, profiles.name AS author_name,
-             profiles.avatar_key AS author_avatar_key
+             profiles.avatar_key AS author_avatar_key,
+             ${engagementColumns(viewerId ? '$2' : undefined)}
       FROM posts
       LEFT JOIN profiles ON profiles.user_id = posts.author_id
       WHERE posts.id = $1
       LIMIT 1
       `,
-      [id],
+      viewerId ? [id, viewerId] : [id],
     )
 
     const row = result?.rows[0]
     if (!row) return undefined
 
     return this.mapRow(row as PostRow)
+  }
+
+  /** Só o autor: basta para saber se a postagem existe e quem pode moderar os comentários. */
+  public async findAuthorId(id: string): Promise<string | undefined> {
+    const result = await database.clienteInstance?.query(
+      `SELECT author_id FROM posts WHERE id = $1 LIMIT 1`,
+      [id],
+    )
+
+    return (result?.rows[0] as { author_id: string } | undefined)?.author_id
   }
 
   public async update(
@@ -92,11 +117,12 @@ export class PostRepository {
     return this.mapRow(row as PostRow)
   }
 
-  public async search(term: string): Promise<Post[]> {
+  public async search(term: string, viewerId?: string): Promise<Post[]> {
     const result = await database.clienteInstance?.query(
       `
       SELECT posts.*, profiles.name AS author_name,
-             profiles.avatar_key AS author_avatar_key
+             profiles.avatar_key AS author_avatar_key,
+             ${engagementColumns(viewerId ? '$2' : undefined)}
       FROM posts
       LEFT JOIN profiles ON profiles.user_id = posts.author_id
       WHERE posts.title ILIKE $1
@@ -104,7 +130,7 @@ export class PostRepository {
         OR profiles.name ILIKE $1
       ORDER BY posts.created_at DESC
       `,
-      [`%${term}%`],
+      viewerId ? [`%${term}%`, viewerId] : [`%${term}%`],
     )
 
     const rows = result?.rows ?? []

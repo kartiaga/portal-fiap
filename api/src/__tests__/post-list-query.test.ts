@@ -35,7 +35,8 @@ describe('post list SQL', () => {
   it('keeps the list without filters compatible', () => {
     const { sql, values } = buildPostListQuery({})
 
-    expect(sql).not.toContain('WHERE')
+    // As subconsultas de curtidas e comentários têm WHERE próprio; a listagem em si não filtra.
+    expect(sql).not.toMatch(/WHERE posts\./)
     expect(values).toEqual([21])
   })
 

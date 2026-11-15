@@ -16,7 +16,7 @@ export async function search(
     const postRepository = new PostRepository()
     const searchPostsUseCase = new SearchPostsUseCase(postRepository)
 
-    const posts = await searchPostsUseCase.handler(term)
+    const posts = await searchPostsUseCase.handler(term, request.user.sub)
 
     return reply.status(200).send(posts)
   } catch (error) {

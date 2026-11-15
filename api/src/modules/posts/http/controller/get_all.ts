@@ -19,7 +19,10 @@ export async function get(
     const postRepository = new PostRepository()
     const getPostsUseCase = new GetPostsUseCase(postRepository)
 
-    const result = await getPostsUseCase.handler(parsed.data)
+    const result = await getPostsUseCase.handler({
+      ...parsed.data,
+      viewerId: request.user.sub,
+    })
 
     return reply.status(200).send(result)
   } catch (error) {
