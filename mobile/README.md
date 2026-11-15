@@ -193,9 +193,11 @@ Mostra nome, e-mail, perfil e foto (`GET /users/:id` na própria conta, que a AP
 
 O ícone de filtro ao lado da busca (`FilterButton`) abre uma folha nativa (`presentation: 'formSheet'`, do tamanho do conteúdo, sem biblioteca de bottom sheet). A folha (`FilterSheet`) lista uma escolha por grupo e tem **Limpar** e **Aplicar**; as escolhas só valem ao aplicar. Elas voltam para a aba como parâmetro da rota (`/people?role=STUDENT`), e a aba mostra a etiqueta do filtro ativo (`FilterTag`, com × para remover) e um ponto no ícone. Hoje há dois filtros: perfil em Pessoas e autor em Gerenciar (só administrador).
 
-## Pendências
+## Melhorias futuras
 
-- Tela de abertura nativa (splash): depende do plugin `expo-splash-screen`, que não está instalado (ver `docs/design-system.md`).
+Fora do escopo dos requisitos, mas no radar:
+
+- Tela de abertura nativa (splash) com a identidade do app: depende do plugin `expo-splash-screen`, que não está instalado (ver `docs/design-system.md`).
 
 ## Como adicionar telas
 
@@ -261,29 +263,30 @@ Os componentes compartilhados estão em `src/features/people/`:
 
 ### Testes e validação
 
-Verificações automatizadas realizadas:
+**Testes automatizados** (`npm test`, com chamadas HTTP simuladas): 238 testes em 17 suítes, além de typecheck e ESLint, rodados também na CI (`.github/workflows/mobile-ci.yml`). Para pessoas, cobrem:
 
-- 234 testes mobile aprovados em 17 suítes, incluindo chamadas HTTP simuladas, os fluxos de cadastro, edição e exclusão pela folha de três pontinhos e a escolha do autor da postagem.
-- Typecheck aprovado.
-- ESLint aprovado.
+- listagem, busca, filtro por perfil e próxima página pelo cursor, sem repetir pessoas;
+- cadastro com o campo **Perfil**, edição e exclusão pela folha de três pontinhos e pela tela de edição, com confirmação e cancelamento;
+- erro `409` ao excluir quem tem postagens e bloqueio da exclusão da própria conta;
+- o que cada perfil vê: o administrador gerencia; o professor só consulta; o estudante não abre a aba.
 
-Testes manuais registrados anteriormente no emulador Android Pixel 6, com API e PostgreSQL ativos (a execução completa não foi repetida nesta validação):
+**Validação contra a API real** (15/11/2026, API e PostgreSQL no Docker, com uma conta e postagens descartáveis, apagadas no fim). As 20 verificações passaram:
 
-- Login com perfil `TEACHER`.
-- Listagem de professores e estudantes.
-- Cadastro de professores e estudantes.
-- Edição de dados e confirmação da atualização na lista.
-- Exclusão com confirmação.
-- Cancelamento de exclusão sem remover o cadastro.
-- Exibição de mensagem de sucesso após exclusão.
+| Verificação | Resultado |
+|---|---|
+| Administrador cadastra professor | `201` |
+| Professor cadastra conta, edita conta alheia ou exclui conta | `403` |
+| Estudante lista contas | `403` |
+| Professor lista contas: só professores e estudantes; pedir administradores | `200` sem administradores; `403` |
+| Paginação real de `GET /users` (`limit=1` e `cursor`) | Segunda página com outra pessoa |
+| Paginação real de comentários | Duas páginas, sem repetir |
+| Excluir conta que tem postagens | `409` |
+| Professor publica; estudante tenta publicar | `201`; `403` |
+| Professor publica em nome de outro; administrador em nome de estudante | `403`; `422` |
+| Administrador publica em nome de professor | `201`, com o professor como autor |
+| Professor edita ou exclui postagem alheia; administrador edita qualquer uma | `403`; `200` |
 
-Nesta validação, com sessão `TEACHER` já ativa no emulador, foram conferidas as listas reais de professores e estudantes, a navegação para cadastro e edição, o carregamento dos dados na edição, a validação de formulário vazio, o bloqueio da exclusão da própria conta e o cancelamento da confirmação de exclusão. Nenhum cadastro foi criado, editado ou excluído nesta validação.
-
-Testes adicionais pendentes:
-
-- Paginação com múltiplas páginas de dados reais.
-- Resposta HTTP `409` ao excluir usuário com postagens.
-- Validação completa com os demais perfis de acesso.
+**Testes manuais**: a equipe testou no emulador Android (Pixel 6), com API e PostgreSQL ativos, o login, a listagem de professores e estudantes, o cadastro, a edição com a atualização na lista, a exclusão com confirmação, o cancelamento da exclusão e as mensagens de sucesso.
 
 ### Testes automatizados específicos
 

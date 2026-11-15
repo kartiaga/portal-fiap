@@ -2,7 +2,19 @@
 
 Portal FIAP para o **Tech Challenge da FIAP — Fase 4**, com API REST, frontend web e aplicativo mobile.
 
-> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js com listagem e gestão de publicações, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
+> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, curtidas e comentários; frontend Next.js com listagem e gestão de publicações; aplicativo mobile em React Native (Expo) com todos os requisitos da fase 4; testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
+
+## Guia para avaliação da fase 4
+
+| O que procurar | Onde está |
+|---|---|
+| Enunciado da fase 4, como cada requisito foi atendido e o que mudou (com a orientação do professor) | [`docs/requisitos/fase-4-mobile.md`](docs/requisitos/fase-4-mobile.md) |
+| Setup, arquitetura e guia de uso do aplicativo | [`mobile/README.md`](mobile/README.md) e a seção [Aplicativo mobile](#aplicativo-mobile) abaixo |
+| Contas de teste (professor, estudante e administrador) | [`mobile/README.md`](mobile/README.md#contas-de-teste) |
+| Endpoints REST usados pelo aplicativo | [API — Endpoints implementados](#api--endpoints-implementados) e o Swagger em `http://localhost:3001/docs` |
+| Testes e validação | [`mobile/README.md`](mobile/README.md#testes-e-validação) |
+| Relato de experiências e desafios da equipe | [Experiência da equipe e desafios do desenvolvimento](#experiência-da-equipe-e-desafios-do-desenvolvimento) |
+| Enunciados das fases anteriores (back-end e front-end web) | [`docs/requisitos/`](docs/requisitos/README.md) |
 
 ## Sobre o desafio
 
@@ -119,8 +131,8 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 ### Entregáveis finais
 
 - [x] Código-fonte no GitHub (com Dockerfile e workflows de CI)
-- [x] Apresentação gravada demonstrando o funcionamento
-- [x] Documentação com arquitetura, uso da API e relato de experiências da equipe
+- [ ] Apresentação gravada da fase 4, de até 15 minutos, demonstrando o aplicativo e os detalhes técnicos
+- [x] Documentação com arquitetura, uso da API e do aplicativo e relato de experiências da equipe (fases 2 a 4)
 
 ## Tecnologias
 
@@ -1484,6 +1496,8 @@ Sem postagens, `items` é `[]`, `nextCursor` é `null` e `hasMore` é `false`.
 
 ## Experiência da equipe e desafios do desenvolvimento
 
+### Fases 2 e 3: API e frontend web
+
 Durante o desenvolvimento do projeto, a equipe dividiu as atividades entre os integrantes, trabalhando de forma colaborativa por meio de branches e Pull Requests. A comunicação constante facilitou a integração das funcionalidades, a revisão do código e a troca de conhecimento.
 
 Um dos principais desafios foi a adaptação às tecnologias utilizadas, especialmente Node.js, Fastify, PostgreSQL e Next.js, além da organização da aplicação em camadas.
@@ -1491,6 +1505,18 @@ Um dos principais desafios foi a adaptação às tecnologias utilizadas, especia
 Durante os testes, foram identificados e corrigidos problemas relacionados à paginação por cursor, principalmente na precisão do campo created_at entre PostgreSQL e JavaScript e no controle da paginação no frontend. Os problemas foram investigados com testes manuais, análise do código e consultas ao banco de dados.
 
 A experiência contribuiu para o aprimoramento dos conhecimentos da equipe em desenvolvimento full stack, integração entre frontend e API, banco de dados, autenticação e trabalho colaborativo.
+
+### Fase 4: aplicativo mobile
+
+A fase 4 trouxe a mudança do navegador para o celular. A equipe manteve a mesma API e montou o aplicativo com React Native e Expo, usando o expo-router para a navegação por arquivos, abas nativas e folhas nativas (as que sobem de baixo) para filtros, comentários, curtidas e ações. Os principais desafios foram:
+
+- **Requisitos que, ao pé da letra, criariam falhas de permissão.** O enunciado pedia que professores cadastrassem, editassem e excluíssem outros professores. Como editar uma conta inclui trocar e-mail e senha, qualquer professor poderia tomar a conta de um colega. A equipe consultou o professor antes de decidir: as contas ficaram com o perfil administrador, o autor da postagem passou a vir do login (o administrador pode publicar em nome de um professor) e as telas de professores e de alunos foram unidas numa lista com filtro por perfil. As mudanças estão documentadas em [`docs/requisitos/`](docs/requisitos/README.md).
+- **Uma tela pensada para a web num celular.** O requisito de listagem fala em "tabelas" com botões de editar e excluir. No celular, a lista virou cartões, e as duas ações foram para um menu de três pontinhos, para não deixar o "Excluir" ao alcance de um toque acidental durante a rolagem.
+- **Um erro intermitente na folha de comentários.** Às vezes a lista cobria o título; depois de uma primeira correção, às vezes a folha abria com o meio em branco. A causa estava no código nativo do react-native-screens: no iOS, ele procura a lista dentro da folha e força o tamanho dela durante a animação de abertura, e o resultado dependia de a resposta da API chegar antes ou depois da animação. A equipe só encontrou a causa lendo o código nativo da biblioteca, e a solução foi fazer o layout da folha não depender dessa correção (`components/sheet-scaffold.tsx`).
+- **O teclado no Android.** Na folha de comentários, o teclado cobria o campo de comentar, porque o Android só sobe a folha até o topo da tela. O app calcula a parte coberta e a soma ao espaço de baixo (`hooks/use-sheet-keyboard-inset.ts`).
+- **Testar sem depender do aparelho.** Os fluxos foram testados com Jest e a biblioteca de testes do expo-router, que monta a navegação real do app com a API simulada. As regras de permissão e a paginação também foram conferidas contra a API real, com uma conta e postagens descartáveis, apagadas no fim (resultados no [README do mobile](mobile/README.md#testes-e-validação)).
+
+A fase reforçou que requisitos precisam ser lidos com olhar crítico: perguntar ao professor antes de seguir ou de ignorar um requisito estranho evitou tanto uma falha de segurança quanto uma perda de nota. Também mostrou o valor de documentar cada decisão, para quem avalia entender o que foi feito e por quê.
 
 
 ## Licença
