@@ -18,6 +18,43 @@ services:
       timeout: 5s
       retries: 5
 
+  # Armazenamento das fotos de perfil, compatível com S3. Console em http://localhost:9001
+  # (usuário e senha abaixo, só para desenvolvimento). As fotos vão do app direto para a porta 9000.
+  minio:
+    image: minio/minio:latest
+    container_name: portal-fiap-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Roda uma vez: cria o bucket e libera a leitura pública só das fotos (avatars/). Os nomes dos
+  # arquivos têm um uuid, então o endereço de uma foto não dá para adivinhar.
+  minio-setup:
+    image: minio/minio:latest
+    container_name: portal-fiap-minio-setup
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/portal-fiap &&
+        mc anonymous set download local/portal-fiap/avatars
+
   api:
     build:
       context: ./api
@@ -36,9 +73,20 @@ services:
       POSTGRES_DB: portal-fiap
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/portal-fiap
       JWT_SECRET: sua-chave-secreta-com-pelo-menos-32-caracteres-aqui
+      # Fotos de perfil. S3_ENDPOINT é como a API enxerga o MinIO (rede do Docker); S3_PUBLIC_URL é
+      # como o app o enxerga. O app troca localhost pelo host que usa para a API, então o padrão serve
+      # também em celular físico; defina-a (ex.: S3_PUBLIC_URL=http://192.168.0.10:9000 docker compose
+      # up -d) só se o MinIO estiver em outra máquina.
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000}
+      S3_BUCKET: portal-fiap
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
     depends_on:
       postgres:
         condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
 
   frontend:
     build:
@@ -56,3 +104,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
