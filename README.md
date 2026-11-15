@@ -277,7 +277,7 @@ Detalhes de comportamento:
 
 O aplicativo do **Tech Challenge da Fase 4** fica em `mobile/`. Ele é feito em **React Native com Expo**, usa componentes funcionais e hooks, e consome os mesmos endpoints REST do frontend web.
 
-Professores e administradores podem cadastrar, editar, listar com paginação e excluir professores e estudantes no aplicativo (RF05 a RF08). A API impede que professores gerenciem administradores ou excluam a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
+No aplicativo, o administrador cadastra contas de qualquer perfil (estudante, professor ou outro administrador, escolhido no campo **Perfil**), edita, lista com paginação e exclui (RF05 a RF08); o professor só consulta a lista de professores e estudantes. A API impede que alguém exclua a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
 
 ### Setup do aplicativo
 

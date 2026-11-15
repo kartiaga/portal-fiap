@@ -224,7 +224,7 @@ As funcionalidades incluem:
 - Validação de nome, e-mail e senha (mínimo de 8 caracteres no cadastro; opcional na edição).
 - Cadastro por `POST /users` e edição por `PUT /users/:id`, sem alterar o perfil.
 - Aba **Pessoas** com uma lista única, cada cartão com o selo do perfil, busca por e-mail e filtro por perfil na folha (*Todos*, *Professores*, *Estudantes* e, só para o administrador, *Administradores*). Listagem por `GET /users`, com `role`, `limit=20`, `cursor` e `search` opcionais; sem `role`, o professor recebe professores e estudantes e o administrador, todos. Filtro, busca e paginação são feitos no backend.
-- **Adicionar** abre o cadastro em modal com a escolha do perfil (já vem o do filtro ativo).
+- **Adicionar** abre o cadastro em modal. O campo **Perfil**, no topo, lista *Estudante*, *Professor* e *Administrador*, cada um com uma frase sobre o que pode fazer; já vem o perfil do filtro ativo e, sem filtro, *Estudante* (o de menor acesso).
 - Consulta de usuários para edição com `GET /users/:id`.
 - Atualização da listagem após operações.
 - Exclusão na tela de edição, com confirmação (`Alert` nativo), por `DELETE /users/:id`.

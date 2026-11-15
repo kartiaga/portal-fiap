@@ -19,11 +19,10 @@ Leia sempre pelo `useTheme()`. Nunca escreva hexadecimal em tela ou componente. 
 | `textTertiary` | `#76717F` | `#7D7989` | Placeholder, chevron e conteúdo desabilitado |
 | `background` | `#F6F4F5` | `#121114` | Fundo da tela |
 | `surface` | `#FFFFFF` | `#1D1C21` | Cartões |
-| `backgroundElement` | `#EFEBEC` | `#26252B` | Preenchimento discreto (busca, trilho do segmentado) |
+| `backgroundElement` | `#EFEBEC` | `#26252B` | Preenchimento discreto (busca, campo de comentário) |
 | `backgroundSelected` | `#E6E3EA` | `#33313A` | Item pressionado |
 | `border` | `#E6E3EA` | `#33313A` | Bordas de cartão e divisores (decorativos) |
 | `borderInput` | `#8A8694` | `#706C7A` | Linha de base dos campos em repouso |
-| `segmentSelected` | `#FFFFFF` | `#46444F` | Opção escolhida do controle segmentado |
 | `tint` / `tintPressed` / `onTint` | `#E4002B` / `#A3001F` / branco | `#E4002B` / `#C4102E` / branco | Preenchimento da ação primária, pressionado, texto sobre ele |
 | `tintText` / `tintSoft` | `#C4102E` / `#FCE8EB` | `#FF4D63` / `#3A1219` | Vermelho como texto / fundo de selo e avatar |
 | `success`, `info`, `danger` (+ `*Soft`) | | | Sucesso, informação, erro e ação destrutiva |
@@ -95,7 +94,7 @@ Todos em `src/theme/index.ts`:
 | `Banner` | Aviso que não bloqueia: `error`, `success` e `info` (`infoSoft`/`info`, ex.: sessão expirada). `onDismiss` mostra o botão de fechar (área de 44); `action` mostra uma ação em texto sublinhado ("Tentar novamente") |
 | `StateMessage` / `LoadingState` | Vazio, erro e carregando de uma tela ou lista |
 | `FilterButton`, `FilterSheet`, `FilterTag` | Filtro de lista: ícone ao lado da busca (ponto vermelho quando há filtro), folha nativa `formSheet` com uma escolha por grupo e **Limpar** / **Aplicar**, e a etiqueta do filtro ativo abaixo da busca. A escolha vive no parâmetro da rota da aba |
-| `SegmentedControl` | Escolher entre poucas opções num formulário (perfil no cadastro de pessoa) ou alternar poucas visões de uma lista. A opção escolhida usa `segmentSelected` e peso 600; as outras, peso 500 |
+| `ChoiceList` | Escolha única em lista (cartão com uma linha por opção e marca de seleção em `tintText`; a escolhida em peso 600), com uma frase opcional abaixo de cada opção. Usada no campo **Perfil** do cadastro de pessoa e nos grupos da folha de filtros. Prefira a abas (controle segmentado) quando as opções precisam de explicação ou podem passar de duas |
 | `Avatar` | Foto de perfil (`uri`) ou, sem foto ou se ela não carregar, iniciais (ou ícone, sem nome). `tonal` (padrão: `tintSoft` + `tintText`) nas listas; `solid` (vermelho cheio) só no cartão de perfil da Conta |
 | `Badge`, `RoleBadge`, `SelfBadge` | Selo em pílula com tom `brand`, `info`, `success` ou `neutral`. `RoleBadge` mostra o perfil; `SelfBadge` ("Você") marca o que é do usuário conectado |
 | `PostMeta` | Cabeçalho comum dos cartões de postagem: avatar `small`, autor (`label`, `textSecondary`), selo "Você" e data em `meta` à direita (com prefixo opcional, como "Editada"). Com fonte acima de 1,3×, a data desce para a linha de baixo |
