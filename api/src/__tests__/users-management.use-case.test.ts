@@ -11,6 +11,7 @@ import { listUsersQuerySchema } from '@/modules/users/dto/list-users.dto'
 import { updateUserSchema } from '@/modules/users/dto/update-user.dto'
 import { sendUserError } from '@/modules/users/http/controller/shared'
 import type { FastifyReply } from 'fastify'
+import type { AvatarStorage } from '@/lib/avatar'
 
 const admin = { id: 'admin-1', role: UserRole.ADMIN }
 const teacher = { id: 'teacher-1', role: UserRole.TEACHER }
@@ -19,6 +20,7 @@ const target = {
   id: 'teacher-2',
   email: 'teacher@fiap.com.br',
   name: 'Ana',
+  avatarUrl: null,
   role: UserRole.TEACHER,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -115,6 +117,27 @@ describe('user management authorization and data', () => {
       useCase.handler(student, { role: UserRole.STUDENT }),
     ).rejects.toMatchObject({ status: 403 })
     await expect(useCase.handler(admin)).resolves.toHaveProperty('items')
+  })
+
+  it("lets anyone see their own account, but not other people's", async () => {
+    const users = {
+      findById: jest.fn().mockResolvedValue({
+        ...target,
+        id: student.id,
+        role: UserRole.STUDENT,
+      }),
+    } as unknown as UserRepository
+    const useCase = new GetUserByIdUseCase(users)
+
+    // O estudante vê a própria conta (nome, e-mail e foto), mas não a de outra pessoa.
+    await expect(useCase.handler(student.id, student)).resolves.toMatchObject({
+      id: student.id,
+    })
+    await expect(
+      useCase.handler(student.id, { ...student, id: 'outro' }),
+    ).rejects.toMatchObject({
+      status: 403,
+    })
   })
 
   it('protects individual lookup and returns 404 for missing user', async () => {
@@ -226,6 +249,35 @@ describe('user management authorization and data', () => {
       status: 409,
     })
     expect(users.deleteWithoutPosts).toHaveBeenCalledTimes(2)
+  })
+
+  it('removes the avatar file together with the deleted user', async () => {
+    const users = {
+      findById: jest.fn().mockResolvedValue(target),
+      deleteWithoutPosts: jest.fn().mockResolvedValue('deleted'),
+    } as unknown as UserRepository
+    const storage = {
+      remove: jest.fn().mockResolvedValue(undefined),
+    } as unknown as AvatarStorage
+    const profiles = {
+      findAvatarKey: jest.fn().mockResolvedValue('avatars/teacher-2/x.jpg'),
+    }
+    const useCase = new DeleteUserUseCase(users, { profiles, storage })
+
+    await useCase.handler(target.id, admin)
+    expect(storage.remove).toHaveBeenCalledWith('avatars/teacher-2/x.jpg')
+
+    // Usuário com postagens não é excluído, então a foto fica.
+    jest.mocked(storage.remove).mockClear()
+    jest.mocked(users.deleteWithoutPosts).mockResolvedValueOnce('has_posts')
+    await expect(useCase.handler(target.id, admin)).rejects.toMatchObject({
+      status: 409,
+    })
+    expect(storage.remove).not.toHaveBeenCalled()
+
+    // Falha no armazenamento não impede a exclusão.
+    jest.mocked(storage.remove).mockRejectedValueOnce(new Error('storage down'))
+    await expect(useCase.handler(target.id, admin)).resolves.toBeUndefined()
   })
 
   it('rejects invalid role filters', () => {

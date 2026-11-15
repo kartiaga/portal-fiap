@@ -1,4 +1,5 @@
 import { database } from '@/lib/db'
+import { publicAvatarUrl } from '@/lib/storage'
 
 import {
   buildPaginatedResult,
@@ -21,6 +22,7 @@ interface PostRow {
   content: string
   author_id: string
   author_name?: string | null
+  author_avatar_key?: string | null
   created_at: Date
   cursor_created_at: string
   updated_at: Date
@@ -34,6 +36,7 @@ export class PostRepository {
       content: row.content,
       authorId: row.author_id,
       authorName: row.author_name ?? undefined,
+      authorAvatarUrl: publicAvatarUrl(row.author_avatar_key),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }
@@ -58,7 +61,8 @@ export class PostRepository {
   public async findById(id: string): Promise<Post | undefined> {
     const result = await database.clienteInstance?.query(
       `
-      SELECT posts.*, profiles.name AS author_name
+      SELECT posts.*, profiles.name AS author_name,
+             profiles.avatar_key AS author_avatar_key
       FROM posts
       LEFT JOIN profiles ON profiles.user_id = posts.author_id
       WHERE posts.id = $1
@@ -91,7 +95,8 @@ export class PostRepository {
   public async search(term: string): Promise<Post[]> {
     const result = await database.clienteInstance?.query(
       `
-      SELECT posts.*, profiles.name AS author_name
+      SELECT posts.*, profiles.name AS author_name,
+             profiles.avatar_key AS author_avatar_key
       FROM posts
       LEFT JOIN profiles ON profiles.user_id = posts.author_id
       WHERE posts.title ILIKE $1

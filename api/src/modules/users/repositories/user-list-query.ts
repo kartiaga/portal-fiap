@@ -42,7 +42,7 @@ export function buildUserListQuery(params: UserListParams) {
     values,
     sql: `SELECT users.id, users.email, users.role, users.created_at,
                  to_char(users.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
-                 users.updated_at, profiles.name
+                 users.updated_at, profiles.name, profiles.avatar_key
           FROM users LEFT JOIN profiles ON profiles.user_id = users.id
           ${where}
           ORDER BY users.created_at DESC, users.id DESC

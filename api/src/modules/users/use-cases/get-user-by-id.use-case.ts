@@ -11,7 +11,7 @@ export class GetUserByIdUseCase {
   async handler(id: string, actor: UserActor): Promise<PublicUser> {
     const user = await this.userRepository.findById(id)
     if (!user) throw new UserError('User not found', 404)
-    assertCanView(actor, user.role)
+    assertCanView(actor, user.role, id)
     return user
   }
 }

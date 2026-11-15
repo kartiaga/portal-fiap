@@ -8,6 +8,7 @@ export type UserListItem = {
   email: string
   role: User['role']
   name: string | null
+  avatarUrl: string | null
   createdAt?: Date | undefined
   updatedAt?: Date | undefined
 }
@@ -38,6 +39,7 @@ export class GetUsersUseCase {
         email: user.email,
         role: user.role,
         name: user.name,
+        avatarUrl: user.avatarUrl,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       })),
