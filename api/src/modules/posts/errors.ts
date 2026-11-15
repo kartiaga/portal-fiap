@@ -5,6 +5,20 @@ export class ForbiddenPostAccessError extends Error {
   }
 }
 
+export class ForbiddenPostAuthorError extends Error {
+  constructor() {
+    super('Only administrators can publish on behalf of another user')
+    this.name = 'ForbiddenPostAuthorError'
+  }
+}
+
+export class InvalidPostAuthorError extends Error {
+  constructor() {
+    super('The author must be an existing teacher')
+    this.name = 'InvalidPostAuthorError'
+  }
+}
+
 export class PostNotFoundError extends Error {
   constructor() {
     super('Post not found')
