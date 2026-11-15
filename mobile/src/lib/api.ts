@@ -29,6 +29,22 @@ export function getApiUrl(): string {
   return `http://${host}:${API_PORT}`;
 }
 
+/** Hosts que só valem na máquina que roda o servidor: no celular, apontam para o próprio celular. */
+const LOOPBACK_URL = /^(https?:\/\/)(localhost|127\.0\.0\.1|10\.0\.2\.2)(?=[:/]|$)/;
+
+/**
+ * Endereço do armazenamento de fotos (MinIO) que o aparelho realmente alcança. A API o monta com
+ * `S3_PUBLIC_URL`, que em desenvolvimento costuma ser `localhost`; num celular físico ou no emulador
+ * do Android isso aponta para o próprio aparelho. Nesse caso troca o host pelo que o app já usa para
+ * falar com a API, que ele sabe que alcança (o MinIO roda na mesma máquina). Outros endereços (um S3
+ * de verdade, um IP da rede) passam intactos.
+ */
+export function reachableUrl(url: string): string {
+  if (!LOOPBACK_URL.test(url)) return url;
+  const apiHost = /^https?:\/\/([^:/]+)/.exec(getApiUrl())?.[1];
+  return apiHost ? url.replace(LOOPBACK_URL, `$1${apiHost}`) : url;
+}
+
 let authToken: string | null = null;
 let onUnauthorized: (() => void) | null = null;
 

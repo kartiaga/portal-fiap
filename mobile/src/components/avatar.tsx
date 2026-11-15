@@ -1,12 +1,16 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { useTheme } from '@/hooks/use-theme';
+import { reachableUrl } from '@/lib/api';
 import { AvatarSize, Typography } from '@/theme';
 
 type AvatarProps = {
   /** Sem nome, mostra só um ícone genérico. */
   name?: string | null;
+  /** Endereço da foto de perfil. Sem ele, ou se não carregar, valem as iniciais. */
+  uri?: string | null;
   /** Diâmetro; use `AvatarSize`. */
   size?: number;
   /**
@@ -26,9 +30,11 @@ export function initialsOf(name: string | null | undefined): string {
   return `${first}${last}`.toUpperCase();
 }
 
-/** Círculo com as iniciais (ou um ícone, sem nome). Decorativo: o nome vem escrito ao lado. */
-export function Avatar({ name, size = AvatarSize.medium, variant = 'tonal' }: AvatarProps) {
+/** Círculo com a foto de perfil ou, sem ela, as iniciais (ou um ícone, sem nome). Decorativo: o nome vem escrito ao lado. */
+export function Avatar({ name, uri, size = AvatarSize.medium, variant = 'tonal' }: AvatarProps) {
   const theme = useTheme();
+  // Guarda qual endereço falhou: uma foto nova (outro endereço) ganha outra tentativa.
+  const [failedUri, setFailedUri] = useState<string | null>(null);
   const large = size >= AvatarSize.large;
   const initials = initialsOf(name);
   const background = variant === 'solid' ? theme.tint : theme.tintSoft;
@@ -39,7 +45,15 @@ export function Avatar({ name, size = AvatarSize.medium, variant = 'tonal' }: Av
       accessible={false}
       importantForAccessibility="no-hide-descendants"
       style={[styles.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: background }]}>
-      {initials === '?' ? (
+      {uri && failedUri !== uri ? (
+        <Image
+          testID="avatar-photo"
+          source={{ uri: reachableUrl(uri) }}
+          resizeMode="cover"
+          onError={() => setFailedUri(uri)}
+          style={{ width: size, height: size }}
+        />
+      ) : initials === '?' ? (
         <Icon name="person" size={size * 0.5} color={content} />
       ) : (
         <Text
@@ -56,5 +70,6 @@ const styles = StyleSheet.create({
   circle: {
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
 });

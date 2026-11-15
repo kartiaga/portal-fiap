@@ -10,6 +10,8 @@ const STACK_FONT_SCALE = 1.3;
 
 type PostMetaProps = {
   authorName: string | null | undefined;
+  /** Foto do autor; sem ela, valem as iniciais. */
+  authorAvatarUrl?: string | null | undefined;
   /** Data já formatada ("Hoje", "13/09/2026"). Vazia, não aparece. */
   date: string;
   /** Palavra antes da data, como "Editada". Fica na fonte do sistema; o mono é só do número. */
@@ -19,7 +21,7 @@ type PostMetaProps = {
 };
 
 /** Cabeçalho dos cartões de postagem: avatar, autor, selo "Você" e data. Igual no Feed e em Gerenciar. */
-export function PostMeta({ authorName, date, datePrefix, isSelf = false }: PostMetaProps) {
+export function PostMeta({ authorName, authorAvatarUrl, date, datePrefix, isSelf = false }: PostMetaProps) {
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale > STACK_FONT_SCALE;
@@ -34,7 +36,7 @@ export function PostMeta({ authorName, date, datePrefix, isSelf = false }: PostM
 
   return (
     <View style={styles.row}>
-      <Avatar name={authorName} size={AvatarSize.small} />
+      <Avatar name={authorName} uri={authorAvatarUrl} size={AvatarSize.small} />
       <View style={[styles.main, stacked && styles.mainStacked]}>
         <View style={styles.authorRow}>
           <Text

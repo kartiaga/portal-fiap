@@ -28,7 +28,7 @@ export const PersonCard = memo(function PersonCard({ person, isSelf, onPress }: 
 
   const content = (
     <>
-      <Avatar name={person.name} />
+      <Avatar name={person.name} uri={person.avatarUrl} />
       <View style={styles.info}>
         <Text numberOfLines={1} style={[Typography.headline, { color: theme.text }]}>
           {name}
