@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { memo, useCallback, useEffect } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,7 +21,7 @@ const MESSAGES = {
 
 const likerId = (liker: Liker) => liker.userId;
 
-function LikerRow({ liker, isSelf }: { liker: Liker; isSelf: boolean }) {
+const LikerRow = memo(function LikerRow({ liker, isSelf }: { liker: Liker; isSelf: boolean }) {
   const theme = useTheme();
 
   return (
@@ -33,7 +33,7 @@ function LikerRow({ liker, isSelf }: { liker: Liker; isSelf: boolean }) {
       {isSelf ? <SelfBadge /> : null}
     </View>
   );
-}
+});
 
 /** Conteúdo da folha de curtidas (rota `posts/[id]/likes`): quem curtiu, dos mais recentes primeiro. */
 export function LikesSheet({ postId }: { postId: string }) {
@@ -50,37 +50,40 @@ export function LikesSheet({ postId }: { postId: string }) {
     void reload();
   }, [reload]);
 
+  const renderItem = useCallback(
+    ({ item }: { item: Liker }) => <LikerRow liker={item} isSelf={item.userId === user?.id} />,
+    [user?.id],
+  );
+
+  // Carregando, falha e lista vazia aparecem dentro da própria lista (ver `SheetScaffold`). Uma
+  // falha com a lista já preenchida (só no "carregar mais") fica no rodapé.
+  const empty = !loaded ? (
+    <LoadingState label="Carregando curtidas" />
+  ) : loadError ? (
+    <StateMessage tone="error" message={loadError} actionLabel="Tentar novamente" onAction={() => void reload()} />
+  ) : (
+    <StateMessage icon="heart-outline" title="Nenhuma curtida ainda" message="Quem curtir aparece aqui." />
+  );
+
   const renderBody = ({ top }: SheetInsets) => {
     const bottom = Math.max(safeArea.bottom, Spacing.three);
-
-    if (!loaded || (items.length === 0 && loadError)) {
-      return (
-        <View style={[styles.state, { paddingTop: top, paddingBottom: bottom }]}>
-          {loaded && loadError ? (
-            <StateMessage tone="error" message={loadError} actionLabel="Tentar novamente" onAction={() => void reload()} />
-          ) : (
-            <LoadingState label="Carregando curtidas" />
-          )}
-        </View>
-      );
-    }
 
     return (
       <FlatList
         testID="likes-list"
         data={items}
         keyExtractor={likerId}
-        renderItem={({ item }) => <LikerRow liker={item} isSelf={item.userId === user?.id} />}
-        ListEmptyComponent={
-          <StateMessage icon="heart-outline" title="Nenhuma curtida ainda" message="Quem curtir aparece aqui." />
-        }
+        renderItem={renderItem}
+        ListEmptyComponent={empty}
         ListFooterComponent={
-          <ListFooter
-            loading={loadingMore}
-            error={loadMoreError}
-            onRetry={() => void loadMore()}
-            loadingLabel="Carregando mais curtidas"
-          />
+          loaded ? (
+            <ListFooter
+              loading={loadingMore}
+              error={loadMoreError}
+              onRetry={() => void loadMore()}
+              loadingLabel="Carregando mais curtidas"
+            />
+          ) : undefined
         }
         onEndReached={() => void loadMore()}
         onEndReachedThreshold={0.5}
@@ -95,10 +98,9 @@ export function LikesSheet({ postId }: { postId: string }) {
 }
 
 const styles = StyleSheet.create({
-  state: {
-    flex: 1,
-  },
   list: {
+    // Sem itens, o estado (carregando, erro, vazio) ocupa a altura toda e fica centralizado.
+    flexGrow: 1,
     alignSelf: 'center',
     width: '100%',
     maxWidth: MaxContentWidth,

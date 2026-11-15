@@ -19,6 +19,8 @@ import { CommentItem } from './comment-item';
 import { canDeleteComment } from './permissions';
 import { useComments } from './use-comments';
 
+const commentKey = (comment: Comment) => comment.id;
+
 /**
  * Conteúdo da folha de comentários (rota `posts/[id]/comments`, `formSheet`): título, a lista
  * (mais recentes primeiro, com a próxima página ao rolar) e o campo de comentar fixo embaixo.
@@ -81,62 +83,58 @@ export function CommentsSheet({ postId }: { postId: string }) {
     [handleDelete],
   );
 
-  const renderBody = ({ top, bottom }: SheetInsets) => {
-    if (!loaded || (comments.length === 0 && loadError)) {
-      return (
-        <View style={[styles.state, { paddingTop: top, paddingBottom: bottom }]}>
-          {loaded && loadError ? (
-            <StateMessage tone="error" message={loadError} actionLabel="Tentar novamente" onAction={() => void reload()} />
-          ) : (
-            <LoadingState label="Carregando comentários" />
-          )}
-        </View>
-      );
-    }
+  const renderItem = useCallback(
+    ({ item }: { item: Comment }) => (
+      <CommentItem
+        comment={item}
+        isSelf={item.authorId === user?.id}
+        canDelete={canDeleteComment(user, item)}
+        deleting={deletingId === item.id}
+        onDelete={confirmDelete}
+      />
+    ),
+    [user, deletingId, confirmDelete],
+  );
 
-    return (
-      <FlatList
-        ref={listRef}
-        testID="comments-list"
-        data={comments}
-        keyExtractor={(comment) => comment.id}
-        renderItem={({ item }) => (
-          <CommentItem
-            comment={item}
-            isSelf={item.authorId === user?.id}
-            canDelete={canDeleteComment(user, item)}
-            deleting={deletingId === item.id}
-            onDelete={confirmDelete}
-          />
-        )}
-        ListEmptyComponent={
-          <StateMessage
-            icon="chatbubble-outline"
-            title="Nenhum comentário ainda"
-            message="Seja o primeiro a comentar."
-          />
-        }
-        ListFooterComponent={
+  // Carregando, falha e lista vazia aparecem dentro da própria lista (ver `SheetScaffold`).
+  const empty = !loaded ? (
+    <LoadingState label="Carregando comentários" />
+  ) : loadError ? (
+    <StateMessage tone="error" message={loadError} actionLabel="Tentar novamente" onAction={() => void reload()} />
+  ) : (
+    <StateMessage icon="chatbubble-outline" title="Nenhum comentário ainda" message="Seja o primeiro a comentar." />
+  );
+
+  const renderBody = ({ top, bottom }: SheetInsets) => (
+    <FlatList
+      ref={listRef}
+      testID="comments-list"
+      data={comments}
+      keyExtractor={commentKey}
+      renderItem={renderItem}
+      ListEmptyComponent={empty}
+      ListFooterComponent={
+        loaded ? (
           <ListFooter
             loading={loadingMore}
             error={loadMoreError}
             onRetry={() => void loadMore()}
             loadingLabel="Carregando mais comentários"
           />
-        }
-        onEndReached={() => void loadMore()}
-        onEndReachedThreshold={0.5}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        // A lista ocupa a folha inteira: os recuos a mantêm entre o título e o campo de comentar.
-        contentContainerStyle={[
-          styles.list,
-          { paddingTop: top + Spacing.three, paddingBottom: bottom + Spacing.three },
-        ]}
-        scrollIndicatorInsets={{ top, bottom }}
-      />
-    );
-  };
+        ) : undefined
+      }
+      onEndReached={() => void loadMore()}
+      onEndReachedThreshold={0.5}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      // A lista ocupa a folha inteira: os recuos a mantêm entre o título e o campo de comentar.
+      contentContainerStyle={[
+        styles.list,
+        { paddingTop: top + Spacing.three, paddingBottom: bottom + Spacing.three },
+      ]}
+      scrollIndicatorInsets={{ top, bottom }}
+    />
+  );
 
   const banner =
     loadError && comments.length > 0 ? (
@@ -162,14 +160,13 @@ export function CommentsSheet({ postId }: { postId: string }) {
 }
 
 const styles = StyleSheet.create({
-  state: {
-    flex: 1,
-  },
   banner: {
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
   list: {
+    // Sem itens, o estado (carregando, erro, vazio) ocupa a altura toda e fica centralizado.
+    flexGrow: 1,
     alignSelf: 'center',
     width: '100%',
     maxWidth: MaxContentWidth,
