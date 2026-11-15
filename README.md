@@ -6,6 +6,8 @@ Portal FIAP para o **Tech Challenge da FIAP — Fase 4**, com API REST, frontend
 
 ## Sobre o desafio
 
+Os enunciados originais das fases 2, 3 e 4, como cada requisito foi atendido e o que o projeto fez de diferente (com a orientação do professor) estão em [`docs/requisitos/`](docs/requisitos/README.md).
+
 ### O problema
 
 Professores e professoras da rede pública de educação frequentemente não têm plataformas centralizadas para publicar aulas e compartilhar conhecimento com alunos de forma prática e tecnológica.
@@ -26,7 +28,7 @@ Oferecer uma API de blogging onde:
 |---|---|---|
 | `GET /posts` | Lista de posts para alunos | Implementado |
 | `GET /posts/:id` | Leitura de um post específico | Implementado |
-| `POST /posts` | Criação de postagens (docentes) | Implementado |
+| `POST /posts` | Criação de postagens (docentes). O autor é quem está logado; o administrador pode publicar em nome de um professor | Implementado |
 | `PUT /posts/:id` | Edição de postagens | Implementado |
 | `DELETE /posts/:id` | Exclusão de postagens | Implementado |
 | `GET /posts/search` | Busca por palavra-chave no título, conteúdo ou nome do autor | Implementado |
@@ -64,7 +66,7 @@ Estas rotas suportam autenticação e gestão de usuários, incluindo os requisi
 |---|---|---|
 | `POST /login` | Autenticação com JWT | Implementado |
 | `GET /users` | Listagem paginada de usuários, com filtro opcional por papel | Implementado |
-| `POST /users` | Cadastro de usuários por administradores e professores, conforme o papel | Implementado |
+| `POST /users` | Cadastro de usuários de qualquer perfil, só pelo administrador | Implementado |
 | `GET /users/:id` | Consulta de usuário | Implementado |
 | `PUT /users/:id` | Edição de usuário sem alteração de papel | Implementado |
 | `DELETE /users/:id` | Exclusão de usuário sem postagens | Implementado |
@@ -277,7 +279,7 @@ Detalhes de comportamento:
 
 O aplicativo do **Tech Challenge da Fase 4** fica em `mobile/`. Ele é feito em **React Native com Expo**, usa componentes funcionais e hooks, e consome os mesmos endpoints REST do frontend web.
 
-No aplicativo, o administrador cadastra contas de qualquer perfil (estudante, professor ou outro administrador, escolhido no campo **Perfil**), edita, lista com paginação e exclui (RF05 a RF08); o professor só consulta a lista de professores e estudantes. A API impede que alguém exclua a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
+No aplicativo, o administrador cadastra contas de qualquer perfil (estudante, professor ou outro administrador, escolhido no campo **Perfil**), lista com paginação e edita e exclui pelo menu de três pontinhos de cada pessoa da lista (RF05 a RF08); o professor só consulta a lista de professores e estudantes. A API impede que alguém exclua a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
 
 ### Setup do aplicativo
 
@@ -492,7 +494,7 @@ Disponível para `TEACHER` e `ADMIN` pelo botão **Nova postagem** da tela inici
 #### Como usar
 
 1. Na tela inicial, toque em **Nova postagem**.
-2. Preencha o **título** e o **conteúdo**. O campo **Autor** é apenas informativo: a API registra como autor o usuário da sessão.
+2. Preencha o **título** e o **conteúdo**. O campo **Autor** mostra quem assina: para o professor, o próprio nome, só para leitura; o administrador pode tocar nele e escolher um professor, e a postagem sai em nome dele.
 3. Toque em **Publicar postagem**. Enquanto a requisição está em andamento, o botão exibe um indicador de carregamento.
 4. Para desistir, toque em **Cancelar** ou no botão de voltar do cabeçalho.
 
@@ -502,7 +504,9 @@ Ao publicar, o app volta para a lista, que é recarregada e exibe *Postagem publ
 
 | Funcionalidade | Endpoint consumido |
 |---|---|
-| Envio da nova postagem, com o autor definido pelo token | `POST /posts` |
+| Envio da nova postagem, com o autor definido pelo token (ou `authorId` do professor escolhido pelo administrador) | `POST /posts` |
+| Nome de quem está logado, no campo Autor | `GET /users/:id` |
+| Professores para a escolha do autor (só administrador) | `GET /users?role=TEACHER` |
 | Lista atualizada ao voltar, com o aviso de sucesso | `GET /posts` |
 
 O formulário é o mesmo usado na edição (`components/post-form.tsx`).
@@ -517,9 +521,11 @@ As regras são as mesmas da API e do frontend web, verificadas antes do envio e 
 | Título com mais de 255 caracteres | O título deve ter no máximo 255 caracteres. |
 | Conteúdo com menos de 10 caracteres | O conteúdo deve ter pelo menos 10 caracteres. |
 | Usuário sem permissão (`403`) | Você não tem permissão para publicar postagens. |
+| Professor escolhido não existe mais (`422`) | O autor escolhido não é mais um professor cadastrado. Escolha outro. |
 | Falha ao publicar | Não foi possível publicar a postagem. |
 | API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
 | Postagem publicada | Postagem publicada. |
+| Postagem publicada em nome de um professor | Postagem publicada em nome de Fulano. |
 
 O campo de título também limita a digitação a 255 caracteres. Em caso de erro, o formulário continua preenchido para uma nova tentativa.
 
@@ -1180,7 +1186,7 @@ O nome do arquivo tem um uuid novo a cada troca, então o endereço antigo deixa
 
 ### `POST /posts`
 
-Cria uma nova publicação. Requer autenticação com papel `TEACHER` ou `ADMIN`. O autor é identificado automaticamente por meio do token JWT.
+Cria uma nova publicação. Requer autenticação com papel `TEACHER` ou `ADMIN`. O autor é identificado pelo token JWT. O campo opcional `authorId` serve para o `ADMIN` publicar em nome de um professor; o `TEACHER` só pode omiti-lo ou informar o próprio id.
 
 **Headers:**
 
@@ -1194,11 +1200,12 @@ Content-Type: application/json
 ```json
 {
   "title": "Título da publicação",
-  "content": "Conteúdo com no mínimo 10 caracteres"
+  "content": "Conteúdo com no mínimo 10 caracteres",
+  "authorId": "uuid (opcional)"
 }
 ```
 
-O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve conter pelo menos 10 caracteres.
+O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve conter pelo menos 10 caracteres. O campo `authorId`, quando enviado, deve ser um UUID.
 
 **Resposta (201):**
 
@@ -1216,7 +1223,9 @@ O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve con
 **Possíveis erros:**
 
 - `401 Unauthorized` — token ausente ou inválido.
-- `403 Forbidden` — usuário sem papel `TEACHER` ou `ADMIN`.
+- `400 Bad Request` — `authorId` que não é UUID.
+- `403 Forbidden` — usuário sem papel `TEACHER` ou `ADMIN`, ou `TEACHER` informando outro autor.
+- `422 Unprocessable Entity` — `authorId` que não é de um professor cadastrado.
 
 ---
 
