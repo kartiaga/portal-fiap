@@ -26,7 +26,9 @@ export function buildUserListQuery(params: UserListParams) {
   }
   if (params.search) {
     values.push(`%${params.search}%`)
-    conditions.push(`users.email ILIKE $${values.length}`)
+    conditions.push(
+      `(users.email ILIKE $${values.length} OR profiles.name ILIKE $${values.length})`,
+    )
   }
   if (params.cursor) {
     const { createdAt, id } = decodeCursor(params.cursor)

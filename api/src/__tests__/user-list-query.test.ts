@@ -16,7 +16,7 @@ describe('user list SQL', () => {
     })
     expect(sql).toMatch(/LEFT JOIN profiles ON profiles\.user_id = users\.id/)
     expect(sql).toMatch(
-      /WHERE users\.role = \$1 AND users\.email ILIKE \$2 AND \(users\.created_at, users\.id\) < \(\$3::timestamptz, \$4::uuid\)/,
+      /WHERE users\.role = \$1 AND \(users\.email ILIKE \$2 OR profiles\.name ILIKE \$2\) AND \(users\.created_at, users\.id\) < \(\$3::timestamptz, \$4::uuid\)/,
     )
     expect(sql.indexOf('WHERE')).toBeLessThan(sql.indexOf('ORDER BY'))
     expect(sql.indexOf('ORDER BY')).toBeLessThan(sql.indexOf('LIMIT'))
@@ -42,7 +42,7 @@ describe('user list SQL', () => {
     })
 
     expect(sql).toMatch(
-      /WHERE users\.role = ANY\(\$1::user_role\[\]\) AND users\.email ILIKE \$2/,
+      /WHERE users\.role = ANY\(\$1::user_role\[\]\) AND \(users\.email ILIKE \$2 OR profiles\.name ILIKE \$2\)/,
     )
     expect(values).toEqual([[UserRole.TEACHER, UserRole.STUDENT], '%ana%', 21])
   })

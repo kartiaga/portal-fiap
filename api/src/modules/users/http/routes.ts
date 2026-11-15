@@ -55,7 +55,7 @@ export async function usersRoutes(app: FastifyInstance) {
               description: 'Cursor opaco da página anterior',
             },
             limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
-            search: { type: 'string', description: 'Busca parcial por e-mail' },
+            search: { type: 'string', description: 'Busca parcial por nome ou e-mail' },
             role: { type: 'string', enum: ['STUDENT', 'TEACHER', 'ADMIN'] },
           },
         },
