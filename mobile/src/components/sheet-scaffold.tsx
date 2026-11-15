@@ -9,7 +9,7 @@ export type SheetInsets = { top: number; bottom: number };
 
 type SheetScaffoldProps = {
   title: string;
-  /** Aviso logo abaixo do título (erro ao excluir, falha ao atualizar). */
+  /** Logo abaixo do título, fixo: um aviso (erro ao excluir, falha ao atualizar) ou uma busca. */
   banner?: ReactNode;
   /** Fixo no pé da folha, como o campo de comentário. */
   footer?: ReactNode;

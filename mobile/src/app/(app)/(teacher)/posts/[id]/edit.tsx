@@ -124,7 +124,11 @@ export default function EditPostScreen() {
       <PostForm
         key={post.id}
         initialValues={{ title: post.title, content: post.content }}
-        otherAuthor={isOwn ? null : post.authorName || 'autor não informado'}
+        author={{
+          name: post.authorName || null,
+          isSelf: isOwn,
+          hint: isOwn ? undefined : 'Você está editando a postagem de outra pessoa. O autor não muda.',
+        }}
         submitLabel="Salvar alterações"
         submitting={submitting || deleting}
         error={error}

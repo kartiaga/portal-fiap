@@ -57,7 +57,11 @@ export function searchPosts(term: string): Promise<Post[]> {
   return apiFetch<Post[]>(`/posts/search?${query.toString()}`);
 }
 
-export function createPost(input: PostInput): Promise<Post> {
+/**
+ * Publica uma postagem. Sem `authorId`, o autor é quem está logado; com ele, só o administrador
+ * publica, e em nome de um professor (a API devolve 403 ou 422 nos outros casos).
+ */
+export function createPost(input: PostInput & { authorId?: string }): Promise<Post> {
   return apiFetch<Post>('/posts', { method: 'POST', body: JSON.stringify(input) });
 }
 
