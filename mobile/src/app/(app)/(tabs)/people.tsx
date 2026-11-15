@@ -69,7 +69,7 @@ function People() {
                   onPress: () =>
                     router.push({
                       pathname: '/people/create',
-                      params: role && role !== 'ADMIN' ? { role } : {},
+                      params: role ? { role } : {},
                     }),
                 }
               : undefined

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
-import { Icon } from '@/components/icon';
+import { ChoiceList } from '@/components/choice-list';
 import { useTheme } from '@/hooks/use-theme';
-import { BorderWidth, IconSize, MinTouchSize, Radius, Spacing, Typography } from '@/theme';
+import { Spacing, Typography } from '@/theme';
 
 export type FilterOption = { value: string; label: string };
 
@@ -50,41 +50,14 @@ export function FilterSheet({ title = 'Filtros', groups, initial, onApply, onCle
       </Text>
 
       {groups.map((group) => (
-        <View
-          key={group.key}
-          accessibilityRole="radiogroup"
-          accessibilityLabel={group.label}
-          style={styles.group}>
+        <View key={group.key} style={styles.group}>
           <Text style={[Typography.label, { color: theme.textSecondary }]}>{group.label}</Text>
-          <View style={[styles.options, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            {group.options.map((option, index) => {
-              const selected = (values[group.key] ?? '') === option.value;
-
-              return (
-                <Pressable
-                  key={option.value || 'all'}
-                  accessibilityRole="radio"
-                  accessibilityLabel={option.label}
-                  accessibilityState={{ checked: selected }}
-                  onPress={() => setValues((current) => ({ ...current, [group.key]: option.value }))}
-                  style={({ pressed }) => [
-                    styles.option,
-                    index > 0 && { borderTopWidth: BorderWidth.hairline, borderTopColor: theme.border },
-                    pressed && { backgroundColor: theme.backgroundSelected },
-                  ]}>
-                  <Text
-                    style={[
-                      Typography.body,
-                      styles.optionLabel,
-                      { color: theme.text, fontWeight: selected ? '600' : '400' },
-                    ]}>
-                    {option.label}
-                  </Text>
-                  {selected ? <Icon name="checkmark" size={IconSize.medium} color={theme.tintText} /> : null}
-                </Pressable>
-              );
-            })}
-          </View>
+          <ChoiceList
+            accessibilityLabel={group.label}
+            options={group.options}
+            value={values[group.key] ?? ''}
+            onChange={(value) => setValues((current) => ({ ...current, [group.key]: value }))}
+          />
         </View>
       ))}
 
@@ -108,21 +81,6 @@ const styles = StyleSheet.create({
   },
   group: {
     gap: Spacing.two,
-  },
-  options: {
-    borderWidth: BorderWidth.thin,
-    borderRadius: Radius.medium,
-    overflow: 'hidden',
-  },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    minHeight: MinTouchSize + Spacing.one,
-    paddingHorizontal: Spacing.three,
-  },
-  optionLabel: {
-    flex: 1,
   },
   actions: {
     flexDirection: 'row',

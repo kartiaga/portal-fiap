@@ -7,7 +7,7 @@ import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
 import { FormScreen } from '@/components/form-screen';
 import { ModalCancel } from '@/components/modal-cancel';
-import { SegmentedControl } from '@/components/segmented-control';
+import { ChoiceList } from '@/components/choice-list';
 import { useDiscardGuard } from '@/hooks/use-discard-guard';
 import { useTheme } from '@/hooks/use-theme';
 import { capitalize } from '@/lib/format';
@@ -20,17 +20,19 @@ import { PersonFormFields } from './form-fields';
 import { hasErrors, validatePersonForm, type PersonFieldErrors } from './form-validation';
 import { canManagePeople } from './permissions';
 
-const ROLE_OPTIONS = CREATABLE_ROLES.map((role) => ({
-  value: role,
-  label: capitalize(peopleConfig[role].singular),
+const ROLE_OPTIONS = CREATABLE_ROLES.map(({ value, description }) => ({
+  value,
+  label: capitalize(peopleConfig[value].singular),
+  description,
 }));
 
 /**
- * Cadastro de professor ou estudante, aberto em modal: o perfil é escolhido no topo (já vem o do
- * filtro da lista, quando há). Dando certo, volta para a aba Pessoas com o aviso. Sair pelo
- * "Cancelar" do cabeçalho com algo digitado pede confirmação.
+ * Cadastro de pessoa, aberto em modal: dados de acesso e o campo "Perfil" (estudante, professor
+ * ou administrador; já vem o do filtro da lista, quando há, e senão o de menor acesso). Dando
+ * certo, volta para a aba Pessoas com o aviso. Sair pelo "Cancelar" com algo digitado pede
+ * confirmação.
  */
-export function PersonForm({ initialRole = 'TEACHER' }: { initialRole?: PersonRole }) {
+export function PersonForm({ initialRole = 'STUDENT' }: { initialRole?: PersonRole }) {
   const theme = useTheme();
   const { user } = useSession();
   const router = useRouter();
@@ -78,12 +80,20 @@ export function PersonForm({ initialRole = 'TEACHER' }: { initialRole?: PersonRo
         <Text style={[Typography.callout, { color: theme.textSecondary }]}>
           A pessoa entra no app com o e-mail e a senha definidos aqui.
         </Text>
-        <SegmentedControl
-          accessibilityLabel="Perfil"
-          options={ROLE_OPTIONS}
-          value={role}
-          onChange={setRole}
-        />
+        {/*
+          O perfil vem antes dos dados: o "concluir" do teclado na senha envia o formulário, e a
+          escolha não pode ficar para depois dele.
+        */}
+        <View style={styles.field}>
+          <Text style={[Typography.label, { color: theme.text }]}>Perfil</Text>
+          <ChoiceList
+            accessibilityLabel="Perfil"
+            options={ROLE_OPTIONS}
+            value={role}
+            onChange={setRole}
+            disabled={submitting}
+          />
+        </View>
         <PersonFormFields
           name={name}
           email={email}
@@ -110,5 +120,8 @@ export function PersonForm({ initialRole = 'TEACHER' }: { initialRole?: PersonRo
 const styles = StyleSheet.create({
   form: {
     gap: Spacing.four,
+  },
+  field: {
+    gap: Spacing.two,
   },
 });

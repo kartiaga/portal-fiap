@@ -19,8 +19,6 @@ export const Colors = {
     border: '#E6E3EA',
     /** Linha de base dos campos: 3:1 sobre o fundo e a superfície (WCAG 1.4.11). */
     borderInput: '#8A8694',
-    /** Opção escolhida do controle segmentado, mais clara que o trilho. */
-    segmentSelected: '#FFFFFF',
 
     /** Vermelho FIAP: preenchimento de ação primária e cor de destaque. */
     tint: '#E4002B',
@@ -53,7 +51,6 @@ export const Colors = {
     backgroundSelected: '#33313A',
     border: '#33313A',
     borderInput: '#706C7A',
-    segmentSelected: '#46444F',
 
     tint: '#E4002B',
     tintPressed: '#C4102E',

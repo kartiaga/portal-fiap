@@ -1,10 +1,10 @@
 import { ApiError, apiFetch } from '@/lib/api';
 
-/** Perfis que o app cadastra. */
-export type PersonRole = 'TEACHER' | 'STUDENT';
+/** Perfis que o administrador cadastra (todos, inclusive outro administrador). */
+export type PersonRole = 'STUDENT' | 'TEACHER' | 'ADMIN';
 
-/** Perfis que aparecem nas listas e no filtro (o administrador só é listado, não cadastrado). */
-export type ListedRole = PersonRole | 'ADMIN';
+/** Perfis que aparecem nas listas e no filtro. */
+export type ListedRole = PersonRole;
 
 export type Person = {
   id: string;
