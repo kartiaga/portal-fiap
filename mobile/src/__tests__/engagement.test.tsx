@@ -221,6 +221,23 @@ describe('leitura', () => {
 });
 
 describe('folha de comentários', () => {
+  it('a lista existe desde a abertura: o carregando fica dentro dela, e os comentários chegam nela', async () => {
+    let respond: (value: unknown) => void = () => undefined;
+    mockApi((url) =>
+      url.includes('/comments') ? new Promise((resolve) => (respond = resolve)) : json(200, POST),
+    );
+    await renderAt('/posts/a/comments');
+
+    // Uma lista só, do carregando ao conteúdo: nada é desmontado quando a resposta chega.
+    const list = await screen.findByTestId('comments-list');
+    expect(within(list).getByLabelText('Carregando comentários')).toBeOnTheScreen();
+
+    await act(async () => respond(json(200, page([OTHER_COMMENT]))));
+
+    expect(await within(screen.getByTestId('comments-list')).findByText(OTHER_COMMENT.content)).toBeOnTheScreen();
+    expect(screen.getByTestId('comments-list')).toBe(list);
+  });
+
   it('mostra quando ainda não há comentários', async () => {
     mockApi((url) => (url.includes('/comments') ? json(200, page([])) : json(200, POST)));
     await renderAt('/posts/a/comments');
