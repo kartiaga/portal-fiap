@@ -151,13 +151,21 @@ describe('com sessão', () => {
 
   it('mostra o perfil na aba Conta', async () => {
     store.getItemAsync.mockResolvedValue(makeToken('STUDENT'));
+    // A API libera GET /users/:id na própria conta para qualquer perfil, estudante inclusive.
+    fetchMock.mockImplementation(async (url: string) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        new URL(url).pathname === '/users/id-1'
+          ? { id: 'id-1', name: 'Bia Lima', email: 'bia@fiap.com.br', role: 'STUDENT', avatarUrl: null }
+          : { items: [], nextCursor: null, hasMore: false },
+    }));
     await renderApp('/account');
 
-    expect(await screen.findByText('Conta de estudante')).toBeOnTheScreen();
+    expect(await screen.findByText('Bia Lima')).toBeOnTheScreen();
+    expect(screen.getByText('bia@fiap.com.br')).toBeOnTheScreen();
     expect(screen.getByText('Estudante')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Editar meus dados' })).toBeNull();
-    // A API não libera GET /users/:id para estudante, então a tela não tenta buscar.
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/users/'))).toBe(false);
   });
 
   it('sair pede confirmação, apaga o token e vai direto para o login', async () => {
