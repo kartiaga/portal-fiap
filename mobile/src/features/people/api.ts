@@ -34,7 +34,7 @@ export async function createPerson(input: {
 
 /**
  * Sem `role`, a API devolve todos os perfis que o usuário pode ver (professor: professores e
- * estudantes; administrador: todos). `search` filtra por e-mail (busca parcial na API).
+ * estudantes; administrador: todos). `search` filtra por nome ou e-mail (busca parcial na API).
  */
 export function listPeoplePage(
   role?: ListedRole,

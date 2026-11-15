@@ -3,7 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import { listPeoplePage, personError, type ListedRole, type Person } from './api';
 
 /**
- * Lista paginada de pessoas (de um perfil ou de todos), com busca por e-mail. Só a requisição mais recente
+ * Lista paginada de pessoas (de um perfil ou de todos), com busca por nome ou e-mail. Só a requisição mais recente
  * altera a lista: trocar de aba ou digitar rápido não deixa uma resposta velha por cima.
  */
 export function usePeople(role: ListedRole | undefined, search: string) {

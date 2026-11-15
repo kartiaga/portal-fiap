@@ -109,17 +109,18 @@ describe('lista', () => {
     expect(list.getByText('Estudante')).toBeOnTheScreen();
   });
 
-  it('o cartão anuncia nome, perfil e e-mail, e a ação na dica', async () => {
+  it('o cartão anuncia nome e perfil, sem mostrar o e-mail, e a ação na dica', async () => {
     await openPeople();
 
-    const card = screen.getByRole('button', { name: 'Maria Silva, Professor, maria@fiap.com.br' });
+    const card = screen.getByRole('button', { name: 'Maria Silva, Professor' });
     expect(card.props.accessibilityHint).toBe('Abre a edição');
+    expect(within(screen.getByTestId('people-list')).queryByText('maria@fiap.com.br')).toBeNull();
   });
 
-  it('envia a busca por e-mail para a API', async () => {
+  it('envia a busca por nome ou e-mail para a API', async () => {
     await openPeople();
 
-    await fireEvent.changeText(screen.getByLabelText('Buscar por e-mail'), ' maria ');
+    await fireEvent.changeText(screen.getByLabelText('Buscar por nome ou e-mail'), ' maria ');
 
     await waitFor(() => expect(listRequests().at(-1)?.searchParams.get('search')).toBe('maria'));
   });
@@ -257,7 +258,7 @@ describe('edição', () => {
   it('abre a edição pela lista, carrega os dados reais e salva sem alterar o papel', async () => {
     await openPeople();
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Maria Silva, Professor, maria@fiap.com.br' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Maria Silva, Professor' }));
 
     expect(await screen.findByDisplayValue('Maria Silva')).toBeOnTheScreen();
     expect(screen.getByDisplayValue('maria@fiap.com.br')).toBeOnTheScreen();
@@ -284,7 +285,7 @@ describe('edição', () => {
 
   it('exclui pela tela de edição, só depois da confirmação', async () => {
     await openPeople();
-    await fireEvent.press(screen.getByRole('button', { name: 'Maria Silva, Professor, maria@fiap.com.br' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Maria Silva, Professor' }));
     await screen.findByDisplayValue('Maria Silva');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Excluir maria@fiap.com.br' }));
@@ -344,7 +345,7 @@ describe('professor: só vê a lista', () => {
 
     expect(await screen.findByText('João Souza')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Filtros' })).toBeOnTheScreen();
-    expect(screen.getByLabelText('Buscar por e-mail')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Buscar por nome ou e-mail')).toBeOnTheScreen();
   });
 
   it('não tem "Nova pessoa" nem cartões que abrem a edição', async () => {
@@ -352,8 +353,8 @@ describe('professor: só vê a lista', () => {
 
     expect(screen.queryByRole('button', { name: 'Nova pessoa' })).toBeNull();
     // O cartão só informa: continua legível, mas não é um botão.
-    expect(screen.getByLabelText('Maria Silva, Professor, maria@fiap.com.br')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Maria Silva, Professor, maria@fiap.com.br' })).toBeNull();
+    expect(screen.getByLabelText('Maria Silva, Professor')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Maria Silva, Professor' })).toBeNull();
   });
 
   it.each([

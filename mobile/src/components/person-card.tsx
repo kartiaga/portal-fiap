@@ -18,13 +18,13 @@ type PersonCardProps = {
 };
 
 /**
- * Linha da lista de pessoas: avatar, nome, e-mail e o selo do perfil. Com `onPress`, tocar abre a
+ * Linha da lista de pessoas: avatar, nome e o selo do perfil (o e-mail fica na tela da pessoa). Com `onPress`, tocar abre a
  * edição; sem ele, o cartão só informa.
  */
 export const PersonCard = memo(function PersonCard({ person, isSelf, onPress }: PersonCardProps) {
   const theme = useTheme();
   const name = person.name ?? 'Nome não informado';
-  const label = `${name}, ${ROLE_LABEL[person.role]}, ${person.email}${isSelf ? ', você' : ''}`;
+  const label = `${name}, ${ROLE_LABEL[person.role]}${isSelf ? ', você' : ''}`;
 
   const content = (
     <>
@@ -32,9 +32,6 @@ export const PersonCard = memo(function PersonCard({ person, isSelf, onPress }: 
       <View style={styles.info}>
         <Text numberOfLines={1} style={[Typography.headline, { color: theme.text }]}>
           {name}
-        </Text>
-        <Text numberOfLines={1} style={[Typography.callout, { color: theme.textSecondary }]}>
-          {person.email}
         </Text>
         <View style={styles.badges}>
           <RoleBadge role={person.role} />

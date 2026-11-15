@@ -25,7 +25,7 @@ import { MaxContentWidth, Spacing } from '@/theme';
 const SEARCH_DEBOUNCE_MS = 400;
 
 /**
- * Aba Pessoas: todos os perfis numa lista só, com busca por e-mail e filtro por perfil (folha
+ * Aba Pessoas: todos os perfis numa lista só, com busca por nome ou e-mail e filtro por perfil (folha
  * aberta pelo ícone ao lado da busca). O perfil escolhido fica no parâmetro `role` da rota.
  * Professor e administrador veem a lista; só o administrador cadastra (botão "Nova pessoa") e
  * edita (tocar numa pessoa abre a edição).
@@ -79,14 +79,13 @@ function People() {
             <TextField
               testID="people-search"
               variant="search"
-              label="Buscar por e-mail"
+              label="Buscar por nome ou e-mail"
               icon="search"
               value={search}
               onChangeText={setSearch}
-              placeholder="nome@fiap.com.br"
+              placeholder="Nome ou e-mail"
               autoCapitalize="none"
               autoCorrect={false}
-              keyboardType="email-address"
               returnKeyType="search"
               clearButtonMode="while-editing"
             />
@@ -178,7 +177,7 @@ function PeopleResults({ role, search }: { role: ListedRole | undefined; search:
           <StateMessage
             icon="search"
             title="Ninguém encontrado"
-            message={`Nenhum ${noun} com e-mail parecido com "${search}".`}
+            message={`Nenhum ${noun} com nome ou e-mail parecido com "${search}".`}
           />
         ) : (
           <StateMessage
