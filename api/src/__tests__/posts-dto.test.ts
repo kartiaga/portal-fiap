@@ -68,6 +68,27 @@ describe('Post DTOs', () => {
     })
   })
 
+  describe('createPostSchema authorId', () => {
+    const base = {
+      title: 'Test Post Title',
+      content: 'This is a test post with sufficient content length.',
+    }
+
+    it('is optional', () => {
+      expect(createPostSchema.parse(base).authorId).toBeUndefined()
+    })
+
+    it('accepts a uuid and rejects anything else', () => {
+      const authorId = '0f8fad5b-d9cb-469f-a165-70867728950e'
+      expect(createPostSchema.parse({ ...base, authorId }).authorId).toBe(
+        authorId,
+      )
+      expect(() =>
+        createPostSchema.parse({ ...base, authorId: 'Ana Souza' }),
+      ).toThrow()
+    })
+  })
+
   describe('updatePostSchema', () => {
     it('should validate a valid post update payload', () => {
       const payload = {
