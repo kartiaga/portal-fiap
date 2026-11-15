@@ -8,7 +8,7 @@ import { Button } from '@/components/button';
 import { PostMeta } from '@/components/post-meta';
 import { RoleBadge } from '@/components/role-badge';
 import { ScreenHeader } from '@/components/screen-header';
-import { SegmentedControl } from '@/components/segmented-control';
+import { ChoiceList } from '@/components/choice-list';
 import { TextField } from '@/components/text-field';
 import { Colors } from '@/theme';
 
@@ -181,22 +181,32 @@ describe('ScreenHeader', () => {
   });
 });
 
-describe('SegmentedControl', () => {
-  it('marca a opção escolhida por estado e peso', async () => {
-    await render(
-      <SegmentedControl
-        accessibilityLabel="Perfil"
-        options={[
-          { value: 'a', label: 'Professores' },
-          { value: 'b', label: 'Estudantes' },
-        ]}
-        value="a"
-        onChange={() => undefined}
-      />,
-    );
-    expect(screen.getByRole('tab', { name: 'Professores', selected: true })).toBeOnTheScreen();
-    expect(styleOf('Professores').fontWeight).toBe('600');
-    expect(styleOf('Estudantes').fontWeight).toBe('500');
+describe('ChoiceList', () => {
+  const options = [
+    { value: 'a', label: 'Professor', description: 'Publica postagens.' },
+    { value: 'b', label: 'Estudante' },
+  ] as const;
+
+  it('marca a opção escolhida por estado e peso e mostra a descrição', async () => {
+    await render(<ChoiceList accessibilityLabel="Perfil" options={options} value="a" onChange={() => undefined} />);
+
+    expect(screen.getByRole('radio', { name: 'Professor' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Estudante' })).not.toBeChecked();
+    expect(styleOf('Professor').fontWeight).toBe('600');
+    expect(styleOf('Estudante').fontWeight).toBe('400');
+    expect(screen.getByText('Publica postagens.')).toBeOnTheScreen();
+  });
+
+  it('avisa a escolha e não reage desabilitada', async () => {
+    const onChange = jest.fn();
+    await render(<ChoiceList accessibilityLabel="Perfil" options={options} value="a" onChange={onChange} />);
+    await fireEvent.press(screen.getByRole('radio', { name: 'Estudante' }));
+    expect(onChange).toHaveBeenCalledWith('b');
+
+    onChange.mockClear();
+    await render(<ChoiceList accessibilityLabel="Perfil" options={options} value="a" onChange={onChange} disabled />);
+    await fireEvent.press(screen.getByRole('radio', { name: 'Estudante' }));
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 

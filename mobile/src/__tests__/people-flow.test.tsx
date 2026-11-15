@@ -203,7 +203,7 @@ describe('cadastro', () => {
   it('mostra o erro de cada campo sem chamar a API', async () => {
     await renderRouter('src/app', { initialUrl: '/people/create' });
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Cadastrar professor' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Cadastrar estudante' }));
 
     expect(screen.getByText('Informe um nome com pelo menos 2 caracteres.')).toBeOnTheScreen();
     expect(screen.getByText('Informe um e-mail válido.')).toBeOnTheScreen();
@@ -211,14 +211,26 @@ describe('cadastro', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('escolhe o perfil no formulário e cadastra com ele', async () => {
+  it('o campo Perfil oferece os três perfis e começa no de menor acesso', async () => {
     await renderRouter('src/app', { initialUrl: '/people/create' });
 
-    await fireEvent.press(await screen.findByRole('tab', { name: 'Estudante' }));
+    expect(await screen.findByRole('radio', { name: 'Estudante' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Professor' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Administrador' })).not.toBeChecked();
+    expect(screen.queryByRole('tab')).toBeNull();
+  });
+
+  it.each([
+    ['Professor', 'TEACHER', 'Cadastrar professor'],
+    ['Administrador', 'ADMIN', 'Cadastrar administrador'],
+  ])('escolhe %s no campo Perfil e cadastra com ele', async (option, role, submit) => {
+    await renderRouter('src/app', { initialUrl: '/people/create' });
+
+    await fireEvent.press(await screen.findByRole('radio', { name: option }));
     await fireEvent.changeText(screen.getByLabelText('Nome'), 'Ana Lima');
     await fireEvent.changeText(screen.getByLabelText('E-mail'), 'ana@fiap.com.br');
     await fireEvent.changeText(screen.getByLabelText('Senha'), '12345678');
-    await fireEvent.press(screen.getByRole('button', { name: 'Cadastrar estudante' }));
+    await fireEvent.press(screen.getByRole('button', { name: submit }));
 
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST');
@@ -226,7 +238,7 @@ describe('cadastro', () => {
       name: 'Ana Lima',
       email: 'ana@fiap.com.br',
       password: '12345678',
-      role: 'STUDENT',
+      role,
     });
   });
 
@@ -239,6 +251,17 @@ describe('cadastro', () => {
 
     expect(await screen.findByRole('button', { name: 'Cadastrar estudante' })).toBeOnTheScreen();
     expect(screen).toHavePathname('/people/create');
+  });
+
+  it('com o filtro Administradores, o cadastro já vem como administrador', async () => {
+    await openPeople();
+    await filterBy('Administradores');
+    await screen.findByText('Perfil: Administradores');
+
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Nova pessoa' }).at(-1)!);
+
+    expect(await screen.findByRole('radio', { name: 'Administrador' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Cadastrar administrador' })).toBeOnTheScreen();
   });
 
   it('Cancelar no cabeçalho pede confirmação se algo foi digitado', async () => {
