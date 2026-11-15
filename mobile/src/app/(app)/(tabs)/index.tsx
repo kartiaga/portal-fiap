@@ -104,7 +104,12 @@ export default function PostsScreen() {
         title="Posts"
         action={
           canPublish
-            ? { label: 'Nova postagem', icon: 'add', onPress: () => router.push('/posts/new') }
+            ? {
+                label: 'Criar',
+                accessibilityLabel: 'Nova postagem',
+                icon: 'add',
+                onPress: () => router.push('/posts/new'),
+              }
             : undefined
         }
       />

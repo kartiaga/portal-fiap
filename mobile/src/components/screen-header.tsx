@@ -12,7 +12,10 @@ const ICON_ONLY_FONT_SCALE = 1.3;
 const TITLE_MAX_FONT_SCALE = 1.3;
 
 export type ScreenHeaderAction = {
+  /** Texto curto do botão ("Criar"): o título da aba já diz o assunto. */
   label: string;
+  /** Nome completo para o leitor de tela ("Nova postagem"). Sem ele, vale o `label`. */
+  accessibilityLabel?: string;
   icon: IconName;
   onPress: () => void;
 };
@@ -42,7 +45,7 @@ export function ScreenHeader({ title, subtitle, action }: ScreenHeaderProps) {
       fontScale > ICON_ONLY_FONT_SCALE ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={action.label}
+          accessibilityLabel={action.accessibilityLabel ?? action.label}
           onPress={action.onPress}
           style={({ pressed }) => [
             styles.iconAction,
@@ -51,7 +54,13 @@ export function ScreenHeader({ title, subtitle, action }: ScreenHeaderProps) {
           <Icon name={action.icon} size={IconSize.large} color={theme.onTint} />
         </Pressable>
       ) : (
-        <Button label={action.label} icon={action.icon} size="small" onPress={action.onPress} />
+        <Button
+          label={action.label}
+          accessibilityLabel={action.accessibilityLabel}
+          icon={action.icon}
+          size="small"
+          onPress={action.onPress}
+        />
       );
   } else if (action) {
     actionNode = action;

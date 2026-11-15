@@ -63,7 +63,8 @@ function People() {
           action={
             canManage
               ? {
-                  label: 'Nova pessoa',
+                  label: 'Adicionar',
+                  accessibilityLabel: 'Nova pessoa',
                   icon: 'person-add-outline',
                   onPress: () =>
                     router.push({

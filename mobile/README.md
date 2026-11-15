@@ -106,7 +106,7 @@ Os guards usam `Stack.Protected` e controlam apenas a navegação. Quem garante 
 
 A busca é feita 500 ms depois que o usuário para de digitar, como no frontend web. Como a API não pagina a busca, todos os resultados chegam de uma vez. Apagar o termo volta para a lista paginada. Se a próxima página falhar, o erro aparece no rodapé da lista com **Tentar novamente**.
 
-O botão **Nova postagem** aparece no título da aba apenas para professores e administradores. Avisos de sucesso (*Postagem publicada.*) somem sozinhos depois de 4 segundos. **Sair** fica na aba Conta.
+O botão **Criar** (com +) aparece no título da aba apenas para professores e administradores. Avisos de sucesso (*Postagem publicada.*) somem sozinhos depois de 4 segundos. **Sair** fica na aba Conta.
 
 ## Leitura de postagem
 
@@ -135,7 +135,7 @@ Abaixo do conteúdo ficam o coração, o total de curtidas, o balão de comentá
 
 ## Criação de postagem
 
-Professores e administradores abrem `/posts/new` (em modal) pelo botão **Nova postagem** da aba Posts ou da aba Gerenciar. O formulário (`components/post-form.tsx`) é compartilhado com a edição e tem:
+Professores e administradores abrem `/posts/new` (em modal) pelo botão **Criar** da aba Posts ou da aba Gerenciar. O formulário (`components/post-form.tsx`) é compartilhado com a edição e tem:
 
 - **Título**, de 3 a 255 caracteres, em até 3 linhas; o contador *n/255* aparece a partir de 200 caracteres;
 - **Conteúdo**, com pelo menos 10 caracteres.
@@ -165,7 +165,7 @@ Disponível para professores e administradores.
 | Lista de postagens, com próxima página ao rolar          | `GET /posts?cursor=&limit=&authorId=` |
 | Busca, a mesma da aba Posts                              | `GET /posts/search?term=`   |
 | Atualizar ao puxar a lista e ao voltar para a tela       | `GET /posts`                |
-| Nova postagem, no cabeçalho                              | `POST /posts`               |
+| **Criar**, no cabeçalho                                  | `POST /posts`               |
 | Ler, tocando no cartão                                   | `GET /posts/:id`            |
 | Excluir, com confirmação                                 | `DELETE /posts/:id`         |
 | Editar, que abre `/posts/:id/edit`                       | `GET /posts/:id` e `PUT /posts/:id` |
@@ -224,7 +224,7 @@ As funcionalidades incluem:
 - Validação de nome, e-mail e senha (mínimo de 8 caracteres no cadastro; opcional na edição).
 - Cadastro por `POST /users` e edição por `PUT /users/:id`, sem alterar o perfil.
 - Aba **Pessoas** com uma lista única, cada cartão com o selo do perfil, busca por e-mail e filtro por perfil na folha (*Todos*, *Professores*, *Estudantes* e, só para o administrador, *Administradores*). Listagem por `GET /users`, com `role`, `limit=20`, `cursor` e `search` opcionais; sem `role`, o professor recebe professores e estudantes e o administrador, todos. Filtro, busca e paginação são feitos no backend.
-- **Nova pessoa** abre o cadastro em modal com a escolha do perfil (já vem o do filtro ativo).
+- **Adicionar** abre o cadastro em modal com a escolha do perfil (já vem o do filtro ativo).
 - Consulta de usuários para edição com `GET /users/:id`.
 - Atualização da listagem após operações.
 - Exclusão na tela de edição, com confirmação (`Alert` nativo), por `DELETE /users/:id`.
@@ -247,7 +247,7 @@ Os componentes compartilhados estão em `src/features/people/`:
 | `form-validation.ts` | Validação dos formulários |
 | `permissions.ts` | Controle de permissões |
 
-**Permissões:** `ADMIN` e `TEACHER` veem a lista de professores e estudantes (a aba **Pessoas**); só o `ADMIN` cadastra, edita e exclui contas. Para o professor, a aba não tem **Nova pessoa**, os cartões não abrem a edição e as rotas `/people/create` e `/people/:id/edit` o levam de volta aos posts. O professor edita apenas a própria conta, em **Editar meus dados** (aba Conta). `STUDENT` não acessa nada disso. A API valida as permissões em cada operação (`POST` e `DELETE /users` só para `ADMIN`; `PUT /users/:id` para `ADMIN` ou a própria conta).
+**Permissões:** `ADMIN` e `TEACHER` veem a lista de professores e estudantes (a aba **Pessoas**); só o `ADMIN` cadastra, edita e exclui contas. Para o professor, a aba não tem **Adicionar**, os cartões não abrem a edição e as rotas `/people/create` e `/people/:id/edit` o levam de volta aos posts. O professor edita apenas a própria conta, em **Editar meus dados** (aba Conta). `STUDENT` não acessa nada disso. A API valida as permissões em cada operação (`POST` e `DELETE /users` só para `ADMIN`; `PUT /users/:id` para `ADMIN` ou a própria conta).
 
 ### Testes e validação
 

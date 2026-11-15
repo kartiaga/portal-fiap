@@ -154,20 +154,25 @@ describe('ScreenHeader', () => {
     expect(title.props.numberOfLines).toBe(1);
   });
 
-  it('a ação como objeto vira botão com rótulo; com fonte grande, só o ícone', async () => {
+  it('a ação como objeto vira botão com texto curto e nome completo; com fonte grande, só o ícone', async () => {
     const onPress = jest.fn();
-    const action = { label: 'Nova postagem', icon: 'add', onPress } as const;
+    const action = { label: 'Criar', accessibilityLabel: 'Nova postagem', icon: 'add', onPress } as const;
 
     await render(<ScreenHeader title="Posts" action={action} />);
-    expect(screen.getByText('Nova postagem')).toBeOnTheScreen();
+    expect(screen.getByText('Criar')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Nova postagem' }));
     expect(onPress).toHaveBeenCalledTimes(1);
 
     mockFontScale = 2;
     await render(<ScreenHeader title="Posts" action={action} />);
-    expect(screen.queryByText('Nova postagem')).toBeNull();
+    expect(screen.queryByText('Criar')).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Nova postagem' }));
     expect(onPress).toHaveBeenCalledTimes(2);
+  });
+
+  it('sem nome acessível próprio, o leitor de tela usa o texto do botão', async () => {
+    await render(<ScreenHeader title="Posts" action={{ label: 'Criar', icon: 'add', onPress: jest.fn() }} />);
+    expect(screen.getByRole('button', { name: 'Criar' })).toBeOnTheScreen();
   });
 
   it('aceita um elemento qualquer como ação', async () => {

@@ -181,7 +181,12 @@ function AdminPosts() {
         <ScreenHeader
           title="Gerenciar"
           subtitle={isAdmin ? 'Edite ou exclua qualquer postagem' : 'As postagens que você publicou'}
-          action={{ label: 'Nova postagem', icon: 'add', onPress: () => router.push('/posts/new') }}
+          action={{
+            label: 'Criar',
+            accessibilityLabel: 'Nova postagem',
+            icon: 'add',
+            onPress: () => router.push('/posts/new'),
+          }}
         />
         <View style={styles.searchRow}>
           <View style={styles.search}>
