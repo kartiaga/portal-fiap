@@ -24,11 +24,13 @@ import { MaxContentWidth, Spacing } from '@/theme';
 
 const SEARCH_DEBOUNCE_MS = 400;
 
+const personKey = (person: Person) => person.id;
+
 /**
  * Aba Pessoas: todos os perfis numa lista só, com busca por nome ou e-mail e filtro por perfil (folha
  * aberta pelo ícone ao lado da busca). O perfil escolhido fica no parâmetro `role` da rota.
- * Professor e administrador veem a lista; só o administrador cadastra (botão "Nova pessoa") e
- * edita (tocar numa pessoa abre a edição).
+ * Professor e administrador veem a lista; só o administrador cadastra (botão "Adicionar"), edita
+ * e exclui (tocar no cartão abre a edição; os três pontinhos abrem a folha com Editar e Excluir).
  */
 export default function PeopleScreen() {
   const { user } = useSession();
@@ -141,6 +143,27 @@ function PeopleResults({ role, search }: { role: ListedRole | undefined; search:
     [router],
   );
 
+  const openActions = useCallback(
+    (person: Person) =>
+      router.push({
+        pathname: '/people/[id]/actions',
+        params: { id: person.id, name: person.name || person.email, role: person.role },
+      }),
+    [router],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: Person }) => (
+      <PersonCard
+        person={item}
+        isSelf={item.id === user?.id}
+        onEdit={canManage ? openPerson : undefined}
+        onMore={canManage ? openActions : undefined}
+      />
+    ),
+    [canManage, openActions, openPerson, user?.id],
+  );
+
   if (!loaded) return <LoadingState label="Carregando pessoas" />;
 
   if (items.length === 0 && error) {
@@ -158,14 +181,8 @@ function PeopleResults({ role, search }: { role: ListedRole | undefined; search:
     <FlatList
       testID="people-list"
       data={items}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <PersonCard
-          person={item}
-          isSelf={item.id === user?.id}
-          onPress={canManage ? openPerson : undefined}
-        />
-      )}
+      keyExtractor={personKey}
+      renderItem={renderItem}
       ListHeaderComponent={
         stale ? (
           <ActivityIndicator color={theme.tint} accessibilityLabel="Buscando" />

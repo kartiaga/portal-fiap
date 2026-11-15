@@ -73,6 +73,8 @@ export default function AppLayout() {
           options={{ title: 'Nova pessoa', presentation: 'modal' }}
         />
         <Stack.Screen name="(teacher)/people/[id]/edit" options={{ title: 'Editar pessoa' }} />
+        {/* Editar e Excluir de uma pessoa, abertos pelos três pontinhos do cartão. */}
+        <Stack.Screen name="(teacher)/people/[id]/actions" options={sheetOptions} />
       </Stack.Protected>
     </Stack>
   );
