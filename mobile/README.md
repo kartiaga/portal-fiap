@@ -161,7 +161,7 @@ O filtro vive no parâmetro da rota (`/admin?author=me`), então a folha só esc
 
 ## Aba Conta
 
-Mostra nome, e-mail e perfil (para estudante, *Conta de estudante* e o perfil, porque `GET /users/:id` não é liberado para estudante) e a validade da sessão. Professores e administradores têm **Editar meus dados** (`/account/edit`, `GET` e `PUT /users/:id` na própria conta, sem exclusão). **Sair** pede confirmação.
+Mostra nome, e-mail, perfil e foto (`GET /users/:id` na própria conta, que a API libera para qualquer perfil, estudante inclusive) e a validade da sessão. Tocar no avatar abre o menu **Foto de perfil**: *Escolher da galeria* (recorte quadrado) e, havendo foto, *Remover foto*. O fluxo (`features/profile/avatar.ts`) é: `POST /users/:id/avatar/upload` (autorização), envio do arquivo direto ao MinIO (`POST multipart`) e `PUT /users/:id/avatar` (confirmação). A foto aparece no avatar da Conta, das listas de Pessoas e dos cartões de postagem (`authorAvatarUrl`); sem foto, ou se ela não carregar, valem as iniciais. Aceita JPEG, PNG e WebP de até 5 MB. Usa `expo-image-picker`, que só pede acesso à galeria (o app não usa a câmera). O endereço do MinIO que a API devolve costuma ser `localhost`; o app o troca pelo host que usa para a API (`reachableUrl` em `lib/api.ts`), então funciona também no celular físico e no emulador do Android sem configurar nada. Veja `S3_PUBLIC_URL` no README da raiz. Professores e administradores têm **Editar meus dados** (`/account/edit`, `GET` e `PUT /users/:id` na própria conta, sem exclusão). **Sair** pede confirmação.
 
 ## Filtros (folha nativa)
 

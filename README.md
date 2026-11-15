@@ -53,6 +53,9 @@ Estas rotas suportam autenticação e gestão de usuários, incluindo os requisi
 | `GET /users/:id` | Consulta de usuário | Implementado |
 | `PUT /users/:id` | Edição de usuário sem alteração de papel | Implementado |
 | `DELETE /users/:id` | Exclusão de usuário sem postagens | Implementado |
+| `POST /users/:id/avatar/upload` | Autoriza o envio da foto de perfil ao armazenamento (MinIO/S3) | Implementado |
+| `PUT /users/:id/avatar` | Confirma a foto enviada e a define no perfil | Implementado |
+| `DELETE /users/:id/avatar` | Remove a foto de perfil | Implementado |
 
 ### Telas do frontend
 
@@ -112,6 +115,7 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 | Linguagem | [TypeScript](https://www.typescriptlang.org/) |
 | Framework HTTP | [Fastify](https://fastify.dev/) |
 | Banco de dados | [PostgreSQL](https://www.postgresql.org/) 16 |
+| Armazenamento de arquivos | [MinIO](https://min.io/) (compatível com S3), com envio direto do app por formulário assinado |
 | Migrations | [node-pg-migrate](https://github.com/salsita/node-pg-migrate) |
 | Autenticação | [@fastify/jwt](https://github.com/fastify/fastify-jwt) |
 | Documentação API | [@fastify/swagger](https://github.com/fastify/fastify-swagger) + [Swagger UI](https://github.com/fastify/fastify-swagger-ui) |
@@ -738,6 +742,14 @@ POSTGRES_DB=portal-fiap
 DATABASE_URL=postgres://postgres:postgres@localhost:5431/portal-fiap
 
 JWT_SECRET=sua-chave-secreta-com-pelo-menos-32-caracteres
+
+# Fotos de perfil (opcional): MinIO do docker-compose. Sem estas variáveis a API funciona,
+# mas as rotas de foto respondem 503.
+S3_ENDPOINT=http://localhost:9000
+S3_PUBLIC_URL=http://localhost:9000
+S3_BUCKET=portal-fiap
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
 ```
 
 > **Importante:**
@@ -858,6 +870,8 @@ open http://localhost:3000
 | Serviço | Container | Porta no host | Descrição |
 |---|---|---|---|
 | `postgres` | `portal-fiap-db` | `5431` | Banco PostgreSQL 16 |
+| `minio` | `portal-fiap-minio` | `9000` (S3) e `9001` (console) | Armazenamento das fotos de perfil, compatível com S3. Console em `http://localhost:9001` (usuário e senha `minioadmin`, só para desenvolvimento) |
+| `minio-setup` | `portal-fiap-minio-setup` | — | Roda uma vez: cria o bucket `portal-fiap` e libera a leitura pública só da pasta `avatars/` |
 | `api` | `portal-fiap-api` | `3001` | API Node.js (migrations automáticas no startup) |
 | `frontend` | `portal-fiap-frontend` | `3000` | Frontend Next.js (porta interna `3000`) |
 
@@ -870,7 +884,17 @@ No modo Docker, a API usa as variáveis definidas em `docker-compose.yaml`:
 | `POSTGRES_HOST` | `postgres` (nome do serviço na rede Docker) |
 | `POSTGRES_PORT` | `5432` (porta interna do container) |
 | `DATABASE_URL` | `postgres://postgres:postgres@postgres:5432/portal-fiap` |
+| `S3_ENDPOINT` | `http://minio:9000` (como a API enxerga o MinIO) |
+| `S3_PUBLIC_URL` | `http://localhost:9000` (como o app enxerga o MinIO; veja abaixo) |
+| `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | `portal-fiap`, `minioadmin`, `minioadmin` |
 
+O app envia e baixa as fotos direto do MinIO (a API não repassa os arquivos), então o aparelho precisa alcançar o endereço de `S3_PUBLIC_URL`. Com o padrão `localhost`, o app faz o ajuste sozinho: troca `localhost`, `127.0.0.1` e `10.0.2.2` pelo mesmo host que ele usa para falar com a API (o IP da máquina, num celular físico). Só é preciso definir `S3_PUBLIC_URL` se o MinIO estiver em outra máquina ou atrás de outro endereço:
+
+```bash
+S3_PUBLIC_URL=http://192.168.0.10:9000 docker compose up -d
+```
+
+As variáveis `S3_*` são opcionais para a API: sem elas, as rotas de foto respondem `503` e o resto funciona. Em produção, aponte-as para qualquer armazenamento compatível com S3 (a leitura pública da pasta `avatars/` é configurada no bucket).
 O frontend recebe:
 
 | Variável | Valor | Uso |
@@ -1090,7 +1114,7 @@ Lista usuários com paginação por cursor. Requer token `ADMIN` ou `TEACHER`. S
 
 ### `GET /users/:id`
 
-Consulta um usuário por UUID e retorna os mesmos campos públicos da listagem. `ADMIN` pode consultar qualquer papel; `TEACHER` pode consultar `TEACHER` ou `STUDENT` (consulta, nunca edição). Retorna `403` para papel não permitido e `404` para usuário inexistente.
+Consulta um usuário por UUID e retorna os mesmos campos públicos da listagem, com `avatarUrl` (endereço da foto de perfil, ou `null`). Qualquer usuário autenticado consulta a própria conta, estudante inclusive; `ADMIN` consulta qualquer papel; `TEACHER` consulta `TEACHER` ou `STUDENT` (consulta, nunca edição). Retorna `403` para papel não permitido e `404` para usuário inexistente.
 
 ### `PUT /users/:id`
 
@@ -1099,6 +1123,41 @@ Atualiza `name`, `email` e, opcionalmente, `password` de um usuário. `ADMIN` ed
 ### `DELETE /users/:id`
 
 Exclui um usuário. Requer token `ADMIN`; professores e estudantes recebem `403`. Ninguém exclui a própria conta. Usuários com postagens não são excluídos: a API retorna `409` para preservar as postagens. Retorna uma mensagem de confirmação em caso de sucesso.
+
+### Foto de perfil
+
+A foto vai do app **direto para o armazenamento** (MinIO em desenvolvimento, qualquer S3 em produção), sem passar pela API, em três passos. Cada usuário troca a própria foto, estudante inclusive; `ADMIN` troca a de qualquer um; outra pessoa recebe `403`. Sem as variáveis `S3_*`, estas rotas respondem `503`.
+
+#### `POST /users/:id/avatar/upload`
+
+Passo 1. Corpo: `{ "contentType": "image/jpeg" }` (aceita `image/jpeg`, `image/png` e `image/webp`; outro tipo retorna `400`). Responde com um formulário assinado, válido por 5 minutos:
+
+```json
+{
+  "url": "http://localhost:9000/portal-fiap",
+  "fields": { "key": "avatars/<usuário>/<uuid>.jpg", "Content-Type": "image/jpeg", "Policy": "...", "X-Amz-Signature": "..." },
+  "key": "avatars/<usuário>/<uuid>.jpg",
+  "maxBytes": 5242880
+}
+```
+
+#### Envio ao armazenamento
+
+Passo 2. `POST multipart/form-data` para `url`, com todos os `fields` primeiro e o arquivo por último, no campo `file`. O armazenamento recusa arquivos maiores que `maxBytes` (5 MB) ou de outro tipo, e responde `204` em caso de sucesso.
+
+```bash
+curl http://localhost:9000/portal-fiap -F key=... -F Content-Type=image/jpeg -F Policy=... -F X-Amz-... -F file=@foto.jpg
+```
+
+#### `PUT /users/:id/avatar`
+
+Passo 3. Corpo: `{ "key": "<key do passo 1>" }`. A API confere que a chave é do próprio usuário, que o arquivo existe e que é uma imagem de tamanho aceito; então o perfil passa a usá-lo e a foto anterior é apagada. Retorna `{ "avatarUrl": "http://localhost:9000/portal-fiap/avatars/..." }`. Chave de outra pessoa, arquivo inexistente ou inválido retornam `400`.
+
+#### `DELETE /users/:id/avatar`
+
+Remove a foto do perfil e apaga o arquivo. Retorna `{ "avatarUrl": null }`.
+
+O nome do arquivo tem um uuid novo a cada troca, então o endereço antigo deixa de servir e nenhum cache mostra a foto velha. A leitura da pasta `avatars/` é pública no bucket (sem login); os nomes não são adivinháveis, mas quem tiver o endereço vê a foto. Excluir um usuário apaga a foto dele.
 
 ---
 
@@ -1326,7 +1385,7 @@ Retorna uma publicação específica utilizando o ID informado na rota.
 
 ### `GET /posts`
 
-Retorna postagens paginadas por cursor. Requer autenticação. Aceita `limit` (1 a 50; padrão 20), `cursor` e `authorId` (UUID) opcionais; com `authorId`, devolve só as postagens desse autor, com a mesma paginação (um `authorId` que não seja UUID retorna `400`).
+Retorna postagens paginadas por cursor, cada uma com `authorAvatarUrl` (foto do autor, ou `null`). Requer autenticação. Aceita `limit` (1 a 50; padrão 20), `cursor` e `authorId` (UUID) opcionais; com `authorId`, devolve só as postagens desse autor, com a mesma paginação (um `authorId` que não seja UUID retorna `400`).
 
 **Headers:**
 
@@ -1374,7 +1433,7 @@ Sem postagens, `items` é `[]`, `nextCursor` é `null` e `hasMore` é `false`.
 | id | UUID | Identificador único |
 | user_id | UUID | Referência ao usuário |
 | name | varchar | Nome do perfil |
-| avatar_url | varchar | URL do avatar (opcional) |
+| avatar_key | varchar | Chave do arquivo da foto no armazenamento, ex.: `avatars/<usuário>/<uuid>.jpg` (opcional). A API monta o endereço público a partir dela e de `S3_PUBLIC_URL` |
 
 ### posts
 
