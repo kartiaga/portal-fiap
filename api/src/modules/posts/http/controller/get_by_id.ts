@@ -1,3 +1,4 @@
+import { optionalViewerId } from '@/lib/auth'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { GetPostByIdUseCase } from '../../use-cases/get-post-by-id.use-case'
 import { PostRepository } from '../../repositories/post.repository'
@@ -12,7 +13,10 @@ export async function getPostById(
     const postRepository = new PostRepository()
     const getPostByIdUseCase = new GetPostByIdUseCase(postRepository)
 
-    const post = await getPostByIdUseCase.handler(id)
+    const post = await getPostByIdUseCase.handler(
+      id,
+      await optionalViewerId(request),
+    )
 
     if (!post) {
       return reply.status(404).send({ message: 'Post not found' })

@@ -11,6 +11,8 @@ describe('GetUsersUseCase', () => {
           email: 'admin@fiap.com.br',
           password: 'hashed',
           role: UserRole.ADMIN,
+          name: 'Admin',
+          avatarUrl: 'http://localhost:9000/portal-fiap/avatars/user-1/a.jpg',
           createdAt: new Date('2026-01-01T00:00:00.000Z'),
           updatedAt: new Date('2026-01-01T00:00:00.000Z'),
         },
@@ -24,7 +26,10 @@ describe('GetUsersUseCase', () => {
     } as unknown as UserRepository
 
     const useCase = new GetUsersUseCase(userRepository)
-    const result = await useCase.handler({ search: 'admin' })
+    const result = await useCase.handler(
+      { id: 'admin-1', role: UserRole.ADMIN },
+      { search: 'admin' },
+    )
 
     expect(userRepository.findPaginated).toHaveBeenCalledWith({
       search: 'admin',
@@ -35,6 +40,8 @@ describe('GetUsersUseCase', () => {
           id: 'user-1',
           email: 'admin@fiap.com.br',
           role: UserRole.ADMIN,
+          name: 'Admin',
+          avatarUrl: 'http://localhost:9000/portal-fiap/avatars/user-1/a.jpg',
           createdAt: new Date('2026-01-01T00:00:00.000Z'),
           updatedAt: new Date('2026-01-01T00:00:00.000Z'),
         },

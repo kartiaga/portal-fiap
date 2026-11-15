@@ -8,7 +8,10 @@ export class GetPostByIdUseCase {
     this.postRepository = postRepository
   }
 
-  async handler(id: string): Promise<Post | undefined> {
-    return this.postRepository.findById(id)
+  /** `viewerId` (quem está conectado, se alguém) define `likedByMe`. */
+  async handler(id: string, viewerId?: string): Promise<Post | undefined> {
+    return viewerId
+      ? this.postRepository.findById(id, viewerId)
+      : this.postRepository.findById(id)
   }
 }

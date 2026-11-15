@@ -10,3 +10,19 @@ export async function authenticate(
     return reply.status(401).send({ message: 'Unauthorized' })
   }
 }
+
+/**
+ * Id de quem está conectado numa rota pública: lê o token se ele vier e for válido, sem recusar
+ * a requisição quando ele falta ou não vale.
+ */
+export async function optionalViewerId(
+  request: FastifyRequest,
+): Promise<string | undefined> {
+  if (!request.headers.authorization) return undefined
+  try {
+    await request.jwtVerify()
+    return request.user.sub
+  } catch {
+    return undefined
+  }
+}

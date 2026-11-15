@@ -1,6 +1,6 @@
 # Portal FIAP
 
-API REST do **Tech Challenge 2 — Fase 2 (FIAP)**, projeto de desenvolvimento em grupo que integra os conhecimentos da fase e corresponde a **90% da nota final** das disciplinas.
+Portal FIAP para o **Tech Challenge da FIAP — Fase 4**, com API REST, frontend web e aplicativo mobile.
 
 > **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js com listagem e gestão de publicações, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
 
@@ -29,7 +29,22 @@ Oferecer uma API de blogging onde:
 | `POST /posts` | Criação de postagens (docentes) | Implementado |
 | `PUT /posts/:id` | Edição de postagens | Implementado |
 | `DELETE /posts/:id` | Exclusão de postagens | Implementado |
-| `GET /posts/search` | Busca por palavra-chave no título ou conteúdo | Implementado |
+| `GET /posts/search` | Busca por palavra-chave no título, conteúdo ou nome do autor | Implementado |
+
+### Curtidas e comentários
+
+Qualquer pessoa conectada pode curtir e comentar. As leituras de postagens (`GET /posts`, `GET /posts/search` e `GET /posts/:id`) trazem `likeCount`, `commentCount` e `likedByMe`; em `GET /posts/:id`, que é pública, `likedByMe` só vale quando a requisição envia o token.
+
+| Endpoint | Descrição |
+|---|---|
+| `POST /posts/:id/like` | Curte a postagem. Curtir de novo não muda nada. Devolve `{ likeCount, likedByMe }` |
+| `DELETE /posts/:id/like` | Desfaz a curtida. Devolve `{ likeCount, likedByMe }` |
+| `GET /posts/:id/likes?cursor=&limit=` | Quem curtiu (`userId`, `name`, `avatarUrl`, `likedAt`), das curtidas mais recentes para as mais antigas |
+| `GET /posts/:id/comments?cursor=&limit=` | Comentários, dos mais recentes para os mais antigos, com paginação por cursor |
+| `POST /posts/:id/comments` | Publica um comentário (`content`, de 1 a 1000 caracteres) |
+| `DELETE /posts/:id/comments/:commentId` | Exclui um comentário. Só quem escreveu ou um `ADMIN` pode excluir; o autor da postagem não apaga comentários dos outros |
+
+Curtidas e comentários ficam nas tabelas `post_likes` e `post_comments` (migration `1781900000000_create-post-likes-and-comments`) e são apagados junto com a postagem ou com a conta de quem curtiu ou comentou.
 
 ### Requisitos funcionais — Frontend
 
@@ -41,14 +56,21 @@ Oferecer uma API de blogging onde:
 | `/posts/:id/edit` | Edição de postagens (docentes) | Implementado |
 | Controle de acesso | Criação, edição e administração de postagens restritas a usuários autenticados | Implementado |
 
-### Funcionalidades extras (fora do escopo mínimo do desafio)
+### Autenticação e gerenciamento de usuários
 
-Estas rotas foram adicionadas para suportar autenticação e gestão de usuários, necessárias ao controle de acesso entre alunos e docentes:
+Estas rotas suportam autenticação e gestão de usuários, incluindo os requisitos 5 a 8 do aplicativo mobile:
 
 | Endpoint | Descrição | Status |
 |---|---|---|
 | `POST /login` | Autenticação com JWT | Implementado |
-| `POST /users` | Cadastro de usuários (admin) | Implementado |
+| `GET /users` | Listagem paginada de usuários, com filtro opcional por papel | Implementado |
+| `POST /users` | Cadastro de usuários por administradores e professores, conforme o papel | Implementado |
+| `GET /users/:id` | Consulta de usuário | Implementado |
+| `PUT /users/:id` | Edição de usuário sem alteração de papel | Implementado |
+| `DELETE /users/:id` | Exclusão de usuário sem postagens | Implementado |
+| `POST /users/:id/avatar/upload` | Autoriza o envio da foto de perfil ao armazenamento (MinIO/S3) | Implementado |
+| `PUT /users/:id/avatar` | Confirma a foto enviada e a define no perfil | Implementado |
+| `DELETE /users/:id/avatar` | Remove a foto de perfil | Implementado |
 
 ### Telas do frontend
 
@@ -103,10 +125,12 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 | Camada | Tecnologia |
 |---|---|
 | Frontend | [Next.js](https://nextjs.org/) 16 + [React](https://react.dev/) 19 |
+| Mobile | [React Native](https://reactnative.dev/) + [Expo](https://expo.dev/) |
 | Runtime | [Node.js](https://nodejs.org/) 20+ |
 | Linguagem | [TypeScript](https://www.typescriptlang.org/) |
 | Framework HTTP | [Fastify](https://fastify.dev/) |
 | Banco de dados | [PostgreSQL](https://www.postgresql.org/) 16 |
+| Armazenamento de arquivos | [MinIO](https://min.io/) (compatível com S3), com envio direto do app por formulário assinado |
 | Migrations | [node-pg-migrate](https://github.com/salsita/node-pg-migrate) |
 | Autenticação | [@fastify/jwt](https://github.com/fastify/fastify-jwt) |
 | Documentação API | [@fastify/swagger](https://github.com/fastify/fastify-swagger) + [Swagger UI](https://github.com/fastify/fastify-swagger-ui) |
@@ -118,12 +142,13 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 
 ## Estrutura do repositório
 
-O projeto é um **monorepo** com backend e frontend separados:
+O projeto é um **monorepo** com backend, frontend e aplicativo mobile separados:
 
 ```
 portal-fiap/
 ├── api/                # API REST (Node.js + Fastify + PostgreSQL)
 ├── frontend/           # Frontend (Next.js + React)
+├── mobile/             # Aplicativo mobile (React Native + Expo)
 ├── docker-compose.yaml # Orquestração local (API + frontend + banco)
 └── package.json        # Scripts de conveniência na raiz
 ```
@@ -157,7 +182,7 @@ Cada módulo contém:
 
 | Papel | Descrição |
 |---|---|
-| `STUDENT` | Visualiza e lê postagens |
+| `STUDENT` | Visualiza, lê, curte e comenta postagens |
 | `TEACHER` | Cria, edita, exclui e gerencia postagens |
 | `ADMIN` | Gerencia usuários e postagens |
 
@@ -248,6 +273,414 @@ Detalhes de comportamento:
 - **Validação espelhada** — os formulários de criação e edição aplicam as mesmas regras da API (título com no mínimo 3 caracteres e conteúdo com no mínimo 10), para o erro aparecer antes da chamada de rede.
 - **Autoria** — postagens criadas pelo usuário da sessão recebem a marcação *Sua postagem*.
 
+## Aplicativo mobile
+
+O aplicativo do **Tech Challenge da Fase 4** fica em `mobile/`. Ele é feito em **React Native com Expo**, usa componentes funcionais e hooks, e consome os mesmos endpoints REST do frontend web.
+
+No aplicativo, o administrador cadastra contas de qualquer perfil (estudante, professor ou outro administrador, escolhido no campo **Perfil**), edita, lista com paginação e exclui (RF05 a RF08); o professor só consulta a lista de professores e estudantes. A API impede que alguém exclua a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
+
+### Setup do aplicativo
+
+Pré-requisitos: Node.js 22.13+ ou 24.3+ e o app **Expo Go** no celular, ou um simulador iOS ou emulador Android.
+
+1. Suba a API e crie as [contas de desenvolvimento](#6-criar-contas-iniciais-seed).
+2. Instale as dependências e inicie o app:
+
+```bash
+cd mobile
+npm install
+npm start
+```
+
+O `mobile/` não faz parte dos workspaces npm da raiz e tem o próprio `package-lock.json`, então o `npm install` precisa ser executado dentro dessa pasta.
+
+Por padrão, o app chama a porta `3001` da máquina que está rodando o Metro. Para usar outro endereço, copie `mobile/.env.example` para `mobile/.env`, defina `EXPO_PUBLIC_API_URL` e reinicie o Metro.
+
+### Arquitetura do aplicativo
+
+```
+mobile/src/
+├── app/                     # Rotas (Expo Router): cada arquivo é uma tela
+│   ├── _layout.tsx          # Provider da sessão e guard de autenticação
+│   ├── login.tsx            # Tela de login
+│   └── (app)/               # Exige usuário autenticado
+│       ├── _layout.tsx      # Guard de perfil
+│       ├── index.tsx        # Tela inicial: lista de postagens com busca
+│       ├── posts/[id].tsx   # Leitura de uma postagem
+│       └── (teacher)/       # Exige perfil TEACHER ou ADMIN
+│           ├── admin.tsx    # Página administrativa de postagens
+│           ├── posts/new.tsx       # Criação de postagem
+│           ├── posts/[id]/edit.tsx # Edição de postagem
+│           ├── teachers/          # Cadastro, edição e lista de professores
+│           └── students/          # Cadastro, edição e lista de estudantes
+├── auth/session-context.tsx # Estado da sessão (Context API) e hook useSession
+├── components/              # Componentes reutilizáveis
+├── features/people/          # Fluxos e API de professores e estudantes
+├── hooks/                   # Estado de telas (use-posts-feed, use-post, use-admin-posts, use-debounced-value)
+├── lib/
+│   ├── api.ts               # Cliente HTTP (apiFetch) e mensagens de erro
+│   ├── format.ts            # Formatação de datas
+│   ├── jwt.ts               # Leitura dos dados do token
+│   ├── notice.ts            # Aviso de sucesso entregue à tela para onde o usuário volta
+│   ├── posts.ts             # Chamadas à API de postagens
+│   └── permissions.ts       # Regras de permissão por perfil
+└── theme/                   # Cores e raios, espelhando o frontend web
+```
+
+### Tela de login
+
+É a primeira tela para quem não tem sessão. Vale para os três perfis, porque a API exige token até para listar postagens. O perfil define o que cada usuário pode fazer depois de entrar.
+
+#### Como usar
+
+1. Informe o **e-mail**. Espaços no início e no fim são ignorados.
+2. Informe a **senha**. O ícone de olho mostra ou oculta os caracteres.
+3. Toque em **Entrar** ou use a tecla de envio do teclado. Enquanto a requisição está em andamento, o botão fica desabilitado e exibe um indicador de carregamento.
+
+Em caso de sucesso, o usuário vai direto para a tela inicial. Para testar, use as [contas de desenvolvimento](#6-criar-contas-iniciais-seed).
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Professor | `teacher@fiap.com.br` | `12345678` |
+| Administrador | `admin@fiap.com.br` | `12345678` |
+| Estudante | `student@fiap.com.br` | `12345678` |
+
+#### Validações e mensagens
+
+Os campos são validados antes da chamada à API, com as mesmas regras do endpoint `POST /login`.
+
+| Situação | Mensagem exibida |
+|---|---|
+| E-mail vazio ou em formato inválido | Informe um e-mail válido. |
+| Senha com menos de 8 caracteres | A senha deve ter pelo menos 8 caracteres. |
+| Credenciais recusadas pela API (`401`) | E-mail ou senha incorretos. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Qualquer outra falha | Não foi possível entrar. Tente novamente. |
+
+A mensagem de credenciais recusadas é a mesma para e-mail inexistente e senha incorreta, assim a tela não revela quais e-mails estão cadastrados.
+
+#### Fluxo de autenticação
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant L as Tela de login
+    participant S as SessionProvider
+    participant A as API
+    participant K as SecureStore
+
+    U->>L: Informa e-mail e senha
+    L->>L: Valida os campos
+    L->>S: signIn(email, senha)
+    S->>A: POST /login
+    alt Credenciais válidas
+        A-->>S: 200 com token JWT
+        S->>S: Valida o token e lê id, perfil e expiração
+        S->>K: Salva o token
+        S-->>U: Guard abre a área logada
+    else Credenciais inválidas
+        A-->>S: 401
+        S-->>L: Erro
+        L-->>U: Exibe a mensagem na tela
+    end
+```
+
+#### Sessão
+
+| Evento | Comportamento |
+|---|---|
+| Login | O token é salvo no armazenamento seguro do aparelho |
+| Abertura do app | O token salvo é lido, e o usuário entra sem digitar a senha |
+| Token expirado ou malformado | O token é apagado, e o usuário volta ao login |
+| API responde `401` a uma chamada autenticada | A sessão é encerrada, e o usuário volta ao login |
+| Botão **Sair** | O token é apagado, e o usuário volta ao login |
+
+O token gerado pela API vale por 15 dias.
+
+### Autorização no aplicativo
+
+A navegação usa `Stack.Protected` do Expo Router. Uma rota protegida não fica disponível quando a condição não é atendida, mesmo se aberta por link direto, e quem tenta acessá-la é redirecionado.
+
+| Área | Quem acessa |
+|---|---|
+| `login` | Apenas quem não tem sessão |
+| `(app)` | Qualquer usuário autenticado |
+| `(app)/(teacher)` | `TEACHER` e `ADMIN` |
+
+Toda tela criada em `(app)/(teacher)` herda essa proteção, e opções indisponíveis para o perfil não são exibidas.
+
+#### Decisões de segurança
+
+- **Armazenamento:** o token fica no `expo-secure-store`, que usa o Keychain no iOS e o Keystore no Android. A senha não é salva no aparelho.
+- **Validação do token:** o app apenas lê os dados do JWT para decidir o que exibir. A assinatura e as permissões são verificadas pela API em cada endpoint protegido, então os guards do app não substituem essa validação.
+- **Transporte:** builds de produção devem usar uma API com HTTPS, porque a senha e o token trafegam nas requisições.
+
+### Lista de postagens do aplicativo
+
+É a tela inicial depois do login, para os três perfis.
+
+#### Como usar
+
+1. Role a lista para ver mais postagens. Cada item mostra título, autor, data de publicação e um trecho do conteúdo. Toque em um item para lê-lo por completo.
+2. Digite uma palavra-chave em **Buscar postagens** para filtrar por título, conteúdo ou nome do autor. A busca começa sozinha meio segundo depois que você para de digitar.
+3. Apague o termo para voltar à lista completa.
+4. Puxe a lista para baixo para atualizá-la.
+5. Toque em **Sair**, no cabeçalho, para encerrar a sessão.
+
+Professores e administradores também veem os botões **Nova postagem** e **Administrar postagens**.
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Lista de todas as postagens (20 por vez, com a próxima página carregada ao rolar) | `GET /posts?cursor=&limit=` |
+| Busca por palavra-chave | `GET /posts/search?term=` |
+| Atualização ao puxar a lista e ao voltar para a tela | `GET /posts` ou a busca ativa |
+
+Detalhes de comportamento:
+
+- **Busca com espera:** a chamada só acontece 500 ms depois da última tecla, como no frontend web, para não disparar uma requisição a cada letra.
+- **Busca sem paginação:** a API devolve todos os resultados da busca de uma vez, então a lista não pede próxima página enquanto há um termo.
+- **Respostas atrasadas:** só a requisição mais recente altera a lista, então o resultado de uma busca antiga não substitui o da busca atual.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida |
+|---|---|
+| Nenhuma postagem cadastrada | Nenhuma postagem publicada. |
+| Busca sem resultados | Nenhuma postagem encontrada para esta busca. |
+| Falha ao carregar a lista | Não foi possível carregar as postagens. |
+| Falha na busca | Não foi possível buscar as postagens. |
+| Falha ao carregar a próxima página | Não foi possível carregar mais postagens. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+
+Se a primeira carga falhar, a tela exibe o botão **Tentar novamente**. Se a lista já estiver na tela, ela é mantida e o erro aparece acima dela.
+
+### Leitura de postagem no aplicativo
+
+Disponível para os três perfis, ao tocar em uma postagem da lista.
+
+#### Como usar
+
+1. Na tela inicial, toque em uma postagem.
+2. Leia o conteúdo completo. O texto pode ser selecionado e copiado.
+3. Use o botão de voltar do cabeçalho para retornar à lista.
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Título, autor, data de publicação, data da última atualização e conteúdo completo | `GET /posts/:id` |
+| Atualização ao voltar para a tela, para refletir uma edição | `GET /posts/:id` |
+
+A data de atualização só aparece quando é diferente da data de publicação. A API não tem endpoints de comentários, então o item opcional de comentários do desafio não foi implementado.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida | Ação oferecida |
+|---|---|---|
+| A postagem não existe (`404`) | Postagem não encontrada. Ela pode ter sido excluída. | **Voltar para a lista** |
+| Falha ao carregar | Não foi possível carregar a postagem. | **Tentar novamente** |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. | **Tentar novamente** |
+
+Se a postagem já estiver na tela e uma atualização falhar, ela continua visível e o erro aparece acima do título.
+
+### Criação de postagem no aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Nova postagem** da tela inicial. Estudantes não veem o botão e não abrem o formulário, mesmo por link direto.
+
+#### Como usar
+
+1. Na tela inicial, toque em **Nova postagem**.
+2. Preencha o **título** e o **conteúdo**. O campo **Autor** é apenas informativo: a API registra como autor o usuário da sessão.
+3. Toque em **Publicar postagem**. Enquanto a requisição está em andamento, o botão exibe um indicador de carregamento.
+4. Para desistir, toque em **Cancelar** ou no botão de voltar do cabeçalho.
+
+Ao publicar, o app volta para a lista, que é recarregada e exibe *Postagem publicada.*
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Envio da nova postagem, com o autor definido pelo token | `POST /posts` |
+| Lista atualizada ao voltar, com o aviso de sucesso | `GET /posts` |
+
+O formulário é o mesmo usado na edição (`components/post-form.tsx`).
+
+#### Validações e mensagens
+
+As regras são as mesmas da API e do frontend web, verificadas antes do envio e ignorando espaços no início e no fim dos campos.
+
+| Situação | Mensagem exibida |
+|---|---|
+| Título com menos de 3 caracteres | O título deve ter pelo menos 3 caracteres. |
+| Título com mais de 255 caracteres | O título deve ter no máximo 255 caracteres. |
+| Conteúdo com menos de 10 caracteres | O conteúdo deve ter pelo menos 10 caracteres. |
+| Usuário sem permissão (`403`) | Você não tem permissão para publicar postagens. |
+| Falha ao publicar | Não foi possível publicar a postagem. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Postagem publicada | Postagem publicada. |
+
+O campo de título também limita a digitação a 255 caracteres. Em caso de erro, o formulário continua preenchido para uma nova tentativa.
+
+### Edição de postagem no aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Editar**, que aparece na leitura da postagem e na página administrativa.
+
+#### Como usar
+
+1. Abra uma postagem pela lista, ou acesse a página administrativa, e toque em **Editar**.
+2. O formulário abre preenchido com o título e o conteúdo atuais. O campo **Autor** mostra o autor original e não pode ser alterado.
+3. Altere os campos e toque em **Salvar alterações**.
+4. Para desistir, toque em **Cancelar** ou no botão de voltar do cabeçalho.
+
+Ao salvar, o app volta para a tela de onde a edição foi aberta, que é recarregada e exibe *Postagem atualizada.*
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Carregamento dos dados atuais da postagem | `GET /posts/:id` |
+| Envio das alterações | `PUT /posts/:id` |
+| Tela anterior atualizada, com o aviso de sucesso | `GET /posts/:id` ou `GET /posts` |
+
+Detalhes de comportamento:
+
+- **Permissões por postagem:** seguindo a regra da API, o `ADMIN` edita qualquer postagem, e o `TEACHER`, apenas as próprias. O botão **Editar** só aparece para quem pode usá-lo, e um professor que abra a edição de uma postagem alheia por link direto vê o aviso de permissão no lugar do formulário.
+- **Formulário compartilhado:** a edição usa o mesmo formulário e as mesmas validações da criação.
+- **Dados preservados:** a postagem é carregada só ao abrir a tela, para que voltar ao app depois de trocar de aplicativo não apague o que foi digitado.
+- **Link direto:** sem tela anterior para onde voltar, o app abre a leitura da postagem depois de salvar.
+
+#### Validações e mensagens
+
+As validações de título e conteúdo são as mesmas da [criação de postagem](#criação-de-postagem-no-aplicativo).
+
+| Situação | Mensagem exibida |
+|---|---|
+| A postagem não existe ao abrir (`404`) | Postagem não encontrada. Ela pode ter sido excluída. |
+| Falha ao carregar a postagem | Não foi possível carregar a postagem. |
+| Postagem de outro autor (professor) ou `403` ao salvar | Você não tem permissão para editar esta postagem. |
+| A postagem foi excluída antes de salvar (`404`) | Esta postagem não existe mais. Ela pode ter sido excluída. |
+| Falha ao salvar | Não foi possível salvar as alterações. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Alterações salvas | Postagem atualizada. |
+
+#### Fluxo de edição
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant E as Tela de edição
+    participant A as API
+    participant T as Tela anterior
+
+    U->>E: Toca em Editar
+    E->>A: GET /posts/:id
+    A-->>E: Postagem atual
+    E-->>U: Formulário preenchido
+    U->>E: Altera e toca em Salvar alterações
+    E->>E: Valida os campos
+    E->>A: PUT /posts/:id
+    alt Alteração autorizada
+        A-->>E: 200
+        E->>T: Volta e deixa o aviso de sucesso
+        T->>A: Recarrega a postagem ou a lista
+        T-->>U: Exibe Postagem atualizada.
+    else Recusada ou com falha
+        A-->>E: 403, 404 ou erro
+        E-->>U: Exibe a mensagem e mantém o que foi digitado
+    end
+```
+
+### Página administrativa do aplicativo
+
+Disponível para `TEACHER` e `ADMIN` pelo botão **Administrar postagens** da tela inicial. Estudantes não veem o botão e não acessam a rota, mesmo por link direto.
+
+#### Como usar
+
+1. Na tela inicial, toque em **Administrar postagens**.
+2. Role a lista para carregar mais postagens ou puxe para baixo para atualizá-la.
+3. Toque em **Excluir** e confirme para apagar uma postagem. A exclusão não pode ser desfeita.
+4. Toque em **Editar** para abrir o formulário de edição da postagem. Ao salvar, o app volta para esta página, que é recarregada e exibe *Postagem atualizada.*
+
+#### Funcionalidades
+
+| Funcionalidade | Endpoint consumido |
+|---|---|
+| Lista de todas as postagens, com título, autor, data de atualização e trecho do conteúdo | `GET /posts` |
+| Próxima página, carregada ao rolar a lista (20 postagens por vez) | `GET /posts?cursor=&limit=` |
+| Atualização ao puxar a lista e ao voltar para a tela | `GET /posts` |
+| Exclusão com confirmação | `DELETE /posts/:id` |
+
+Detalhes de comportamento:
+
+- **Permissões por postagem:** seguindo a regra da API, o `ADMIN` altera qualquer postagem, e o `TEACHER`, apenas as próprias. As postagens de outros autores continuam na lista, sem os botões.
+- **Autoria:** postagens do usuário da sessão recebem a marcação *Sua postagem*. Se a API não informar o nome do autor, a lista mostra *Autor não informado*.
+- **Paginação preservada na exclusão:** a postagem é removida localmente, sem recarregar a lista, para não descartar as páginas já carregadas.
+- **Respostas atrasadas:** só a requisição mais recente altera a lista, então uma resposta antiga não traz de volta uma postagem já excluída.
+
+#### Validações e mensagens
+
+| Situação | Mensagem exibida |
+|---|---|
+| Postagem excluída | Postagem excluída. |
+| A postagem já não existe (`404`) | Esta postagem já havia sido excluída. |
+| Sem permissão para excluir (`403`) | Você não tem permissão para excluir esta postagem. |
+| Falha ao excluir | Não foi possível excluir a postagem. |
+| Falha ao carregar a lista | Não foi possível carregar as postagens. |
+| Falha ao carregar a próxima página | Não foi possível carregar mais postagens. |
+| API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
+| Nenhuma postagem cadastrada | Nenhuma postagem cadastrada. |
+
+Se a primeira carga falhar, a tela exibe o botão **Tentar novamente**.
+
+#### Fluxo de exclusão
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant T as Página administrativa
+    participant A as API
+
+    U->>T: Toca em Excluir
+    T-->>U: Pede confirmação
+    alt Usuário confirma
+        U->>T: Confirma
+        T->>A: DELETE /posts/:id
+        alt Exclusão autorizada
+            A-->>T: 200
+            T-->>U: Remove da lista e exibe o aviso
+        else Recusada ou com falha
+            A-->>T: 403, 404 ou erro
+            T-->>U: Exibe a mensagem correspondente
+        end
+    else Usuário cancela
+        U->>T: Cancela
+        T-->>U: Mantém a postagem
+    end
+```
+
+### Testes do aplicativo
+
+```bash
+cd mobile
+npm test           # Testes automatizados
+npm run typecheck  # Verificação de tipos
+npm run lint       # ESLint
+```
+
+Os testes cobrem o login, as mensagens de erro, a restauração e o encerramento da sessão, os redirecionamentos, o acesso por perfil, os fluxos de postagens e a integração simulada de professores e estudantes com os endpoints de usuários. O workflow `Mobile CI` executa esses três comandos em todo PR que altera `mobile/`.
+
+### Solução de problemas do aplicativo
+
+| Sintoma | O que verificar |
+|---|---|
+| Não foi possível conectar à API | Confirme que a API está no ar com `docker ps`. Em um celular físico, use a mesma rede do computador. Se o endereço detectado não funcionar, defina `EXPO_PUBLIC_API_URL` com o IP da máquina e reinicie o Metro |
+| E-mail ou senha incorretos com uma conta de teste | Crie as contas com `npm run seed`, na raiz do repositório |
+| Erro na instalação ou ao iniciar o Metro | Confirme a versão do Node.js e se o comando foi executado dentro de `mobile/` |
+
+Mais detalhes para quem desenvolve novas telas estão em [mobile/README.md](mobile/README.md).
+
 ## Pré-requisitos
 
 - [Node.js](https://nodejs.org/) 20+ (recomendado)
@@ -324,6 +757,14 @@ POSTGRES_DB=portal-fiap
 DATABASE_URL=postgres://postgres:postgres@localhost:5431/portal-fiap
 
 JWT_SECRET=sua-chave-secreta-com-pelo-menos-32-caracteres
+
+# Fotos de perfil (opcional): MinIO do docker-compose. Sem estas variáveis a API funciona,
+# mas as rotas de foto respondem 503.
+S3_ENDPOINT=http://localhost:9000
+S3_PUBLIC_URL=http://localhost:9000
+S3_BUCKET=portal-fiap
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
 ```
 
 > **Importante:**
@@ -343,7 +784,7 @@ npm run migrate:up
 npm run seed
 ```
 
-O script `api/scripts/seed.ts` insere **somente** registros na tabela `users`. Ele não cria perfis nem postagens.
+O script `api/scripts/seed.ts` cria as três contas na tabela `users` e seus nomes na tabela `profiles`. Ele não cria postagens.
 
 | E-mail | Senha | Papel |
 |---|---|---|
@@ -351,7 +792,7 @@ O script `api/scripts/seed.ts` insere **somente** registros na tabela `users`. E
 | `student@fiap.com.br` | `12345678` | `STUDENT` |
 | `teacher@fiap.com.br` | `12345678` | `TEACHER` |
 
-O comando é idempotente: se as contas já existirem, nada é alterado.
+O comando é idempotente: não duplica contas nem perfis e cria o perfil caso esteja ausente.
 
 #### 7. Iniciar a aplicação
 
@@ -444,6 +885,8 @@ open http://localhost:3000
 | Serviço | Container | Porta no host | Descrição |
 |---|---|---|---|
 | `postgres` | `portal-fiap-db` | `5431` | Banco PostgreSQL 16 |
+| `minio` | `portal-fiap-minio` | `9000` (S3) e `9001` (console) | Armazenamento das fotos de perfil, compatível com S3. Console em `http://localhost:9001` (usuário e senha `minioadmin`, só para desenvolvimento) |
+| `minio-setup` | `portal-fiap-minio-setup` | — | Roda uma vez: cria o bucket `portal-fiap` e libera a leitura pública só da pasta `avatars/` |
 | `api` | `portal-fiap-api` | `3001` | API Node.js (migrations automáticas no startup) |
 | `frontend` | `portal-fiap-frontend` | `3000` | Frontend Next.js (porta interna `3000`) |
 
@@ -456,7 +899,17 @@ No modo Docker, a API usa as variáveis definidas em `docker-compose.yaml`:
 | `POSTGRES_HOST` | `postgres` (nome do serviço na rede Docker) |
 | `POSTGRES_PORT` | `5432` (porta interna do container) |
 | `DATABASE_URL` | `postgres://postgres:postgres@postgres:5432/portal-fiap` |
+| `S3_ENDPOINT` | `http://minio:9000` (como a API enxerga o MinIO) |
+| `S3_PUBLIC_URL` | `http://localhost:9000` (como o app enxerga o MinIO; veja abaixo) |
+| `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | `portal-fiap`, `minioadmin`, `minioadmin` |
 
+O app envia e baixa as fotos direto do MinIO (a API não repassa os arquivos), então o aparelho precisa alcançar o endereço de `S3_PUBLIC_URL`. Com o padrão `localhost`, o app faz o ajuste sozinho: troca `localhost`, `127.0.0.1` e `10.0.2.2` pelo mesmo host que ele usa para falar com a API (o IP da máquina, num celular físico). Só é preciso definir `S3_PUBLIC_URL` se o MinIO estiver em outra máquina ou atrás de outro endereço:
+
+```bash
+S3_PUBLIC_URL=http://192.168.0.10:9000 docker compose up -d
+```
+
+As variáveis `S3_*` são opcionais para a API: sem elas, as rotas de foto respondem `503` e o resto funciona. Em produção, aponte-as para qualquer armazenamento compatível com S3 (a leitura pública da pasta `avatars/` é configurada no bucket).
 O frontend recebe:
 
 | Variável | Valor | Uso |
@@ -534,12 +987,12 @@ O frontend possui uma pipeline separada em `.github/workflows/frontend-ci.yml`. 
 As etapas são:
 
 ```bash
-npm run test --workspace frontend --if-present
+npm run test --workspace frontend
 npm run lint --workspace frontend
 npm run build --workspace frontend
 ```
 
-Atualmente o frontend ainda não possui testes automatizados configurados. Por isso, a etapa de testes é condicional e será executada automaticamente quando um script `test` for adicionado ao workspace `frontend`. O lint e o build são executados sempre.
+O frontend possui testes automatizados com Vitest. O workflow executa testes, lint e build.
 
 ---
 
@@ -651,7 +1104,7 @@ Autentica um usuário e retorna um token JWT (validade de 15 dias).
 
 ### `POST /users`
 
-Cria um novo usuário e seu perfil. Requer token com papel `ADMIN`.
+Cria um novo usuário e seu perfil. Requer token com papel `ADMIN`, que pode criar usuários de qualquer papel; professores e estudantes recebem `403`.
 
 **Headers:** `Authorization: Bearer <token>`
 
@@ -667,6 +1120,59 @@ Cria um novo usuário e seu perfil. Requer token com papel `ADMIN`.
 ```
 
 O campo `role` é opcional (`STUDENT`, `TEACHER` ou `ADMIN`; padrão: `STUDENT`).
+
+**Resposta (201):** mensagem de confirmação em texto. E-mail já cadastrado retorna `409`.
+
+### `GET /users`
+
+Lista usuários com paginação por cursor. Requer token `ADMIN` ou `TEACHER`. Sem `role`, o administrador recebe todos os perfis e o professor recebe só `TEACHER` e `STUDENT`; o professor que pede `role=ADMIN` recebe `403`. Aceita `role`, `search` (e-mail), `limit` (1 a 50; padrão 20) e `cursor` opcionais. O filtro é aplicado no banco antes da paginação. A resposta contém `items` (com `id`, `email`, `name`, `role`, `createdAt` e `updatedAt`), `nextCursor` e `hasMore`, sem senhas. `name` pode ser `null` se não houver perfil associado.
+
+### `GET /users/:id`
+
+Consulta um usuário por UUID e retorna os mesmos campos públicos da listagem, com `avatarUrl` (endereço da foto de perfil, ou `null`). Qualquer usuário autenticado consulta a própria conta, estudante inclusive; `ADMIN` consulta qualquer papel; `TEACHER` consulta `TEACHER` ou `STUDENT` (consulta, nunca edição). Retorna `403` para papel não permitido e `404` para usuário inexistente.
+
+### `PUT /users/:id`
+
+Atualiza `name`, `email` e, opcionalmente, `password` de um usuário. `ADMIN` edita qualquer conta; `TEACHER` edita apenas a própria, e editar a conta de outra pessoa retorna `403`. A senha é armazenada como hash; omitir `password` preserva a senha atual. O papel não pode ser alterado. Retorna os campos públicos atualizados; e-mail duplicado retorna `409`.
+
+### `DELETE /users/:id`
+
+Exclui um usuário. Requer token `ADMIN`; professores e estudantes recebem `403`. Ninguém exclui a própria conta. Usuários com postagens não são excluídos: a API retorna `409` para preservar as postagens. Retorna uma mensagem de confirmação em caso de sucesso.
+
+### Foto de perfil
+
+A foto vai do app **direto para o armazenamento** (MinIO em desenvolvimento, qualquer S3 em produção), sem passar pela API, em três passos. Cada usuário troca a própria foto, estudante inclusive; `ADMIN` troca a de qualquer um; outra pessoa recebe `403`. Sem as variáveis `S3_*`, estas rotas respondem `503`.
+
+#### `POST /users/:id/avatar/upload`
+
+Passo 1. Corpo: `{ "contentType": "image/jpeg" }` (aceita `image/jpeg`, `image/png` e `image/webp`; outro tipo retorna `400`). Responde com um formulário assinado, válido por 5 minutos:
+
+```json
+{
+  "url": "http://localhost:9000/portal-fiap",
+  "fields": { "key": "avatars/<usuário>/<uuid>.jpg", "Content-Type": "image/jpeg", "Policy": "...", "X-Amz-Signature": "..." },
+  "key": "avatars/<usuário>/<uuid>.jpg",
+  "maxBytes": 5242880
+}
+```
+
+#### Envio ao armazenamento
+
+Passo 2. `POST multipart/form-data` para `url`, com todos os `fields` primeiro e o arquivo por último, no campo `file`. O armazenamento recusa arquivos maiores que `maxBytes` (5 MB) ou de outro tipo, e responde `204` em caso de sucesso.
+
+```bash
+curl http://localhost:9000/portal-fiap -F key=... -F Content-Type=image/jpeg -F Policy=... -F X-Amz-... -F file=@foto.jpg
+```
+
+#### `PUT /users/:id/avatar`
+
+Passo 3. Corpo: `{ "key": "<key do passo 1>" }`. A API confere que a chave é do próprio usuário, que o arquivo existe e que é uma imagem de tamanho aceito; então o perfil passa a usá-lo e a foto anterior é apagada. Retorna `{ "avatarUrl": "http://localhost:9000/portal-fiap/avatars/..." }`. Chave de outra pessoa, arquivo inexistente ou inválido retornam `400`.
+
+#### `DELETE /users/:id/avatar`
+
+Remove a foto do perfil e apaga o arquivo. Retorna `{ "avatarUrl": null }`.
+
+O nome do arquivo tem um uuid novo a cada troca, então o endereço antigo deixa de servir e nenhum cache mostra a foto velha. A leitura da pasta `avatars/` é pública no bucket (sem login); os nomes não são adivinháveis, mas quem tiver o endereço vê a foto. Excluir um usuário apaga a foto dele.
 
 ---
 
@@ -716,7 +1222,7 @@ O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve con
 
 ### `GET /posts/search?term=termo`
 
-Busca postagens por palavra-chave no título ou no conteúdo. Requer autenticação.
+Busca postagens por palavra-chave no título, no conteúdo ou no nome do autor. Requer autenticação.
 
 **Headers:**
 
@@ -894,7 +1400,7 @@ Retorna uma publicação específica utilizando o ID informado na rota.
 
 ### `GET /posts`
 
-Retorna a lista de todas as postagens cadastradas. Requer autenticação.
+Retorna postagens paginadas por cursor, cada uma com `authorAvatarUrl` (foto do autor, ou `null`). Requer autenticação. Aceita `limit` (1 a 50; padrão 20), `cursor` e `authorId` (UUID) opcionais; com `authorId`, devolve só as postagens desse autor, com a mesma paginação (um `authorId` que não seja UUID retorna `400`).
 
 **Headers:**
 
@@ -905,23 +1411,24 @@ Authorization: Bearer <token>
 **Resposta (200):**
 
 ```json
-[
-  {
-    "id": "uuid",
-    "title": "Título da publicação",
-    "content": "Conteúdo da publicação",
-    "authorId": "uuid",
-    "createdAt": "2026-07-09T18:00:00.000Z",
-    "updatedAt": "2026-07-09T18:00:00.000Z"
-  }
-]
+{
+  "items": [
+    {
+      "id": "uuid",
+      "title": "Título da publicação",
+      "content": "Conteúdo da publicação",
+      "authorId": "uuid",
+      "authorName": "Nome do autor",
+      "createdAt": "2026-07-09T18:00:00.000Z",
+      "updatedAt": "2026-07-09T18:00:00.000Z"
+    }
+  ],
+  "nextCursor": null,
+  "hasMore": false
+}
 ```
 
-Quando não existem postagens cadastradas, o endpoint retorna:
-
-```json
-[]
-```
+Sem postagens, `items` é `[]`, `nextCursor` é `null` e `hasMore` é `false`.
 
 ## Modelo de dados
 
@@ -941,7 +1448,7 @@ Quando não existem postagens cadastradas, o endpoint retorna:
 | id | UUID | Identificador único |
 | user_id | UUID | Referência ao usuário |
 | name | varchar | Nome do perfil |
-| avatar_url | varchar | URL do avatar (opcional) |
+| avatar_key | varchar | Chave do arquivo da foto no armazenamento, ex.: `avatars/<usuário>/<uuid>.jpg` (opcional). A API monta o endereço público a partir dela e de `S3_PUBLIC_URL` |
 
 ### posts
 

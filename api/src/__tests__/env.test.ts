@@ -22,6 +22,28 @@ describe('env configuration', () => {
     jest.resetModules()
   })
 
+  it('keeps the photo storage optional, with defaults for the bucket and region', async () => {
+    jest.resetModules()
+    const { env } = await import('@/env/index')
+
+    expect(env.S3_ENDPOINT).toBeUndefined()
+    expect(env.S3_PUBLIC_URL).toBeUndefined()
+    expect(env.S3_BUCKET).toBe('portal-fiap')
+    expect(env.S3_REGION).toBe('us-east-1')
+  })
+
+  it('reads the photo storage settings when present', async () => {
+    process.env.S3_ENDPOINT = 'http://minio:9000'
+    process.env.S3_PUBLIC_URL = 'http://localhost:9000'
+    process.env.S3_BUCKET = 'fotos'
+    jest.resetModules()
+    const { env } = await import('@/env/index')
+
+    expect(env.S3_ENDPOINT).toBe('http://minio:9000')
+    expect(env.S3_PUBLIC_URL).toBe('http://localhost:9000')
+    expect(env.S3_BUCKET).toBe('fotos')
+  })
+
   it('loads environment variables successfully', async () => {
     jest.resetModules()
     const { env } = await import('@/env/index')

@@ -3,6 +3,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import { CreateUserUseCase } from '../../use-cases/create-user.use-case'
 import { UserRepository } from '../../repositories/user.repository'
 import { ProfileRepository } from '@/modules/profiles/repositories/profile.repository'
+import { getActor, sendUserError } from './shared'
 
 export async function create(
   request: FastifyRequest,
@@ -18,15 +19,19 @@ export async function create(
       profileRepository,
     )
 
-    await createUserUseCase.handler({
-      email,
-      password,
-      name,
-      role,
-    })
+    await createUserUseCase.handler(
+      {
+        email,
+        password,
+        name,
+        role,
+      },
+      getActor(request),
+    )
 
     return reply.status(201).send(`User created successfully ${email}`)
   } catch (error) {
+    if (sendUserError(reply, error)) return
     console.error(error)
     throw new Error('Failed to create user')
   }
