@@ -31,6 +31,21 @@ Oferecer uma API de blogging onde:
 | `DELETE /posts/:id` | Exclusão de postagens | Implementado |
 | `GET /posts/search` | Busca por palavra-chave no título, conteúdo ou nome do autor | Implementado |
 
+### Curtidas e comentários
+
+Qualquer pessoa conectada pode curtir e comentar. As leituras de postagens (`GET /posts`, `GET /posts/search` e `GET /posts/:id`) trazem `likeCount`, `commentCount` e `likedByMe`; em `GET /posts/:id`, que é pública, `likedByMe` só vale quando a requisição envia o token.
+
+| Endpoint | Descrição |
+|---|---|
+| `POST /posts/:id/like` | Curte a postagem. Curtir de novo não muda nada. Devolve `{ likeCount, likedByMe }` |
+| `DELETE /posts/:id/like` | Desfaz a curtida. Devolve `{ likeCount, likedByMe }` |
+| `GET /posts/:id/likes?cursor=&limit=` | Quem curtiu (`userId`, `name`, `avatarUrl`, `likedAt`), das curtidas mais recentes para as mais antigas |
+| `GET /posts/:id/comments?cursor=&limit=` | Comentários, dos mais recentes para os mais antigos, com paginação por cursor |
+| `POST /posts/:id/comments` | Publica um comentário (`content`, de 1 a 1000 caracteres) |
+| `DELETE /posts/:id/comments/:commentId` | Exclui um comentário. Só quem escreveu ou um `ADMIN` pode excluir; o autor da postagem não apaga comentários dos outros |
+
+Curtidas e comentários ficam nas tabelas `post_likes` e `post_comments` (migration `1781900000000_create-post-likes-and-comments`) e são apagados junto com a postagem ou com a conta de quem curtiu ou comentou.
+
 ### Requisitos funcionais — Frontend
 
 | Página | Descrição | Status |
@@ -167,7 +182,7 @@ Cada módulo contém:
 
 | Papel | Descrição |
 |---|---|
-| `STUDENT` | Visualiza e lê postagens |
+| `STUDENT` | Visualiza, lê, curte e comenta postagens |
 | `TEACHER` | Cria, edita, exclui e gerencia postagens |
 | `ADMIN` | Gerencia usuários e postagens |
 

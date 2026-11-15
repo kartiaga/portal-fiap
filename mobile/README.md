@@ -95,13 +95,14 @@ Os guards usam `Stack.Protected` e controlam apenas a navegação. Quem garante 
 
 ## Lista de postagens
 
-É a tela inicial para todos os perfis. Cada item mostra título, autor, data de publicação e um trecho do conteúdo.
+É a tela inicial para todos os perfis. Cada item mostra título, autor, data de publicação, um trecho do conteúdo e, no rodapé, o botão de curtir e o total de comentários.
 
 | Funcionalidade | Endpoint |
 | ------------------------------------------------------- | --------------------------- |
 | Lista de todas as postagens, com próxima página ao rolar | `GET /posts?cursor=&limit=` |
 | Busca por palavra-chave no título, no conteúdo ou no autor | `GET /posts/search?term=` |
 | Atualizar ao puxar a lista e ao voltar para a tela       | `GET /posts` ou a busca ativa |
+| Curtir (coração), ver quem curtiu (número) e abrir os comentários (balão) direto do cartão | `POST` / `DELETE /posts/:id/like`, folhas de curtidas e comentários |
 
 A busca é feita 500 ms depois que o usuário para de digitar, como no frontend web. Como a API não pagina a busca, todos os resultados chegam de uma vez. Apagar o termo volta para a lista paginada. Se a próxima página falhar, o erro aparece no rodapé da lista com **Tentar novamente**.
 
@@ -113,7 +114,24 @@ Tocar em um item da lista abre `/posts/:id`, que busca a postagem em `GET /posts
 
 Para quem pode alterar a postagem, o cabeçalho tem **Editar**; excluir fica no fim da edição. A tela recarrega ao voltar para ela, para refletir uma edição. Se a postagem não existir mais (`404`), a tela oferece **Voltar para a lista**; em outras falhas, **Tentar novamente**.
 
-A API não tem endpoints de comentários, então o item opcional de comentários não foi implementado.
+### Curtidas e comentários
+
+Abaixo do conteúdo ficam o coração, o total de curtidas, o balão de comentários e o link **Ver os N comentários** (ou **Adicionar um comentário**). Os comentários não aparecem na leitura: abrem numa folha, como no Instagram. Todos os perfis curtem e comentam.
+
+| Funcionalidade | Endpoint |
+| --- | --- |
+| Tocar no coração: curtir e descurtir | `POST` / `DELETE /posts/:id/like` |
+| Tocar no número de curtidas: folha com quem curtiu | `GET /posts/:id/likes?cursor=` |
+| Tocar no balão ou no link: folha de comentários, dos mais recentes para os mais antigos, com a próxima página ao rolar | `GET /posts/:id/comments?cursor=` |
+| Publicar um comentário (até 1000 caracteres) | `POST /posts/:id/comments` |
+| Excluir um comentário, depois de confirmar | `DELETE /posts/:id/comments/:commentId` |
+
+- As folhas são rotas `formSheet` nativas (`posts/[id]/comments` e `posts/[id]/likes`), abertas do feed ou da leitura, com altura fixa (`lib/sheets.ts`) e arrastar para fechar.
+- O campo de comentário fica fixo no pé da folha: começa com uma linha, cresce com o texto até cinco e depois rola por dentro. O botão de enviar fica dentro do campo e só fica vermelho com texto. No iOS a folha sobe com o teclado sozinha; no Android, `useSheetKeyboardInset` soma ao recuo a parte que o teclado ainda cobriria.
+- A curtida muda na hora e volta ao estado anterior, com um aviso, se a API falhar (`useLikeToggle`).
+- Ao fechar uma folha aberta do feed, só os totais daquela postagem são atualizados (`GET /posts/:id`), sem recarregar a lista. Na leitura, a postagem recarrega ao voltar.
+- **Excluir** aparece só para quem escreveu o comentário e para o administrador, a mesma regra da API (`features/comments/permissions.ts`). O autor da postagem não apaga comentários dos outros.
+- O código fica em `src/features/comments/` e `src/features/likes/`; o coração e o balão ficam em `src/components/post-engagement.tsx`.
 
 ## Criação de postagem
 
