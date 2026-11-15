@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,11 +11,12 @@ import { ScreenHeader } from '@/components/screen-header';
 import { LoadingState, StateMessage } from '@/components/state-message';
 import { TextField } from '@/components/text-field';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useLikeToggle } from '@/hooks/use-like-toggle';
 import { usePostsFeed } from '@/hooks/use-posts-feed';
 import { useTheme } from '@/hooks/use-theme';
 import { takeFlashNotice } from '@/lib/notice';
 import { canManagePosts } from '@/lib/permissions';
-import type { Post } from '@/lib/posts';
+import { getPost, type Post } from '@/lib/posts';
 import { MaxContentWidth, Spacing } from '@/theme';
 
 const SEARCH_DEBOUNCE_MS = 500;
@@ -41,21 +42,53 @@ export default function PostsScreen() {
     clearNotice,
     reload,
     loadMore,
+    patchPost,
   } = usePostsFeed(term);
   const canPublish = canManagePosts(user?.role);
 
+  const showLikeError = useCallback(
+    (text: string) => showNotice({ kind: 'error', text }),
+    [showNotice],
+  );
+  const toggleLike = useLikeToggle(patchPost, showLikeError);
+
+  // Postagem cuja folha (comentários ou curtidas) está aberta. Ao voltar dela, só os totais dessa
+  // postagem são atualizados: recarregar a lista inteira a levaria de volta para a primeira página.
+  const sheetPostId = useRef<string | null>(null);
+
   useFocusEffect(
     useCallback(() => {
+      const fromSheet = sheetPostId.current;
+      sheetPostId.current = null;
+      if (fromSheet) {
+        getPost(fromSheet)
+          .then(({ likeCount, commentCount, likedByMe }) =>
+            patchPost(fromSheet, { likeCount, commentCount, likedByMe }),
+          )
+          .catch(() => undefined); // Os totais antigos continuam; a próxima atualização corrige.
+        return;
+      }
+
       const flash = takeFlashNotice();
       void reload();
       if (flash) showNotice(flash);
-    }, [reload, showNotice]),
+    }, [reload, showNotice, patchPost]),
   );
 
   const openPost = useCallback(
     (post: Post) => router.push(`/posts/${post.id}` as Href),
     [router],
   );
+
+  const openSheet = useCallback(
+    (post: Post, sheet: 'comments' | 'likes') => {
+      sheetPostId.current = post.id;
+      router.push(`/posts/${post.id}/${sheet}` as Href);
+    },
+    [router],
+  );
+  const openComments = useCallback((post: Post) => openSheet(post, 'comments'), [openSheet]);
+  const openLikes = useCallback((post: Post) => openSheet(post, 'likes'), [openSheet]);
 
   const searching = loaded && term !== appliedTerm;
   // Falha ao atualizar com a lista já na tela: a lista fica e o aviso oferece tentar de novo.
@@ -126,7 +159,15 @@ export default function PostsScreen() {
         testID="posts-list"
         data={posts}
         keyExtractor={(post) => post.id}
-        renderItem={({ item }) => <PostCard post={item} onPress={openPost} />}
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            onPress={openPost}
+            onToggleLike={toggleLike}
+            onOpenLikes={openLikes}
+            onOpenComments={openComments}
+          />
+        )}
         ListEmptyComponent={
           appliedTerm ? (
             <StateMessage

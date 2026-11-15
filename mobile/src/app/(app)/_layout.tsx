@@ -4,6 +4,7 @@ import { useSession } from '@/auth/session-context';
 import { useTheme } from '@/hooks/use-theme';
 import { canManagePeople } from '@/features/people/permissions';
 import { canManagePosts } from '@/lib/permissions';
+import { SheetDetent } from '@/lib/sheets';
 import { Radius } from '@/theme';
 
 /** Aberta por link direto, uma tela interna ainda tem as abas por baixo para onde voltar. */
@@ -35,6 +36,16 @@ export default function AppLayout() {
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="posts/[id]" options={{ title: '' }} />
+
+      {/* Comentários e curtidas: folhas nativas de altura fixa, abertas do feed ou da leitura. */}
+      <Stack.Screen
+        name="posts/[id]/comments"
+        options={{ ...sheetOptions, sheetAllowedDetents: [SheetDetent.comments] }}
+      />
+      <Stack.Screen
+        name="posts/[id]/likes"
+        options={{ ...sheetOptions, sheetAllowedDetents: [SheetDetent.likes] }}
+      />
 
       {/* Toda rota dentro de (teacher) exige perfil de professor ou administrador. */}
       <Stack.Protected guard={canManagePosts(user?.role)}>

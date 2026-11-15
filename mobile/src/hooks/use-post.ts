@@ -35,5 +35,12 @@ export function usePost(id: string) {
     setLoaded(true);
   }, [id]);
 
-  return { post, loaded, notFound, loadError, reload };
+  /** Atualiza só na tela (curtida, total de comentários) sem buscar a postagem de novo. */
+  const patchPost = useCallback((patch: Partial<Post> | ((current: Post) => Partial<Post>)) => {
+    setPost((current) =>
+      current ? { ...current, ...(typeof patch === 'function' ? patch(current) : patch) } : current,
+    );
+  }, []);
+
+  return { post, loaded, notFound, loadError, reload, patchPost };
 }

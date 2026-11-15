@@ -96,6 +96,11 @@ export function usePostsFeed(term: string, authorId?: string) {
     setPosts((current) => current.filter((item) => item.id !== postId));
   }, []);
 
+  /** Atualiza uma postagem só na lista (ex.: depois de curtir), sem recarregar. */
+  const patchPost = useCallback((postId: string, patch: Partial<Post>) => {
+    setPosts((current) => current.map((item) => (item.id === postId ? { ...item, ...patch } : item)));
+  }, []);
+
   return {
     posts,
     appliedTerm,
@@ -110,5 +115,6 @@ export function usePostsFeed(term: string, authorId?: string) {
     reload,
     loadMore,
     dropPost,
+    patchPost,
   };
 }

@@ -1,29 +1,43 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useCallback } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useSession } from '@/auth/session-context';
 import { Avatar } from '@/components/avatar';
 import { Banner } from '@/components/banner';
 import { HeaderButton } from '@/components/header-button';
+import { CommentButton, LikeButton } from '@/components/post-engagement';
 import { LoadingState, StateMessage } from '@/components/state-message';
+import { useLikeToggle } from '@/hooks/use-like-toggle';
 import { useNotice } from '@/hooks/use-notice';
 import { usePost } from '@/hooks/use-post';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDate } from '@/lib/format';
 import { takeFlashNotice } from '@/lib/notice';
 import { canModifyPost } from '@/lib/permissions';
-import { MaxContentWidth, Spacing, Typography } from '@/theme';
+import type { LikeSummary } from '@/lib/posts';
+import { BorderWidth, MaxContentWidth, MinTouchSize, Spacing, Typography } from '@/theme';
+
+/** "Ver o comentário", "Ver os 3 comentários" ou, sem nenhum, o convite para comentar. */
+function commentsLinkLabel(count: number): string {
+  if (count === 0) return 'Adicionar um comentário';
+  return count === 1 ? 'Ver o comentário' : `Ver os ${count} comentários`;
+}
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const router = useRouter();
   const { user } = useSession();
-  const { post, loaded, notFound, loadError, reload } = usePost(id);
+  const { post, loaded, notFound, loadError, reload, patchPost } = usePost(id);
   const { notice, showNotice, clearNotice } = useNotice();
 
-  // Recarrega ao voltar para a tela (reflete uma edição recente) e mostra o aviso deixado por ela.
+  const applyLike = useCallback((_: string, summary: LikeSummary) => patchPost(summary), [patchPost]);
+  const showError = useCallback((text: string) => showNotice({ kind: 'error', text }), [showNotice]);
+  const toggleLike = useLikeToggle(applyLike, showError);
+
+  // Recarrega ao voltar para a tela: reflete uma edição recente e os totais depois de fechar a
+  // folha de comentários ou de curtidas. Mostra também o aviso deixado pela tela anterior.
   useFocusEffect(
     useCallback(() => {
       showNotice(takeFlashNotice());
@@ -54,6 +68,8 @@ export default function PostScreen() {
   const author = post.authorName || 'Autor não informado';
   const createdAt = formatDate(post.createdAt);
   const updatedAt = formatDate(post.updatedAt);
+  const commentCount = post.commentCount ?? 0;
+  const openComments = () => router.push(`/posts/${post.id}/comments` as Href);
 
   return (
     <ScrollView
@@ -119,6 +135,27 @@ export default function PostScreen() {
       <Text selectable style={[Typography.reading, { color: theme.text }]}>
         {post.content}
       </Text>
+
+      {/* Os comentários ficam numa folha: aqui, só os totais e os atalhos para abri-la. */}
+      <View style={[styles.engagement, { borderTopColor: theme.border }]}>
+        <View style={styles.stats}>
+          <LikeButton
+            liked={post.likedByMe ?? false}
+            count={post.likeCount ?? 0}
+            onToggle={() => void toggleLike(post)}
+            onOpenLikes={() => router.push(`/posts/${post.id}/likes` as Href)}
+          />
+          <CommentButton count={commentCount} onPress={openComments} />
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={openComments}
+          style={({ pressed }) => [styles.commentsLink, pressed && { opacity: 0.6 }]}>
+          <Text style={[Typography.callout, { color: theme.textSecondary }]}>
+            {commentsLinkLabel(commentCount)}
+          </Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -149,5 +186,22 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     marginVertical: Spacing.two,
+  },
+  engagement: {
+    marginTop: Spacing.two,
+    paddingTop: Spacing.one,
+    borderTopWidth: BorderWidth.hairline,
+  },
+  stats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    // O coração tem respiro próprio: o recuo negativo o alinha ao texto.
+    marginStart: -Spacing.two + Spacing.half,
+  },
+  commentsLink: {
+    alignSelf: 'flex-start',
+    minHeight: MinTouchSize,
+    justifyContent: 'center',
   },
 });

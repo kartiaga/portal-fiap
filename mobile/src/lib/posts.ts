@@ -8,8 +8,21 @@ export type Post = {
   authorName?: string | null;
   /** Endereço público da foto do autor; `null` ou ausente sem foto. */
   authorAvatarUrl?: string | null;
+  /**
+   * Curtidas, comentários e se o usuário conectado curtiu. Vêm nas leituras (lista, busca e por
+   * id), mas não nas respostas de criação e edição: ausentes, valem 0 e `false`.
+   */
+  likeCount?: number;
+  commentCount?: number;
+  likedByMe?: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Curtidas de uma postagem depois de curtir ou descurtir. */
+export type LikeSummary = {
+  likeCount: number;
+  likedByMe: boolean;
 };
 
 export type PostsPage = {
@@ -57,4 +70,13 @@ export function updatePost(id: string, input: PostInput): Promise<Post> {
 
 export async function deletePost(id: string): Promise<void> {
   await apiFetch(`/posts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+// Curtir e descurtir são idempotentes na API e devolvem o total atualizado.
+export function likePost(id: string): Promise<LikeSummary> {
+  return apiFetch<LikeSummary>(`/posts/${encodeURIComponent(id)}/like`, { method: 'POST' });
+}
+
+export function unlikePost(id: string): Promise<LikeSummary> {
+  return apiFetch<LikeSummary>(`/posts/${encodeURIComponent(id)}/like`, { method: 'DELETE' });
 }

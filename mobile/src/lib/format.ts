@@ -20,6 +20,11 @@ export function formatRelativeDate(value: string, now = new Date()): string {
   return formatDate(value);
 }
 
+/** "1 curtida", "3 curtidas", "0 curtidas". */
+export function pluralize(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
