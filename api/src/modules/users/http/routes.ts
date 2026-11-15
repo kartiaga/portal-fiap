@@ -6,6 +6,12 @@ import { list } from './controller/list'
 import { getById } from './controller/get-by-id'
 import { update } from './controller/update'
 import { remove } from './controller/delete'
+import {
+  createAvatarUpload,
+  removeAvatar,
+  setAvatar,
+} from './controller/avatar'
+import { AVATAR_CONTENT_TYPES } from '@/lib/avatar'
 
 const userResponse = {
   type: 'object',
@@ -13,6 +19,7 @@ const userResponse = {
     id: { type: 'string', format: 'uuid' },
     email: { type: 'string', format: 'email' },
     name: { type: ['string', 'null'] },
+    avatarUrl: { type: ['string', 'null'] },
     role: { type: 'string', enum: ['STUDENT', 'TEACHER', 'ADMIN'] },
     createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' },
@@ -111,10 +118,12 @@ export async function usersRoutes(app: FastifyInstance) {
   app.get(
     '/users/:id',
     {
-      preHandler: [authenticate, requireTeacherOrAdmin],
+      preHandler: [authenticate],
       schema: {
         tags: ['Users'],
         summary: 'Consulta usuário por ID',
+        description:
+          'Qualquer usuário consulta a própria conta. ADMIN consulta qualquer conta; TEACHER consulta TEACHER e STUDENT.',
         security: [{ bearerAuth: [] }],
         params: idParams,
         response: {
@@ -185,5 +194,104 @@ export async function usersRoutes(app: FastifyInstance) {
       },
     },
     remove,
+  )
+
+  const avatarParams = idParams
+  const avatarResponse = {
+    type: 'object',
+    properties: { avatarUrl: { type: ['string', 'null'] } },
+  } as const
+
+  app.post(
+    '/users/:id/avatar/upload',
+    {
+      preHandler: [authenticate],
+      schema: {
+        tags: ['Users'],
+        summary: 'Autoriza o envio da foto de perfil',
+        description:
+          'Passo 1 da troca de foto. Devolve um formulário assinado: o app envia o arquivo direto ao armazenamento com POST multipart (os campos de fields primeiro, o arquivo por último, no campo file). Aceita JPEG, PNG e WebP de até maxBytes. Cada usuário troca a própria foto; ADMIN troca a de qualquer um.',
+        security: [{ bearerAuth: [] }],
+        params: avatarParams,
+        body: {
+          type: 'object',
+          required: ['contentType'],
+          additionalProperties: false,
+          properties: {
+            contentType: { type: 'string', enum: [...AVATAR_CONTENT_TYPES] },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              url: { type: 'string' },
+              fields: {
+                type: 'object',
+                additionalProperties: { type: 'string' },
+              },
+              key: { type: 'string' },
+              maxBytes: { type: 'integer' },
+            },
+          },
+          400: errorResponse,
+          401: errorResponse,
+          403: errorResponse,
+          503: errorResponse,
+        },
+      },
+    },
+    createAvatarUpload,
+  )
+
+  app.put(
+    '/users/:id/avatar',
+    {
+      preHandler: [authenticate],
+      schema: {
+        tags: ['Users'],
+        summary: 'Confirma a foto de perfil enviada',
+        description:
+          'Passo 2 da troca de foto: informa a key devolvida no passo 1, depois de enviar o arquivo. A API confere que o arquivo existe e é uma imagem aceita, passa o perfil a usá-lo e apaga a foto anterior.',
+        security: [{ bearerAuth: [] }],
+        params: avatarParams,
+        body: {
+          type: 'object',
+          required: ['key'],
+          additionalProperties: false,
+          properties: { key: { type: 'string', maxLength: 200 } },
+        },
+        response: {
+          200: avatarResponse,
+          400: errorResponse,
+          401: errorResponse,
+          403: errorResponse,
+          404: errorResponse,
+          503: errorResponse,
+        },
+      },
+    },
+    setAvatar,
+  )
+
+  app.delete(
+    '/users/:id/avatar',
+    {
+      preHandler: [authenticate],
+      schema: {
+        tags: ['Users'],
+        summary: 'Remove a foto de perfil',
+        security: [{ bearerAuth: [] }],
+        params: avatarParams,
+        response: {
+          200: avatarResponse,
+          401: errorResponse,
+          403: errorResponse,
+          404: errorResponse,
+          503: errorResponse,
+        },
+      },
+    },
+    removeAvatar,
   )
 }

@@ -46,6 +46,7 @@ export const PostAdminCard = memo(function PostAdminCard({
     <>
       <PostMeta
         authorName={post.authorName}
+        authorAvatarUrl={post.authorAvatarUrl}
         date={date}
         datePrefix="Editada"
         isSelf={isOwn}

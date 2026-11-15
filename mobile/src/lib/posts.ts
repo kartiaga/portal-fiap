@@ -6,6 +6,8 @@ export type Post = {
   content: string;
   authorId: string;
   authorName?: string | null;
+  /** Endereço público da foto do autor; `null` ou ausente sem foto. */
+  authorAvatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 };

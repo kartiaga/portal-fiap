@@ -1,4 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
+import { findAvatarStorage } from '@/lib/storage'
+import { ProfileRepository } from '@/modules/profiles/repositories/profile.repository'
 import { UserRepository } from '../../repositories/user.repository'
 import { DeleteUserUseCase } from '../../use-cases/delete-user.use-case'
 import { getActor, getUserId, sendUserError } from './shared'
@@ -8,7 +10,11 @@ export async function remove(
   reply: FastifyReply,
 ): Promise<void> {
   try {
-    await new DeleteUserUseCase(new UserRepository()).handler(
+    const storage = findAvatarStorage()
+    const avatars = storage
+      ? { profiles: new ProfileRepository(), storage }
+      : undefined
+    await new DeleteUserUseCase(new UserRepository(), avatars).handler(
       getUserId(request),
       getActor(request),
     )

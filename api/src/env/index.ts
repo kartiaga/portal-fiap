@@ -10,6 +10,14 @@ export const envSchema = z.object({
   POSTGRES_USER: z.string(),
   POSTGRES_PASSWORD: z.coerce.string(),
   JWT_SECRET: z.string().min(32),
+  // Armazenamento das fotos de perfil (MinIO em desenvolvimento, qualquer S3 em produção). Sem
+  // estas variáveis a API funciona, só que as rotas de foto respondem 503.
+  S3_ENDPOINT: z.url().optional(),
+  S3_PUBLIC_URL: z.url().optional(),
+  S3_BUCKET: z.string().default('portal-fiap'),
+  S3_ACCESS_KEY: z.string().optional(),
+  S3_SECRET_KEY: z.string().optional(),
+  S3_REGION: z.string().default('us-east-1'),
 })
 
 const _env = envSchema.safeParse(process.env)

@@ -45,6 +45,33 @@ describe('Avatar', () => {
     await render(<Avatar name="Ana Lima" variant="solid" />);
     expect(styleOf('AL').color).toBe(light.onTint);
   });
+
+  it('mostra a foto de perfil no lugar das iniciais', async () => {
+    await render(<Avatar name="Ana Lima" uri="http://localhost:9000/portal-fiap/avatars/u/a.jpg" />);
+
+    const photo = screen.getByTestId('avatar-photo', { includeHiddenElements: true });
+    expect(photo.props.source).toEqual({ uri: 'http://localhost:9000/portal-fiap/avatars/u/a.jpg' });
+    expect(screen.queryByText('AL', { includeHiddenElements: true })).toBeNull();
+  });
+
+  it('volta às iniciais se a foto não carregar, e tenta de novo com outro endereço', async () => {
+    const { rerender } = await render(<Avatar name="Ana Lima" uri="http://x/quebrada.jpg" />);
+
+    await fireEvent(screen.getByTestId('avatar-photo', { includeHiddenElements: true }), 'error');
+    expect(screen.getByText('AL', { includeHiddenElements: true })).toBeOnTheScreen();
+    expect(screen.queryByTestId('avatar-photo', { includeHiddenElements: true })).toBeNull();
+
+    await rerender(<Avatar name="Ana Lima" uri="http://x/nova.jpg" />);
+    expect(screen.getByTestId('avatar-photo', { includeHiddenElements: true }).props.source).toEqual({
+      uri: 'http://x/nova.jpg',
+    });
+  });
+
+  it('sem foto, usa as iniciais ou o ícone genérico', async () => {
+    await render(<Avatar name="Ana Lima" uri={null} />);
+    expect(screen.getByText('AL', { includeHiddenElements: true })).toBeOnTheScreen();
+    expect(screen.queryByTestId('avatar-photo', { includeHiddenElements: true })).toBeNull();
+  });
 });
 
 describe('Badge', () => {

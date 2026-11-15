@@ -11,6 +11,8 @@ export type Person = {
   email: string;
   name: string | null;
   role: ListedRole;
+  /** Endereço público da foto de perfil; `null` ou ausente sem foto. */
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 };

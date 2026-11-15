@@ -4,6 +4,7 @@ export class Post {
   content: string
   authorId: string
   authorName?: string | undefined
+  authorAvatarUrl?: string | null | undefined
   createdAt?: Date
   updatedAt?: Date
 

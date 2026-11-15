@@ -3,8 +3,16 @@ import { UserError } from './errors'
 
 export type UserActor = { id: string; role: UserRole }
 
-/** Ver uma conta: o administrador vê todas; o professor vê professores e estudantes. */
-export function assertCanView(actor: UserActor, targetRole: UserRole): void {
+/**
+ * Ver uma conta: qualquer um vê a própria; o administrador vê todas; o professor vê professores e
+ * estudantes.
+ */
+export function assertCanView(
+  actor: UserActor,
+  targetRole: UserRole,
+  targetId?: string,
+): void {
+  if (targetId !== undefined && actor.id === targetId) return
   if (actor.role === UserRole.ADMIN) return
   if (actor.role !== UserRole.TEACHER || targetRole === UserRole.ADMIN) {
     throw new UserError('Forbidden', 403)

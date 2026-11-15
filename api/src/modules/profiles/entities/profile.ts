@@ -2,7 +2,8 @@ export class Profile {
   id?: string
   userId: string
   name: string
-  avatarUrl?: string
+  /** Chave do arquivo da foto no armazenamento. */
+  avatarKey?: string
   createdAt?: Date
   updatedAt?: Date
 

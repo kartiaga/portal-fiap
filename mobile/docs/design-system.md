@@ -96,7 +96,7 @@ Todos em `src/theme/index.ts`:
 | `StateMessage` / `LoadingState` | Vazio, erro e carregando de uma tela ou lista |
 | `FilterButton`, `FilterSheet`, `FilterTag` | Filtro de lista: ícone ao lado da busca (ponto vermelho quando há filtro), folha nativa `formSheet` com uma escolha por grupo e **Limpar** / **Aplicar**, e a etiqueta do filtro ativo abaixo da busca. A escolha vive no parâmetro da rota da aba |
 | `SegmentedControl` | Escolher entre poucas opções num formulário (perfil no cadastro de pessoa) ou alternar poucas visões de uma lista. A opção escolhida usa `segmentSelected` e peso 600; as outras, peso 500 |
-| `Avatar` | Iniciais (ou ícone, sem nome). `tonal` (padrão: `tintSoft` + `tintText`) nas listas; `solid` (vermelho cheio) só no cartão de perfil da Conta |
+| `Avatar` | Foto de perfil (`uri`) ou, sem foto ou se ela não carregar, iniciais (ou ícone, sem nome). `tonal` (padrão: `tintSoft` + `tintText`) nas listas; `solid` (vermelho cheio) só no cartão de perfil da Conta |
 | `Badge`, `RoleBadge`, `SelfBadge` | Selo em pílula com tom `brand`, `info`, `success` ou `neutral`. `RoleBadge` mostra o perfil; `SelfBadge` ("Você") marca o que é do usuário conectado |
 | `PostMeta` | Cabeçalho comum dos cartões de postagem: avatar `small`, autor (`label`, `textSecondary`), selo "Você" e data em `meta` à direita (com prefixo opcional, como "Editada"). Com fonte acima de 1,3×, a data desce para a linha de baixo |
 | `PostCard`, `PostAdminCard`, `PersonCard` | Itens das listas (memorizados com `memo`). Título `headline` e resumo de 2 linhas. No `PostAdminCard`, a área de conteúdo abre a leitura e a linha de ações (Editar `secondary`, Excluir `dangerGhost`) fica separada, para o leitor de tela alcançar os botões |

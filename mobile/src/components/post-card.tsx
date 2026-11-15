@@ -32,7 +32,7 @@ export const PostCard = memo(function PostCard({ post, onPress }: PostCardProps)
           borderColor: theme.border,
         },
       ]}>
-      <PostMeta authorName={post.authorName} date={date} />
+      <PostMeta authorName={post.authorName} authorAvatarUrl={post.authorAvatarUrl} date={date} />
       <Text numberOfLines={2} style={[Typography.headline, styles.title, { color: theme.text }]}>
         {post.title}
       </Text>

@@ -30,7 +30,8 @@ export function buildPostListQuery(params: PostListQueryParams) {
   return {
     values,
     sql: `SELECT posts.id, posts.title, posts.content, posts.author_id,
-                 profiles.name AS author_name, posts.created_at,
+                 profiles.name AS author_name,
+                 profiles.avatar_key AS author_avatar_key, posts.created_at,
                  to_char(posts.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at,
                  posts.updated_at
           FROM posts

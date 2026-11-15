@@ -88,6 +88,7 @@ export async function postsRoutes(app: FastifyInstance) {
                 content: { type: 'string' },
                 authorId: { type: 'string', format: 'uuid' },
                 authorName: { type: ['string', 'null'] },
+                authorAvatarUrl: { type: ['string', 'null'] },
                 createdAt: {
                   type: 'string',
                   format: 'date-time',
@@ -243,6 +244,7 @@ export async function postsRoutes(app: FastifyInstance) {
               content: { type: 'string' },
               authorId: { type: 'string', format: 'uuid' },
               authorName: { type: ['string', 'null'] },
+              authorAvatarUrl: { type: ['string', 'null'] },
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
             },
@@ -304,6 +306,7 @@ export async function postsRoutes(app: FastifyInstance) {
                     content: { type: 'string' },
                     authorId: { type: 'string', format: 'uuid' },
                     authorName: { type: ['string', 'null'] },
+                    authorAvatarUrl: { type: ['string', 'null'] },
                     createdAt: {
                       type: 'string',
                       format: 'date-time',

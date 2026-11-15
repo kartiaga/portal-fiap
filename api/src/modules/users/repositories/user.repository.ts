@@ -1,4 +1,5 @@
 import { database } from '@/lib/db'
+import { publicAvatarUrl } from '@/lib/storage'
 import {
   buildPaginatedResult,
   resolveLimit,
@@ -20,6 +21,7 @@ interface UserRow {
 
 interface PublicUserRow extends Omit<UserRow, 'password'> {
   name: string | null
+  avatar_key: string | null
   cursor_created_at: string
 }
 
@@ -27,6 +29,8 @@ export type PublicUser = {
   id: string
   email: string
   name: string | null
+  /** Endereço público da foto de perfil, ou `null` sem foto. */
+  avatarUrl: string | null
   role: UserRole
   createdAt: Date
   updatedAt: Date
@@ -49,6 +53,7 @@ export class UserRepository {
       id: row.id,
       email: row.email,
       name: row.name,
+      avatarUrl: publicAvatarUrl(row.avatar_key),
       role: row.role,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -79,7 +84,7 @@ export class UserRepository {
 
   public async findById(id: string): Promise<PublicUser | undefined> {
     const result = await database.clienteInstance?.query(
-      `SELECT users.id, users.email, users.role, users.created_at, users.updated_at, profiles.name
+      `SELECT users.id, users.email, users.role, users.created_at, users.updated_at, profiles.name, profiles.avatar_key
        FROM users LEFT JOIN profiles ON profiles.user_id = users.id
        WHERE users.id = $1`,
       [id],
@@ -101,9 +106,9 @@ export class UserRepository {
        ), updated_profile AS (
          INSERT INTO profiles (user_id, name) SELECT id, $3 FROM updated_user WHERE true
          ON CONFLICT (user_id) DO UPDATE SET name = EXCLUDED.name, updated_at = now()
-         RETURNING user_id, name
+         RETURNING user_id, name, avatar_key
        )
-       SELECT updated_user.*, updated_profile.name
+       SELECT updated_user.*, updated_profile.name, updated_profile.avatar_key
        FROM updated_user JOIN updated_profile ON updated_profile.user_id = updated_user.id`,
       [id, data.email, data.name, data.password ?? null],
     )

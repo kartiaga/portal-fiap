@@ -1,4 +1,4 @@
-import { ApiError, apiFetch, setAuthToken, setUnauthorizedHandler } from '@/lib/api';
+import { ApiError, apiFetch, reachableUrl, setAuthToken, setUnauthorizedHandler } from '@/lib/api';
 import { getPosts } from '@/lib/posts';
 
 const fetchMock = jest.fn();
@@ -71,5 +71,41 @@ describe('getPosts', () => {
 
     await getPosts('c1', 'autor-1');
     expect(new URL(fetchMock.mock.lastCall?.[0]).search).toBe('?limit=20&cursor=c1&authorId=autor-1');
+  });
+});
+
+describe('reachableUrl', () => {
+  const original = process.env.EXPO_PUBLIC_API_URL;
+
+  afterEach(() => {
+    if (original === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+    else process.env.EXPO_PUBLIC_API_URL = original;
+  });
+
+  it('troca localhost pelo host que o app usa para a API (celular na rede)', () => {
+    process.env.EXPO_PUBLIC_API_URL = 'http://192.168.0.194:3001';
+
+    expect(reachableUrl('http://localhost:9000/portal-fiap')).toBe('http://192.168.0.194:9000/portal-fiap');
+    expect(reachableUrl('http://127.0.0.1:9000/portal-fiap/avatars/u/a.jpg')).toBe(
+      'http://192.168.0.194:9000/portal-fiap/avatars/u/a.jpg',
+    );
+    expect(reachableUrl('http://10.0.2.2:9000/portal-fiap')).toBe('http://192.168.0.194:9000/portal-fiap');
+  });
+
+  it('não mexe quando a API também está em localhost (simulador do iOS)', () => {
+    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:3001';
+
+    expect(reachableUrl('http://localhost:9000/portal-fiap')).toBe('http://localhost:9000/portal-fiap');
+  });
+
+  it('deixa passar endereços que não são da própria máquina', () => {
+    process.env.EXPO_PUBLIC_API_URL = 'http://192.168.0.194:3001';
+
+    expect(reachableUrl('http://192.168.0.10:9000/portal-fiap')).toBe('http://192.168.0.10:9000/portal-fiap');
+    expect(reachableUrl('https://fotos.exemplo.com.br/portal-fiap/a.jpg')).toBe(
+      'https://fotos.exemplo.com.br/portal-fiap/a.jpg',
+    );
+    // Um nome que só começa com "localhost" não é o loopback.
+    expect(reachableUrl('http://localhost.exemplo.com/a.jpg')).toBe('http://localhost.exemplo.com/a.jpg');
   });
 });
