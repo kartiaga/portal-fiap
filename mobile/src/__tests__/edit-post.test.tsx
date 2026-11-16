@@ -111,15 +111,20 @@ describe('carregamento', () => {
 
     expect(await screen.findByDisplayValue('Título original')).toBeOnTheScreen();
     expect(screen.getByDisplayValue('Conteúdo original da postagem.')).toBeOnTheScreen();
-    // A própria postagem: sem aviso de autor.
-    expect(screen.queryByText(/Editando a postagem de/)).toBeNull();
+    // A própria postagem: o autor é "você", só para leitura e sem aviso.
+    expect(screen.queryByText(/postagem de outra pessoa/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Autor:/ })).toBeNull();
   });
 
-  it('avisa o admin quando a postagem é de outra pessoa', async () => {
+  it('mostra o autor e avisa o admin quando a postagem é de outra pessoa', async () => {
     mockPostApi(makePost({ authorId: 'outro', authorName: 'Bruno' }));
     await render('/posts/a/edit', 'ADMIN');
 
-    expect(await screen.findByText('Editando a postagem de Bruno')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Autor: Bruno')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Você está editando a postagem de outra pessoa. O autor não muda.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Autor:/ })).toBeNull();
   });
 
   it('só habilita "Salvar alterações" depois de alguma alteração', async () => {

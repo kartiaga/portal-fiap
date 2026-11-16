@@ -117,6 +117,28 @@ describe('lista', () => {
     expect(within(screen.getByTestId('people-list')).queryByText('maria@fiap.com.br')).toBeNull();
   });
 
+  it('carrega a próxima página pelo cursor ao chegar ao fim da lista, sem repetir pessoas', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      const request = new URL(url);
+      const second = request.searchParams.get('cursor') === 'pagina-2';
+      return Promise.resolve(
+        response(
+          second
+            ? { items: [teacher, student], nextCursor: null, hasMore: false }
+            : { items: [teacher], nextCursor: 'pagina-2', hasMore: true },
+        ),
+      );
+    });
+    await openPeople();
+    expect(within(screen.getByTestId('people-list')).queryByText('João Souza')).toBeNull();
+
+    await fireEvent(screen.getByTestId('people-list'), 'endReached');
+
+    expect(await within(screen.getByTestId('people-list')).findByText('João Souza')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('people-list')).getAllByText('Maria Silva')).toHaveLength(1);
+    expect(listRequests().some((request) => request.searchParams.get('cursor') === 'pagina-2')).toBe(true);
+  });
+
   it('envia a busca por nome ou e-mail para a API', async () => {
     await openPeople();
 
@@ -322,6 +344,93 @@ describe('edição', () => {
     expect(screen).toHavePathname('/people');
   });
 
+  it('os três pontinhos abrem a folha da pessoa, com Editar e Excluir', async () => {
+    await openPeople();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Mais ações para Maria Silva' }));
+
+    expect(await screen.findByRole('header', { name: 'Maria Silva' })).toBeOnTheScreen();
+    expect(screen).toHavePathname(`/people/${teacher.id}/actions`);
+    expect(screen.getByRole('button', { name: 'Editar' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Excluir' })).toBeOnTheScreen();
+  });
+
+  it('"Editar" na folha abre a edição da pessoa', async () => {
+    await openPeople();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mais ações para Maria Silva' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Editar' }));
+
+    expect(await screen.findByDisplayValue('maria@fiap.com.br')).toBeOnTheScreen();
+    expect(screen).toHavePathname(`/people/${teacher.id}/edit`);
+  });
+
+  it('"Excluir" na folha confirma, exclui e volta para a lista com o aviso', async () => {
+    await openPeople();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mais ações para Maria Silva' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Excluir' }));
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Excluir professor?',
+      'Esta ação remove a conta de Maria Silva. Ela não pode ser desfeita.',
+      expect.any(Array),
+    );
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+
+    answerConfirmation('Excluir');
+
+    expect(await screen.findByText('Professor excluído com sucesso.')).toBeOnTheScreen();
+    expect(screen).toHavePathname('/people');
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(true);
+  });
+
+  it('cancelar a confirmação não exclui e mantém a folha aberta', async () => {
+    await openPeople();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mais ações para Maria Silva' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Excluir' }));
+    answerConfirmation('Cancelar');
+
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+    expect(screen).toHavePathname(`/people/${teacher.id}/actions`);
+  });
+
+  it('a folha explica quando a exclusão é recusada e continua aberta', async () => {
+    const original = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      init?.method === 'DELETE'
+        ? Promise.resolve({ ok: false, status: 409, json: async () => ({}) })
+        : original?.(url, init),
+    );
+    await openPeople();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mais ações para Maria Silva' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Excluir' }));
+    answerConfirmation('Excluir');
+
+    expect(
+      await screen.findByText('Não é possível excluir este usuário porque ele possui postagens.'),
+    ).toBeOnTheScreen();
+    expect(screen).toHavePathname(`/people/${teacher.id}/actions`);
+  });
+
+  it('a folha da própria conta tem "Editar" mas não "Excluir"', async () => {
+    const self = person(SELF_ID, 'Ana Admin', 'ana@fiap.com.br', 'ADMIN');
+    const original = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      new URL(url).pathname === '/users' && !init?.method
+        ? Promise.resolve(response({ items: [self, teacher], nextCursor: null, hasMore: false }))
+        : original?.(url, init),
+    );
+    await openPeople();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Mais ações para Ana Admin' }));
+
+    expect(await screen.findByRole('header', { name: 'Ana Admin' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Editar' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Excluir' })).toBeNull();
+  });
+
   it('o título e a exclusão seguem o perfil da conta aberta', async () => {
     fetchMock.mockImplementation((url: string) =>
       Promise.resolve(response(new URL(url).pathname === `/users/${student.id}` ? student : {})),
@@ -378,6 +487,7 @@ describe('professor: só vê a lista', () => {
     // O cartão só informa: continua legível, mas não é um botão.
     expect(screen.getByLabelText('Maria Silva, Professor')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Maria Silva, Professor' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mais ações para Maria Silva' })).toBeNull();
   });
 
   it.each([
@@ -389,5 +499,19 @@ describe('professor: só vê a lista', () => {
     expect(await screen.findByRole('header', { name: 'Posts' })).toBeOnTheScreen();
     expect(screen).toHavePathname('/');
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+  });
+});
+
+describe('estudante: sem acesso', () => {
+  beforeEach(() => {
+    signInAs('STUDENT');
+  });
+
+  it('abrir a aba Pessoas por link leva de volta aos posts, sem listar ninguém', async () => {
+    await renderRouter('src/app', { initialUrl: '/people' });
+
+    expect(await screen.findByRole('header', { name: 'Posts' })).toBeOnTheScreen();
+    expect(screen).toHavePathname('/');
+    expect(listRequests()).toHaveLength(0);
   });
 });

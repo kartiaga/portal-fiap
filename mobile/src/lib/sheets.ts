@@ -6,4 +6,5 @@
 export const SheetDetent = {
   comments: 0.75,
   likes: 0.6,
+  author: 0.75,
 } as const;

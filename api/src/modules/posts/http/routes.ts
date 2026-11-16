@@ -17,7 +17,7 @@ export async function postsRoutes(app: FastifyInstance) {
         tags: ['Posts'],
         summary: 'Cria um novo post',
         description:
-          'Cadastra um post. Requer token JWT com papel TEACHER ou ADMIN.',
+          'Cadastra um post. Requer token JWT com papel TEACHER ou ADMIN. O autor é quem está logado; só o ADMIN pode informar `authorId` de outra pessoa, que precisa ser um professor (TEACHER).',
         security: [{ bearerAuth: [] }],
         body: {
           type: 'object',
@@ -25,6 +25,12 @@ export async function postsRoutes(app: FastifyInstance) {
           properties: {
             title: { type: 'string', minLength: 3, maxLength: 255 },
             content: { type: 'string', minLength: 10 },
+            authorId: {
+              type: 'string',
+              format: 'uuid',
+              description:
+                'Opcional. Autor da postagem; ausente, é quem está logado. Outra pessoa só para ADMIN, e precisa ser TEACHER.',
+            },
           },
         },
         response: {
@@ -46,6 +52,13 @@ export async function postsRoutes(app: FastifyInstance) {
             },
           },
           403: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
+            },
+          },
+          422: {
+            description: '`authorId` não é de um professor cadastrado',
             type: 'object',
             properties: {
               message: { type: 'string' },

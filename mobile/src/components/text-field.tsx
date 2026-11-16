@@ -37,9 +37,10 @@ type TextFieldProps = TextInputProps & {
 
 /**
  * Linha de base do campo de formulário. A espessura também marca o estado: 1 px em repouso
- * (com 1 px de respiro embaixo, para o layout não pular) e 2 px em foco ou com erro.
+ * (com 1 px de respiro embaixo, para o layout não pular) e 2 px em foco ou com erro. Também serve
+ * a campos que não são de texto, como o de autor da postagem.
  */
-function underlineFor(theme: Theme, { error, focused, editable }: { error: boolean; focused: boolean; editable: boolean }) {
+export function underlineFor(theme: Theme, { error, focused, editable }: { error: boolean; focused: boolean; editable: boolean }) {
   if (error) return { borderBottomColor: theme.danger, borderBottomWidth: BorderWidth.strong, paddingBottom: 0 };
   if (!editable) return { borderBottomColor: theme.border, borderBottomWidth: BorderWidth.thin, paddingBottom: 1 };
   if (focused) return { borderBottomColor: theme.tint, borderBottomWidth: BorderWidth.strong, paddingBottom: 0 };

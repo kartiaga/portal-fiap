@@ -54,6 +54,11 @@ export default function AppLayout() {
           options={{ title: 'Nova postagem', presentation: 'modal' }}
         />
         <Stack.Screen name="(teacher)/posts/[id]/edit" options={{ title: 'Editar postagem' }} />
+        {/* Escolha do autor da nova postagem (só administrador), aberta pelo campo "Autor". */}
+        <Stack.Screen
+          name="(teacher)/posts/author-picker"
+          options={{ ...sheetOptions, sheetAllowedDetents: [SheetDetent.author] }}
+        />
         <Stack.Screen name="(teacher)/account/edit" options={{ title: 'Meus dados' }} />
 
         {/* Folhas de filtro: nativas (formSheet), do tamanho do conteúdo e sem cabeçalho. */}
@@ -68,6 +73,8 @@ export default function AppLayout() {
           options={{ title: 'Nova pessoa', presentation: 'modal' }}
         />
         <Stack.Screen name="(teacher)/people/[id]/edit" options={{ title: 'Editar pessoa' }} />
+        {/* Editar e Excluir de uma pessoa, abertos pelos três pontinhos do cartão. */}
+        <Stack.Screen name="(teacher)/people/[id]/actions" options={sheetOptions} />
       </Stack.Protected>
     </Stack>
   );

@@ -2,9 +2,23 @@
 
 Portal FIAP para o **Tech Challenge da FIAP — Fase 4**, com API REST, frontend web e aplicativo mobile.
 
-> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, frontend Next.js com listagem e gestão de publicações, testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
+> **Status:** API funcional com autenticação, gerenciamento de usuários, CRUD e busca de posts, curtidas e comentários; frontend Next.js com listagem e gestão de publicações; aplicativo mobile em React Native (Expo) com todos os requisitos da fase 4; testes automatizados, documentação via Swagger/OpenAPI, containerização (Docker), CI e CD com GitHub Actions.
+
+## Guia para avaliação da fase 4
+
+| O que procurar | Onde está |
+|---|---|
+| Enunciado da fase 4, como cada requisito foi atendido e o que mudou (com a orientação do professor) | [`docs/requisitos/fase-4-mobile.md`](docs/requisitos/fase-4-mobile.md) |
+| Setup, arquitetura e guia de uso do aplicativo | [`mobile/README.md`](mobile/README.md) e a seção [Aplicativo mobile](#aplicativo-mobile) abaixo |
+| Contas de teste (professor, estudante e administrador) | [`mobile/README.md`](mobile/README.md#contas-de-teste) |
+| Endpoints REST usados pelo aplicativo | [API — Endpoints implementados](#api--endpoints-implementados) e o Swagger em `http://localhost:3001/docs` |
+| Testes e validação | [`mobile/README.md`](mobile/README.md#testes-e-validação) |
+| Relato de experiências e desafios da equipe | [Experiência da equipe e desafios do desenvolvimento](#experiência-da-equipe-e-desafios-do-desenvolvimento) |
+| Enunciados das fases anteriores (back-end e front-end web) | [`docs/requisitos/`](docs/requisitos/README.md) |
 
 ## Sobre o desafio
+
+Os enunciados originais das fases 2, 3 e 4, como cada requisito foi atendido e o que o projeto fez de diferente (com a orientação do professor) estão em [`docs/requisitos/`](docs/requisitos/README.md).
 
 ### O problema
 
@@ -26,7 +40,7 @@ Oferecer uma API de blogging onde:
 |---|---|---|
 | `GET /posts` | Lista de posts para alunos | Implementado |
 | `GET /posts/:id` | Leitura de um post específico | Implementado |
-| `POST /posts` | Criação de postagens (docentes) | Implementado |
+| `POST /posts` | Criação de postagens (docentes). O autor é quem está logado; o administrador pode publicar em nome de um professor | Implementado |
 | `PUT /posts/:id` | Edição de postagens | Implementado |
 | `DELETE /posts/:id` | Exclusão de postagens | Implementado |
 | `GET /posts/search` | Busca por palavra-chave no título, conteúdo ou nome do autor | Implementado |
@@ -64,7 +78,7 @@ Estas rotas suportam autenticação e gestão de usuários, incluindo os requisi
 |---|---|---|
 | `POST /login` | Autenticação com JWT | Implementado |
 | `GET /users` | Listagem paginada de usuários, com filtro opcional por papel | Implementado |
-| `POST /users` | Cadastro de usuários por administradores e professores, conforme o papel | Implementado |
+| `POST /users` | Cadastro de usuários de qualquer perfil, só pelo administrador | Implementado |
 | `GET /users/:id` | Consulta de usuário | Implementado |
 | `PUT /users/:id` | Edição de usuário sem alteração de papel | Implementado |
 | `DELETE /users/:id` | Exclusão de usuário sem postagens | Implementado |
@@ -117,8 +131,8 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 ### Entregáveis finais
 
 - [x] Código-fonte no GitHub (com Dockerfile e workflows de CI)
-- [x] Apresentação gravada demonstrando o funcionamento
-- [x] Documentação com arquitetura, uso da API e relato de experiências da equipe
+- [ ] Apresentação gravada da fase 4, de até 15 minutos, demonstrando o aplicativo e os detalhes técnicos
+- [x] Documentação com arquitetura, uso da API e do aplicativo e relato de experiências da equipe (fases 2 a 4)
 
 ## Tecnologias
 
@@ -277,7 +291,7 @@ Detalhes de comportamento:
 
 O aplicativo do **Tech Challenge da Fase 4** fica em `mobile/`. Ele é feito em **React Native com Expo**, usa componentes funcionais e hooks, e consome os mesmos endpoints REST do frontend web.
 
-No aplicativo, o administrador cadastra contas de qualquer perfil (estudante, professor ou outro administrador, escolhido no campo **Perfil**), edita, lista com paginação e exclui (RF05 a RF08); o professor só consulta a lista de professores e estudantes. A API impede que alguém exclua a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
+No aplicativo, o administrador cadastra contas de qualquer perfil (estudante, professor ou outro administrador, escolhido no campo **Perfil**), lista com paginação e edita e exclui pelo menu de três pontinhos de cada pessoa da lista (RF05 a RF08); o professor só consulta a lista de professores e estudantes. A API impede que alguém exclua a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
 
 ### Setup do aplicativo
 
@@ -492,7 +506,7 @@ Disponível para `TEACHER` e `ADMIN` pelo botão **Nova postagem** da tela inici
 #### Como usar
 
 1. Na tela inicial, toque em **Nova postagem**.
-2. Preencha o **título** e o **conteúdo**. O campo **Autor** é apenas informativo: a API registra como autor o usuário da sessão.
+2. Preencha o **título** e o **conteúdo**. O campo **Autor** mostra quem assina: para o professor, o próprio nome, só para leitura; o administrador pode tocar nele e escolher um professor, e a postagem sai em nome dele.
 3. Toque em **Publicar postagem**. Enquanto a requisição está em andamento, o botão exibe um indicador de carregamento.
 4. Para desistir, toque em **Cancelar** ou no botão de voltar do cabeçalho.
 
@@ -502,7 +516,9 @@ Ao publicar, o app volta para a lista, que é recarregada e exibe *Postagem publ
 
 | Funcionalidade | Endpoint consumido |
 |---|---|
-| Envio da nova postagem, com o autor definido pelo token | `POST /posts` |
+| Envio da nova postagem, com o autor definido pelo token (ou `authorId` do professor escolhido pelo administrador) | `POST /posts` |
+| Nome de quem está logado, no campo Autor | `GET /users/:id` |
+| Professores para a escolha do autor (só administrador) | `GET /users?role=TEACHER` |
 | Lista atualizada ao voltar, com o aviso de sucesso | `GET /posts` |
 
 O formulário é o mesmo usado na edição (`components/post-form.tsx`).
@@ -517,9 +533,11 @@ As regras são as mesmas da API e do frontend web, verificadas antes do envio e 
 | Título com mais de 255 caracteres | O título deve ter no máximo 255 caracteres. |
 | Conteúdo com menos de 10 caracteres | O conteúdo deve ter pelo menos 10 caracteres. |
 | Usuário sem permissão (`403`) | Você não tem permissão para publicar postagens. |
+| Professor escolhido não existe mais (`422`) | O autor escolhido não é mais um professor cadastrado. Escolha outro. |
 | Falha ao publicar | Não foi possível publicar a postagem. |
 | API inacessível ou sem resposta em 15 segundos | Não foi possível conectar à API. Tente novamente em instantes. |
 | Postagem publicada | Postagem publicada. |
+| Postagem publicada em nome de um professor | Postagem publicada em nome de Fulano. |
 
 O campo de título também limita a digitação a 255 caracteres. Em caso de erro, o formulário continua preenchido para uma nova tentativa.
 
@@ -1180,7 +1198,7 @@ O nome do arquivo tem um uuid novo a cada troca, então o endereço antigo deixa
 
 ### `POST /posts`
 
-Cria uma nova publicação. Requer autenticação com papel `TEACHER` ou `ADMIN`. O autor é identificado automaticamente por meio do token JWT.
+Cria uma nova publicação. Requer autenticação com papel `TEACHER` ou `ADMIN`. O autor é identificado pelo token JWT. O campo opcional `authorId` serve para o `ADMIN` publicar em nome de um professor; o `TEACHER` só pode omiti-lo ou informar o próprio id.
 
 **Headers:**
 
@@ -1194,11 +1212,12 @@ Content-Type: application/json
 ```json
 {
   "title": "Título da publicação",
-  "content": "Conteúdo com no mínimo 10 caracteres"
+  "content": "Conteúdo com no mínimo 10 caracteres",
+  "authorId": "uuid (opcional)"
 }
 ```
 
-O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve conter pelo menos 10 caracteres.
+O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve conter pelo menos 10 caracteres. O campo `authorId`, quando enviado, deve ser um UUID.
 
 **Resposta (201):**
 
@@ -1216,7 +1235,9 @@ O campo `title` deve conter entre 3 e 255 caracteres. O campo `content` deve con
 **Possíveis erros:**
 
 - `401 Unauthorized` — token ausente ou inválido.
-- `403 Forbidden` — usuário sem papel `TEACHER` ou `ADMIN`.
+- `400 Bad Request` — `authorId` que não é UUID.
+- `403 Forbidden` — usuário sem papel `TEACHER` ou `ADMIN`, ou `TEACHER` informando outro autor.
+- `422 Unprocessable Entity` — `authorId` que não é de um professor cadastrado.
 
 ---
 
@@ -1475,6 +1496,8 @@ Sem postagens, `items` é `[]`, `nextCursor` é `null` e `hasMore` é `false`.
 
 ## Experiência da equipe e desafios do desenvolvimento
 
+### Fases 2 e 3: API e frontend web
+
 Durante o desenvolvimento do projeto, a equipe dividiu as atividades entre os integrantes, trabalhando de forma colaborativa por meio de branches e Pull Requests. A comunicação constante facilitou a integração das funcionalidades, a revisão do código e a troca de conhecimento.
 
 Um dos principais desafios foi a adaptação às tecnologias utilizadas, especialmente Node.js, Fastify, PostgreSQL e Next.js, além da organização da aplicação em camadas.
@@ -1482,6 +1505,18 @@ Um dos principais desafios foi a adaptação às tecnologias utilizadas, especia
 Durante os testes, foram identificados e corrigidos problemas relacionados à paginação por cursor, principalmente na precisão do campo created_at entre PostgreSQL e JavaScript e no controle da paginação no frontend. Os problemas foram investigados com testes manuais, análise do código e consultas ao banco de dados.
 
 A experiência contribuiu para o aprimoramento dos conhecimentos da equipe em desenvolvimento full stack, integração entre frontend e API, banco de dados, autenticação e trabalho colaborativo.
+
+### Fase 4: aplicativo mobile
+
+A fase 4 trouxe a mudança do navegador para o celular. A equipe manteve a mesma API e montou o aplicativo com React Native e Expo, usando o expo-router para a navegação por arquivos, abas nativas e folhas nativas (as que sobem de baixo) para filtros, comentários, curtidas e ações. Os principais desafios foram:
+
+- **Requisitos que, ao pé da letra, criariam falhas de permissão.** O enunciado pedia que professores cadastrassem, editassem e excluíssem outros professores. Como editar uma conta inclui trocar e-mail e senha, qualquer professor poderia tomar a conta de um colega. A equipe consultou o professor antes de decidir: as contas ficaram com o perfil administrador, o autor da postagem passou a vir do login (o administrador pode publicar em nome de um professor) e as telas de professores e de alunos foram unidas numa lista com filtro por perfil. As mudanças estão documentadas em [`docs/requisitos/`](docs/requisitos/README.md).
+- **Uma tela pensada para a web num celular.** O requisito de listagem fala em "tabelas" com botões de editar e excluir. No celular, a lista virou cartões, e as duas ações foram para um menu de três pontinhos, para não deixar o "Excluir" ao alcance de um toque acidental durante a rolagem.
+- **Um erro intermitente na folha de comentários.** Às vezes a lista cobria o título; depois de uma primeira correção, às vezes a folha abria com o meio em branco. A causa estava no código nativo do react-native-screens: no iOS, ele procura a lista dentro da folha e força o tamanho dela durante a animação de abertura, e o resultado dependia de a resposta da API chegar antes ou depois da animação. A equipe só encontrou a causa lendo o código nativo da biblioteca, e a solução foi fazer o layout da folha não depender dessa correção (`components/sheet-scaffold.tsx`).
+- **O teclado no Android.** Na folha de comentários, o teclado cobria o campo de comentar, porque o Android só sobe a folha até o topo da tela. O app calcula a parte coberta e a soma ao espaço de baixo (`hooks/use-sheet-keyboard-inset.ts`).
+- **Testar sem depender do aparelho.** Os fluxos foram testados com Jest e a biblioteca de testes do expo-router, que monta a navegação real do app com a API simulada. As regras de permissão e a paginação também foram conferidas contra a API real, com uma conta e postagens descartáveis, apagadas no fim (resultados no [README do mobile](mobile/README.md#testes-e-validação)).
+
+A fase reforçou que requisitos precisam ser lidos com olhar crítico: perguntar ao professor antes de seguir ou de ignorar um requisito estranho evitou tanto uma falha de segurança quanto uma perda de nota. Também mostrou o valor de documentar cada decisão, para quem avalia entender o que foi feito e por quê.
 
 
 ## Licença

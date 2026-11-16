@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { AuthorField } from '@/components/author-field';
 import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
-import { Icon } from '@/components/icon';
 import { TextField, type TextFieldHandle } from '@/components/text-field';
 import { useTheme } from '@/hooks/use-theme';
 import type { PostInput } from '@/lib/posts';
-import { ControlHeight, IconSize, Spacing, Typography } from '@/theme';
+import { ControlHeight, Spacing, Typography } from '@/theme';
 
 // Mesmos limites da API (create-post.dto.ts e update-post.dto.ts) e do frontend web,
 // para o erro aparecer antes da chamada de rede. O título é varchar(255) no banco.
@@ -37,11 +37,8 @@ export function validatePost({ title, content }: PostInput): FieldErrors {
 type PostFormProps = {
   /** Valores iniciais dos campos; ausentes na criação. */
   initialValues?: PostInput;
-  /**
-   * Nome de quem escreveu, quando a pessoa edita a postagem de outra (admin). Aparece como aviso
-   * no topo; na criação e na edição da própria postagem não aparece.
-   */
-  otherAuthor?: string | null;
+  /** Campo "Autor", no topo: quem assina a postagem e, para o administrador criando, a escolha. */
+  author: ComponentProps<typeof AuthorField>;
   submitLabel: string;
   submitting: boolean;
   /** Erro devolvido pela tela ao enviar, como uma falha da API. */
@@ -57,7 +54,7 @@ type PostFormProps = {
  */
 export function PostForm({
   initialValues,
-  otherAuthor,
+  author,
   submitLabel,
   submitting,
   error,
@@ -95,14 +92,7 @@ export function PostForm({
 
   return (
     <View style={styles.form}>
-      {otherAuthor ? (
-        <View style={styles.otherAuthor}>
-          <Icon name="person-outline" size={IconSize.small} color={theme.textSecondary} />
-          <Text style={[Typography.callout, styles.otherAuthorText, { color: theme.textSecondary }]}>
-            Editando a postagem de {otherAuthor}
-          </Text>
-        </View>
-      ) : null}
+      <AuthorField {...author} disabled={submitting || author.disabled} />
 
       <View style={styles.field}>
         <TextField
@@ -161,14 +151,6 @@ export function PostForm({
 const styles = StyleSheet.create({
   form: {
     gap: Spacing.four,
-  },
-  otherAuthor: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  otherAuthorText: {
-    flex: 1,
   },
   field: {
     gap: Spacing.one,

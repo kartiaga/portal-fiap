@@ -238,6 +238,25 @@ describe('folha de comentários', () => {
     expect(screen.getByTestId('comments-list')).toBe(list);
   });
 
+  it('carrega a próxima página de comentários pelo cursor, sem repetir', async () => {
+    mockApi((url) => {
+      if (!url.includes('/comments')) return json(200, POST);
+      return url.includes('cursor=pagina-2')
+        ? json(200, page([OTHER_COMMENT, OWN_COMMENT]))
+        : json(200, { items: [OTHER_COMMENT], nextCursor: 'pagina-2', hasMore: true });
+    });
+    await renderAt('/posts/a/comments');
+    const list = await screen.findByTestId('comments-list');
+    await within(list).findByText(OTHER_COMMENT.content);
+    expect(within(list).queryByText(OWN_COMMENT.content)).toBeNull();
+
+    await fireEvent(screen.getByTestId('comments-list'), 'endReached');
+
+    expect(await within(screen.getByTestId('comments-list')).findByText(OWN_COMMENT.content)).toBeOnTheScreen();
+    expect(within(screen.getByTestId('comments-list')).getAllByText(OTHER_COMMENT.content)).toHaveLength(1);
+    expect(requests('GET', 'cursor=pagina-2')).toHaveLength(1);
+  });
+
   it('mostra quando ainda não há comentários', async () => {
     mockApi((url) => (url.includes('/comments') ? json(200, page([])) : json(200, POST)));
     await renderAt('/posts/a/comments');

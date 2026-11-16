@@ -133,13 +133,88 @@ describe('acesso', () => {
     expect(screen.queryByRole('button', { name: 'Publicar postagem' })).toBeNull();
   });
 
-  it('não mostra bloco de autor nem botão Cancelar no rodapé', async () => {
+  it('não tem botão Cancelar no rodapé', async () => {
     mockApi(() => emptyPage);
     await openForm();
 
-    expect(screen.queryByText(/Editando a postagem de/)).toBeNull();
     // O único "Cancelar" é o do cabeçalho do modal.
     expect(screen.getAllByRole('button', { name: 'Cancelar' })).toHaveLength(1);
+  });
+});
+
+describe('autor', () => {
+  const TEACHERS = [
+    { id: 'prof-2', name: 'Bruno Costa', email: 'bruno@fiap.com.br', role: 'TEACHER' },
+    { id: 'prof-3', name: 'Carla Dias', email: 'carla@fiap.com.br', role: 'TEACHER' },
+  ];
+
+  /** Perfil de quem está logado, professores para a escolha, lista de posts e a criação. */
+  function mockAuthorApi(post: (body: Record<string, unknown>) => unknown = (body) => json(201, { ...CREATED, ...body })) {
+    mockApi((url, init) => {
+      if (init.method === 'POST' && url.endsWith('/posts')) return post(JSON.parse(String(init.body)));
+      if (url.endsWith('/users/user-1')) return json(200, { id: 'user-1', name: 'Ana Souza', email: 'ana@fiap.com.br', role: 'TEACHER' });
+      if (url.includes('/users?') && url.includes('role=TEACHER')) {
+        return json(200, { items: TEACHERS, nextCursor: null, hasMore: false });
+      }
+      return emptyPage;
+    });
+  }
+
+  it('o professor vê o próprio nome, sem poder trocar, e publica sem informar autor', async () => {
+    mockAuthorApi();
+    await openForm('TEACHER');
+
+    expect(await screen.findByLabelText('Autor: Ana Souza, você')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Autor:/ })).toBeNull();
+    expect(screen.getByText('A postagem é publicada em seu nome.')).toBeOnTheScreen();
+
+    await fillForm('Aula de hoje', 'Conteúdo da aula de hoje.');
+    await submit();
+
+    await waitFor(() => expect(requests('POST')).toHaveLength(1));
+    expect(JSON.parse(String(requests('POST')[0][1].body))).toEqual({
+      title: 'Aula de hoje',
+      content: 'Conteúdo da aula de hoje.',
+    });
+  });
+
+  it('o administrador escolhe um professor, e o texto digitado continua no formulário', async () => {
+    mockAuthorApi();
+    await openForm('ADMIN');
+    await fillForm('Aula de hoje', 'Conteúdo da aula de hoje.');
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Autor: Ana Souza, você' }));
+    expect(screen).toHavePathname('/posts/author-picker');
+    expect(await screen.findByRole('radio', { name: 'Você' })).toBeChecked();
+
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Bruno Costa' }));
+
+    expect(await screen.findByRole('button', { name: 'Autor: Bruno Costa' })).toBeOnTheScreen();
+    expect(screen.getByDisplayValue('Aula de hoje')).toBeOnTheScreen();
+    await submit();
+
+    await waitFor(() => expect(requests('POST')).toHaveLength(1));
+    expect(JSON.parse(String(requests('POST')[0][1].body))).toEqual({
+      title: 'Aula de hoje',
+      content: 'Conteúdo da aula de hoje.',
+      authorId: 'prof-2',
+    });
+    expect(await screen.findByText('Postagem publicada em nome de Bruno Costa.')).toBeOnTheScreen();
+  });
+
+  it('explica quando o professor escolhido deixou de existir', async () => {
+    mockAuthorApi(() => json(422, { message: 'The author must be an existing teacher' }));
+    await openForm('ADMIN');
+    await fillForm('Aula de hoje', 'Conteúdo da aula de hoje.');
+
+    await fireEvent.press(await screen.findByRole('button', { name: /^Autor:/ }));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Carla Dias' }));
+    await screen.findByRole('button', { name: 'Autor: Carla Dias' });
+    await submit();
+
+    expect(
+      await screen.findByText('O autor escolhido não é mais um professor cadastrado. Escolha outro.'),
+    ).toBeOnTheScreen();
   });
 });
 

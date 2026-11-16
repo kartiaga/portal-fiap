@@ -5,6 +5,7 @@ import { Avatar, initialsOf } from '@/components/avatar';
 import { Badge } from '@/components/badge';
 import { Banner } from '@/components/banner';
 import { Button } from '@/components/button';
+import { PersonCard } from '@/components/person-card';
 import { PostMeta } from '@/components/post-meta';
 import { RoleBadge } from '@/components/role-badge';
 import { ScreenHeader } from '@/components/screen-header';
@@ -207,6 +208,34 @@ describe('ChoiceList', () => {
     await render(<ChoiceList accessibilityLabel="Perfil" options={options} value="a" onChange={onChange} disabled />);
     await fireEvent.press(screen.getByRole('radio', { name: 'Estudante' }));
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('PersonCard', () => {
+  const person = {
+    id: 'p1',
+    name: 'Maria Silva',
+    email: 'maria@fiap.com.br',
+    role: 'TEACHER' as const,
+    createdAt: '2026-01-01T12:00:00.000Z',
+    updatedAt: '2026-01-01T12:00:00.000Z',
+  };
+
+  it('mostra o selo do perfil acima do nome', async () => {
+    await render(<PersonCard person={person} isSelf={false} />);
+
+    const texts = screen.getAllByText(/^(Professor|Maria Silva)$/, { includeHiddenElements: true });
+    expect(texts.map((text) => text.props.children)).toEqual(['Professor', 'Maria Silva']);
+  });
+
+  it('os três pontinhos só aparecem para quem gerencia contas', async () => {
+    const onMore = jest.fn();
+    await render(<PersonCard person={person} isSelf={false} onEdit={jest.fn()} onMore={onMore} />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Mais ações para Maria Silva' }));
+    expect(onMore).toHaveBeenCalledWith(person);
+
+    await render(<PersonCard person={person} isSelf={false} />);
+    expect(screen.queryByRole('button', { name: 'Mais ações para Maria Silva' })).toBeNull();
   });
 });
 
