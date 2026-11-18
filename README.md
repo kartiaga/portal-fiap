@@ -131,7 +131,7 @@ Os formulários de criação e edição validam títulos com no mínimo 3 e no m
 ### Entregáveis finais
 
 - [x] Código-fonte no GitHub (com Dockerfile e workflows de CI)
-- [ ] Apresentação gravada da fase 4, de até 15 minutos, demonstrando o aplicativo e os detalhes técnicos
+- [x] [Apresentação gravada da fase 4](https://drive.google.com/file/d/1smpPdr3k2F-SZhwT6EDAyMF8Q_OvkZxC/view?usp=sharing), de até 15 minutos, demonstrando o aplicativo e os detalhes técnicos (a [pasta com todos os materiais da entrega](https://drive.google.com/drive/folders/1oUmx0AkRjrSOSLADLPrg-CokKnqaKcqL?usp=sharing) inclui o vídeo)
 - [x] Documentação com arquitetura, uso da API e do aplicativo e relato de experiências da equipe (fases 2 a 4)
 
 ## Tecnologias
@@ -291,7 +291,7 @@ Detalhes de comportamento:
 
 O aplicativo do **Tech Challenge da Fase 4** fica em `mobile/`. Ele é feito em **React Native com Expo**, usa componentes funcionais e hooks, e consome os mesmos endpoints REST do frontend web.
 
-No aplicativo, o administrador cadastra contas de qualquer perfil (estudante, professor ou outro administrador, escolhido no campo **Perfil**), lista com paginação e edita e exclui pelo menu de três pontinhos de cada pessoa da lista (RF05 a RF08); o professor só consulta a lista de professores e estudantes. A API impede que alguém exclua a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos e as validações ainda pendentes.
+No aplicativo, o administrador cadastra contas de qualquer perfil (estudante, professor ou outro administrador, escolhido no campo **Perfil**), lista com paginação e edita e exclui pelo menu de três pontinhos de cada pessoa da lista (RF05 a RF08); o professor só consulta a lista de professores e estudantes. A API impede que alguém exclua a própria conta e retorna `409` quando o usuário possui postagens. O [README mobile](mobile/README.md) detalha os fluxos, os testes automatizados e a validação contra a API real.
 
 ### Setup do aplicativo
 
